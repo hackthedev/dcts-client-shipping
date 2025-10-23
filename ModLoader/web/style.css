@@ -26,6 +26,7 @@ html, body {
 
     color: hsl(from var(--main) h s calc(l * 12));
     background: linear-gradient(180deg, hsl(from var(--main) h s calc(l * 1.5)), hsl(from var(--main) h s calc(l * 2)), hsl(from var(--main) h s calc(l * 2)));
+    overflow: auto;
 }
 
 #savedServers {
@@ -35,6 +36,7 @@ html, body {
     align-items: center;
 
     width: 80vw;
+    flex: 1;
     margin: 0 auto 0 auto;
 }
 
@@ -52,6 +54,7 @@ h1 {
     text-align: center;
 
     width: 80vw;
+    flex: 1;
     gap: 10px;
 }
 
