@@ -58,5 +58,17 @@ namespace DCTS.Properties {
                 this["branch"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public string skippedVersion {
+            get {
+                return ((string)(this["skippedVersion"]));
+            }
+            set {
+                this["skippedVersion"] = value;
+            }
+        }
     }
 }

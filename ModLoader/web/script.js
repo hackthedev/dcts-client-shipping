@@ -40,14 +40,14 @@ async function renderServersList(servers) {
         const idx = list.children.length;
         if(serverData?.serverinfo?.error && !showOwnerActions) continue;
 
-        const versionText = String(String(serverData.serverinfo?.version).split("")).replaceAll(",", ".");
+        const versionText = encodePlainText(String(String(serverData.serverinfo?.version).split("")).replaceAll(",", "."));
         const card = document.createElement("div");
 
         card.className = "server-card";
         card.style.setProperty("--reveal-delay", `${idx * 200}ms`);
         card.innerHTML = `
      <div class="banner" style="background-image:url('${serverData.serverinfo.banner.includes("://") ? serverData.serverinfo.banner : `http://${address}${serverData.serverinfo.banner}`}')">
-        <p class="name">${truncateString(serverData.serverinfo.name, 25)}</p>
+        <p class="name">${encodePlainText(truncateString(serverData.serverinfo.name, 25))}</p>
       </div>
 
 
@@ -63,7 +63,7 @@ async function renderServersList(servers) {
       </div>
 
       <div class="footer">
-        ${serverData.serverinfo.slots.online} / ${serverData.serverinfo.slots.limit} Online • ${serverData.serverinfo.slots.reserved} reserved
+        ${encodePlainText(serverData.serverinfo.slots.online)} / ${encodePlainText(serverData.serverinfo.slots.limit)} Online • ${encodePlainText(serverData.serverinfo.slots.reserved)} reserved
         <a class="joinButton" href="http://${address}">Join</a>
       </div>
     `;
@@ -74,6 +74,7 @@ async function renderServersList(servers) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+    ensureDomPurify();
     getSavedServers(document.querySelector('.serverlistingContainer'));
 });
 

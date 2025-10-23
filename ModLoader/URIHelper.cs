@@ -38,8 +38,11 @@ namespace ModLoader
             {
                 if (uri == $"{baseUri}version")
                 {
+                    string version = Form1.GetVersion();
+                    Clipboard.SetText(version);
+
                     MessageBox.Show(
-                        Form1.formhelper.GetVersion(),
+                        version,
                         "DCTS",
                         MessageBoxButtons.OK,
                         MessageBoxIcon.Information

@@ -11,5 +11,8 @@
     <Setting Name="branch" Type="System.String" Scope="User">
       <Value Profile="(Default)">main</Value>
     </Setting>
+    <Setting Name="skippedVersion" Type="System.String" Scope="User">
+      <Value Profile="(Default)" />
+    </Setting>
   </Settings>
 </SettingsFile>

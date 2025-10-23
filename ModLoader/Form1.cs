@@ -10,6 +10,7 @@ using System.IO.Pipes;
 using System.Net.NetworkInformation;
 using System.Net.Sockets;
 using System.Reflection;
+using System.Runtime.CompilerServices;
 using System.Runtime.ConstrainedExecution;
 using System.Runtime.InteropServices;
 using System.Web;
@@ -48,10 +49,38 @@ namespace ModLoader
             DwmSetWindowAttribute(handle, DWMWA_USE_IMMERSIVE_DARK_MODE, ref useDark, sizeof(int));
         }
 
-        public string GetVersion()
+        public static string GetVersion()
         {
             return (Assembly.GetExecutingAssembly().GetName().Version).ToString();
-        } 
+        }
+
+        public static bool HandleArgs(params string[] values)
+        {
+            var frame = new StackTrace().GetFrame(1); 
+            var method = frame.GetMethod();
+            var callerName = $"{method.DeclaringType?.Name}.{method.Name}";
+
+            foreach (var v in values)
+            {
+                if (string.IsNullOrWhiteSpace(v))
+                {
+                    string error = $"[{callerName}] Missing argument";
+
+                    Logger.Log(error);
+                    MessageBox.Show("There was an internal error :/\n" +
+                                    "The error was logged in the log file..\n\n" +
+                                    "" +
+                                    "Error: \n" +
+                                    $"{error}",
+                                    "DCTS",
+                                    MessageBoxButtons.OK, MessageBoxIcon.Hand);
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
 
         public Form1(string uri = null)
         {

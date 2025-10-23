@@ -277,6 +277,8 @@ namespace DCTS
 
         public string SignString(string text, string key)
         {
+            if (!Form1.HandleArgs(text)) return "";
+
             if (key == null)
             {
                 Logger.Log($"Cant sign string {text} because no key supplied");
@@ -293,6 +295,8 @@ namespace DCTS
 
         public bool VerifyString(string text, string signatureBase64, string publicKeyPem)
         {
+            if (!Form1.HandleArgs(text, signatureBase64, publicKeyPem)) return false;
+
             using var rsa = RSA.Create();
             rsa.ImportFromPem(publicKeyPem.AsSpan());
             byte[] bytes = Encoding.UTF8.GetBytes(text);
@@ -303,10 +307,7 @@ namespace DCTS
 
         public string SignJson(string json, string privateKeyPem = null)
         {
-            if (json == null || json.Length == 0)
-            {
-                return "";
-            }
+            if (!Form1.HandleArgs(json)) return "";
 
             if (privateKeyPem == null)
             {

@@ -1,6 +1,7 @@
 ﻿using DCTS;
 using Initra;
 using Microsoft.Web.WebView2.WinForms;
+using Renci.SshNet.Security;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -21,7 +22,6 @@ namespace ModLoader
     [ComVisible(true)]
     public class JSBridge
     {
-
         public static JSBridge instance { get; private set; }
 
         private TaskCompletionSource<string> waitForJsTcs;
@@ -45,6 +45,8 @@ namespace ModLoader
 
         public string DecryptData(string method, string encKey, string iv, string tag, string ciphertext)
         {
+            if(!Form1.HandleArgs(method, encKey, iv, tag, ciphertext)) return "";
+
             try
             {
                 return Form1.cryptoHelper.DecryptEnvelope(
@@ -72,6 +74,8 @@ namespace ModLoader
 
         public string DecryptDataPassword(string method, string salt, string iv, string tag, string ciphertext, string password)
         {
+            if (!Form1.HandleArgs(method, salt, iv, tag, ciphertext, password)) return "";
+
             if (method != "password")
                 throw new Exception("invalid method");
 
@@ -92,6 +96,8 @@ namespace ModLoader
 
         public string EncryptData(string data, string recipientPublicKeyOrPass = null)
         {
+            if (!Form1.HandleArgs(data)) return "";
+
             var keys = Form1.cryptoHelper.EnsureKeyPair();
             return Form1.cryptoHelper.EncryptEnvelope(
                 data,
@@ -107,12 +113,16 @@ namespace ModLoader
 
         public string SignJson(string json)
         {
+            if (!Form1.HandleArgs(json)) return "";
+
             return Form1.cryptoHelper.SignJson(json);
         }
 
         public string SignString(string value, string key = null)
         {
-            if(key == null)
+            if (!Form1.HandleArgs(value)) return "";
+
+            if (key == null)
             {
                 key = Form1.cryptoHelper.GetPrivateKey();
             }
@@ -122,12 +132,8 @@ namespace ModLoader
 
         public bool VerifyString(string value, string sig, string key = null)
         {
-            if (sig == null)
-            {
-                Logger.Log($"Cant verify string {value} becaus no sig supplied");
-                Debug.WriteLine($"Cant verify string {value} becaus no sig supplied");
-                return false;
-            }
+            if (!Form1.HandleArgs(value, sig)) return false;
+
             if (key == null)
             {
                 key = Form1.cryptoHelper.GetPublicKey();
@@ -138,7 +144,9 @@ namespace ModLoader
 
         public bool VerifyJson(string json, string receiptPublicKeyOrPass = null)
         {
-            if(receiptPublicKeyOrPass != null)
+            if (!Form1.HandleArgs(json)) return false;
+
+            if (receiptPublicKeyOrPass != null)
             {
                 return Form1.cryptoHelper.VerifyJson(json, receiptPublicKeyOrPass);
             }
@@ -151,26 +159,22 @@ namespace ModLoader
 
         public string GenerateGid(string publicKey)
         {
-            if(publicKey.Length >= 0)
+            if (!Form1.HandleArgs(publicKey)) return "";
+
+            string encoded = Form1.cryptoHelper.EncodeToBase64(publicKey);
+            if (encoded.Length >= 20)
             {
-                string encoded = Form1.cryptoHelper.EncodeToBase64(publicKey);
-                if(encoded.Length >= 20)
-                {
-                    return encoded.Substring(0, 20);
-                }
-                else
-                {
-                    return encoded.Substring(0, encoded.Length);
-                }
+                return encoded.Substring(0, 20);
             }
             else
             {
-                return "";
+                return encoded.Substring(0, encoded.Length);
             }
         }
 
         public void NavigateToUrl(string url)
         {
+            if (!Form1.HandleArgs(url)) return;
             Form1.webView.CoreWebView2.Navigate($"http://{url}");
             Form1.formhelper.Text = $"DCTS » {url}";
             //Form1.webView.CoreWebView2.AddHostObjectToScript("dcts", Form1.bridge);
@@ -194,6 +198,7 @@ namespace ModLoader
 
         public bool SaveServer(string address, string jsonData, bool isFav = false)
         {
+            if (!Form1.HandleArgs(address, jsonData)) return false;
             return Form1.storage.SaveServer(address, jsonData, isFav);
         }
 
@@ -204,12 +209,14 @@ namespace ModLoader
 
         public void DeleteServer(string address)
         {
+            if (!Form1.HandleArgs(address)) return;
             Form1.storage.DeleteServer(address);
         }
 
         public string GetJsonValue(string json, string key)
         {
-            if(json == null) { return null; }
+            if (!Form1.HandleArgs(json, key)) return "";
+            if (json == null) { return null; }
 
             try
             {
@@ -230,6 +237,8 @@ namespace ModLoader
 
         public string PickPath(string description)
         {
+            if (!Form1.HandleArgs(description)) return "";
+
             Logger.Log($"Picking a path..");
 
             using (var dialog = new FolderBrowserDialog())

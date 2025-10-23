@@ -23,15 +23,39 @@ namespace DCTS
                 if (remoteVersion == currentVersion)
                     return;
 
+                // return if we skipped this version
+                if (Properties.Settings.Default.skippedVersion.Length > 0)
+                {
+                    if (remoteVersion == Properties.Settings.Default.skippedVersion) ;
+                    return;
+                }
+
                 DialogResult result = MessageBox.Show(
                     $"A new update is available ({remoteVersion}) \nDo you want to download it?",
-                    "Update verfügbar",
+                    "DCTS",
                     MessageBoxButtons.YesNo,
                     MessageBoxIcon.Information
                 );
 
                 if (result != DialogResult.Yes)
+                {
+                    DialogResult skipVersion = MessageBox.Show(
+                       $"Do you want to skip this version? ({remoteVersion})",
+                       "DCTS",
+                       MessageBoxButtons.YesNo,
+                       MessageBoxIcon.Information
+                    );
+
+                    // option to skip version
+                    if (skipVersion == DialogResult.Yes)
+                    {
+                        Properties.Settings.Default.skippedVersion = remoteVersion;
+                        Properties.Settings.Default.Save();
+                        Properties.Settings.Default.Reload();
+                    }
+
                     return;
+                }
 
                 string zipPath = Path.Combine(Application.StartupPath, "update.zip");
                 string downloadUrl = $"https://github.com/{repo}/releases/latest/download/update.zip";
