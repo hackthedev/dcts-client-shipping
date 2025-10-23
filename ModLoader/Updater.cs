@@ -1,0 +1,60 @@
+﻿using System;
+using System.Diagnostics;
+using System.IO;
+using System.Net;
+using System.Threading.Tasks;
+using System.Windows.Forms;
+
+namespace DCTS
+{
+    public static class Updater
+    {
+        public static async Task CheckAsync(string repo, string currentVersion)
+        {
+            using var client = new WebClient();
+
+            try
+            {
+                string remoteUrl = $"https://github.com/{repo}/releases/latest/download/version.txt";
+                string remoteVersion = await client.DownloadStringTaskAsync(remoteUrl);
+
+                remoteVersion = remoteVersion.Trim();
+
+                if (remoteVersion == currentVersion)
+                    return;
+
+                DialogResult result = MessageBox.Show(
+                    $"A new update is available ({remoteVersion}) \nDo you want to download it?",
+                    "Update verfügbar",
+                    MessageBoxButtons.YesNo,
+                    MessageBoxIcon.Information
+                );
+
+                if (result != DialogResult.Yes)
+                    return;
+
+                string zipPath = Path.Combine(Application.StartupPath, "update.zip");
+                string downloadUrl = $"https://github.com/{repo}/releases/latest/download/update.zip";
+
+                await client.DownloadFileTaskAsync(downloadUrl, zipPath);
+
+                if (File.Exists(zipPath))
+                {
+                    MessageBox.Show(
+                        $"The update was downloaded!\n" +
+                        $"- ) After pressing 'OK' a ZIP file dialog will appear." +
+                        $"- ) Continue to unzip it." +
+                        $"- ) If asked to replace files, choose to replace them all", 
+                        "DCTS", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    Process.Start(zipPath);
+
+                    Application.Exit();
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"Unable to update client:\n{ex.Message}", "DCTS", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+    }
+}

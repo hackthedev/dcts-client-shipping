@@ -1,0 +1,15 @@
+﻿<?xml version='1.0' encoding='utf-8'?>
+<SettingsFile xmlns="http://schemas.microsoft.com/VisualStudio/2004/01/settings" CurrentProfile="(Default)" GeneratedClassNamespace="DCTS.Properties" GeneratedClassName="Settings">
+  <Profiles />
+  <Settings>
+    <Setting Name="uriScheme" Type="System.String" Scope="User">
+      <Value Profile="(Default)">dcts</Value>
+    </Setting>
+    <Setting Name="storedServers" Type="System.String" Scope="User">
+      <Value Profile="(Default)">0</Value>
+    </Setting>
+    <Setting Name="branch" Type="System.String" Scope="User">
+      <Value Profile="(Default)">main</Value>
+    </Setting>
+  </Settings>
+</SettingsFile>
