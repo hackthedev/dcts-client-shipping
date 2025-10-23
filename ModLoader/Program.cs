@@ -7,10 +7,12 @@ namespace ModLoader
         [STAThread]
         static void Main(string[] args)
         {
-            DCTS.Properties.Settings.Default.Upgrade();
-            DCTS.Properties.Settings.Default.Save();
-            DCTS.Properties.Settings.Default.Reload();
-
+            if (DCTS.Properties.Settings.Default.FirstRunAfterUpgrade)
+            {
+                DCTS.Properties.Settings.Default.Upgrade();
+                DCTS.Properties.Settings.Default.FirstRunAfterUpgrade = false;
+                DCTS.Properties.Settings.Default.Save();
+            }
 
             bool isNewInstance;
             using (Mutex mutex = new Mutex(true, "MySuperSickAppMutexForDCTS", out isNewInstance))

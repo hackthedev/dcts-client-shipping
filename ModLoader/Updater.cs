@@ -24,10 +24,12 @@ namespace DCTS
                     return;
 
                 // return if we skipped this version
-                if (Properties.Settings.Default.skippedVersion.Length > 0)
+                if (DCTS.Properties.Settings.Default.skippedVersion.Length > 0)
                 {
-                    if (remoteVersion == Properties.Settings.Default.skippedVersion) ;
-                    return;
+                    if (remoteVersion == DCTS.Properties.Settings.Default.skippedVersion)
+                    {
+                        return;
+                    }
                 }
 
                 DialogResult result = MessageBox.Show(
@@ -49,9 +51,9 @@ namespace DCTS
                     // option to skip version
                     if (skipVersion == DialogResult.Yes)
                     {
-                        Properties.Settings.Default.skippedVersion = remoteVersion;
-                        Properties.Settings.Default.Save();
-                        Properties.Settings.Default.Reload();
+                        DCTS.Properties.Settings.Default.skippedVersion = remoteVersion;
+                        DCTS.Properties.Settings.Default.Save();
+                        DCTS.Properties.Settings.Default.Reload();
                     }
 
                     return;
@@ -64,12 +66,6 @@ namespace DCTS
 
                 if (File.Exists(zipPath))
                 {
-                    MessageBox.Show(
-                        $"The update was downloaded!\n" +
-                        $"- ) After pressing 'OK' a ZIP file dialog will appear." +
-                        $"- ) Continue to unzip it." +
-                        $"- ) If asked to replace files, choose to replace them all", 
-                        "DCTS", MessageBoxButtons.OK, MessageBoxIcon.Error);
                     Process.Start(zipPath);
 
                     Application.Exit();

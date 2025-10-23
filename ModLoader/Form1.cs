@@ -36,6 +36,8 @@ namespace ModLoader
         public static string branch = DCTS.Properties.Settings.Default.branch;
         private bool didInit = false;
 
+        public static string appPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "dcts");
+
 
         // some hacky shit
         [DllImport("dwmapi.dll", CharSet = CharSet.Auto, SetLastError = true)]
@@ -326,6 +328,11 @@ namespace ModLoader
 
         private void Form1_Load(object sender, EventArgs e)
         {
+            if (!Directory.Exists(appPath))
+            {
+                Directory.CreateDirectory(appPath);
+            }
+
             Logger.Clear();
             EnableDarkTitlebar(this.Handle);
 
@@ -337,7 +344,6 @@ namespace ModLoader
             );
 
             cryptoHelper.EnsureKeyPair();
-
             Updater.CheckAsync("hackthedev/dcts-client-shipping", GetVersion());
         }
 

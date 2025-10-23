@@ -70,5 +70,17 @@ namespace DCTS.Properties {
                 this["skippedVersion"] = value;
             }
         }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("True")]
+        public bool FirstRunAfterUpgrade {
+            get {
+                return ((bool)(this["FirstRunAfterUpgrade"]));
+            }
+            set {
+                this["FirstRunAfterUpgrade"] = value;
+            }
+        }
     }
 }

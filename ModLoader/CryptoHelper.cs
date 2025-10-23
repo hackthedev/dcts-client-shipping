@@ -1,6 +1,7 @@
 ﻿using ModLoader;
 using System;
 using System.Diagnostics;
+using System.Reflection.Metadata;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -22,7 +23,8 @@ namespace DCTS
           RSA-SHA256-PKCS1 signs and verifies data
          */
 
-        private readonly string KeyFilePath = Path.Combine(Application.StartupPath, "privatekey.json");
+        
+        private readonly string KeyFilePath = Path.Combine(Form1.appPath, "privatekey.json");
 
         public (string PrivateKey, string PublicKey) EnsureKeyPair()
         {
@@ -158,30 +160,39 @@ namespace DCTS
 
         public string DecryptEnvelope(string method, string encKey, string iv, string tag, string ciphertext, string privateKeyPem)
         {
-            byte[] aesKey;
-
-            if (method == "rsa")
+            try
             {
-                byte[] encKeyBytes = Convert.FromBase64String(encKey);
-                using var rsa = RSA.Create();
-                rsa.ImportFromPem(privateKeyPem.AsSpan());
-                aesKey = rsa.Decrypt(encKeyBytes, RSAEncryptionPadding.OaepSHA1);
+                byte[] aesKey;
+
+                if (method == "rsa")
+                {
+                    byte[] encKeyBytes = Convert.FromBase64String(encKey);
+                    using var rsa = RSA.Create();
+                    rsa.ImportFromPem(privateKeyPem.AsSpan());
+                    aesKey = rsa.Decrypt(encKeyBytes, RSAEncryptionPadding.OaepSHA1);
+                }
+                else if (method == "password")
+                {
+                    throw new Exception("password mode not supported in this overload");
+                }
+                else throw new Exception("unsupported method");
+
+                byte[] ivBytes = Convert.FromBase64String(iv);
+                byte[] tagBytes = Convert.FromBase64String(tag);
+                byte[] cipherBytes = Convert.FromBase64String(ciphertext);
+
+                byte[] plainBytes = new byte[cipherBytes.Length];
+                using var aes = new AesGcm(aesKey);
+                aes.Decrypt(ivBytes, cipherBytes, tagBytes, plainBytes);
+
+                return Encoding.UTF8.GetString(plainBytes);
             }
-            else if (method == "password")
+            catch (Exception ex)
             {
-                throw new Exception("password mode not supported in this overload");
+                Logger.Log("Cant decrypt data");
+                Logger.Log(ex.Message);
+                return "";
             }
-            else throw new Exception("unsupported method");
-
-            byte[] ivBytes = Convert.FromBase64String(iv);
-            byte[] tagBytes = Convert.FromBase64String(tag);
-            byte[] cipherBytes = Convert.FromBase64String(ciphertext);
-
-            byte[] plainBytes = new byte[cipherBytes.Length];
-            using var aes = new AesGcm(aesKey);
-            aes.Decrypt(ivBytes, cipherBytes, tagBytes, plainBytes);
-
-            return Encoding.UTF8.GetString(plainBytes);
         }
 
 

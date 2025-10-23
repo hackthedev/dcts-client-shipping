@@ -27,6 +27,16 @@
     <div class="savedServersHeader">
         <h1>DCTS</h1>
         <h2>These are your saved servers</h2>
+
+        <div id="connectContainer">
+            <h2>... or connect via url</h2>
+
+            <div id="connectInputs">
+                <input type="text" id="connectUrl" placeholder="Enter a url">
+                <button id="connectButton" onclick="connectToServer(document.getElementById('connectUrl').value)">Connect</button>
+                <p id="connectionStatus"></p>
+            </div>
+        </div>
     </div>
 
     <div class="serverlistingContainer">
