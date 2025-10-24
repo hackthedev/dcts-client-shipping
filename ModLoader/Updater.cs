@@ -1,4 +1,5 @@
-﻿using System;
+﻿using ModLoader;
+using System;
 using System.Diagnostics;
 using System.IO;
 using System.Net;
@@ -59,6 +60,10 @@ namespace DCTS
                     return;
                 }
 
+
+                UpdateForm updater = new UpdateForm();
+                updater.Show();
+
                 string zipPath = Path.Combine(Application.StartupPath, "update.zip");
                 string downloadUrl = $"https://github.com/{repo}/releases/latest/download/update.zip";
 
@@ -66,13 +71,30 @@ namespace DCTS
 
                 if (File.Exists(zipPath))
                 {
-                    Process.Start(zipPath);
+                    updater.Close();
+
+                    MessageBox.Show(
+                       $"The update was downloaded!\n" + 
+                       $"Press OK to finish the update",
+                       "DCTS", MessageBoxButtons.OK, MessageBoxIcon.Information);
+
+
+                    string bat = Path.Combine(Application.StartupPath, "unzip.bat");
+                    var psi = new ProcessStartInfo("cmd.exe", $"/c \"{bat}\"")
+                    {
+                        UseShellExecute = false,
+                        CreateNoWindow = true,
+                        WindowStyle = ProcessWindowStyle.Hidden
+                    };
+
+                    Process.Start(psi);
 
                     Application.Exit();
                 }
             }
             catch (Exception ex)
             {
+                Clipboard.SetText(ex.Message);
                 MessageBox.Show($"Unable to update client:\n{ex.Message}", "DCTS", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }

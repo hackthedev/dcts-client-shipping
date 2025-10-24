@@ -240,9 +240,6 @@ namespace ModLoader
 
             webView.CoreWebView2.NavigationCompleted += WebView_NavigationCompleted;
 
-            if (isDebug) webView.CoreWebView2.OpenDevToolsWindow();
-
-
             await webView.CoreWebView2.Profile.ClearBrowsingDataAsync(
                 CoreWebView2BrowsingDataKinds.CacheStorage & ~CoreWebView2BrowsingDataKinds.Cookies
             );

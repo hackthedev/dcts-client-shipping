@@ -7,6 +7,12 @@ namespace ModLoader
         [STAThread]
         static void Main(string[] args)
         {
+            string appPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "dcts");
+            string settingsDir = Path.Combine(appPath, "data");
+            if(!Directory.Exists(settingsDir)) Directory.CreateDirectory(settingsDir);
+            AppDomain.CurrentDomain.SetData("APPDATA", settingsDir);
+
+
             if (DCTS.Properties.Settings.Default.FirstRunAfterUpgrade)
             {
                 DCTS.Properties.Settings.Default.Upgrade();
