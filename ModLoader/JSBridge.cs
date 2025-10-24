@@ -176,7 +176,7 @@ namespace ModLoader
         {
             if (!Form1.HandleArgs(url)) return;
             Form1.webView.CoreWebView2.Navigate($"http://{url}");
-            Form1.formhelper.Text = $"DCTS » {url}";
+            Form1.formhelper.Text = $"DCTS » {url} | {Form1.GetVersion()}";
             //Form1.webView.CoreWebView2.AddHostObjectToScript("dcts", Form1.bridge);
         }
 

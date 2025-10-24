@@ -25,9 +25,9 @@ namespace DCTS
                     return;
 
                 // return if we skipped this version
-                if (DCTS.Properties.Settings.Default.skippedVersion.Length > 0)
+                if (StorageHelper.GetSetting<string>("SkippedVersion").Length > 0)
                 {
-                    if (remoteVersion == DCTS.Properties.Settings.Default.skippedVersion)
+                    if (remoteVersion == StorageHelper.GetSetting<string>("SkippedVersion"))
                     {
                         return;
                     }
@@ -52,9 +52,8 @@ namespace DCTS
                     // option to skip version
                     if (skipVersion == DialogResult.Yes)
                     {
-                        DCTS.Properties.Settings.Default.skippedVersion = remoteVersion;
-                        DCTS.Properties.Settings.Default.Save();
-                        DCTS.Properties.Settings.Default.Reload();
+                        StorageHelper.SetSetting("SkippedVersion", remoteVersion);
+                        StorageHelper.SaveSettings();
                     }
 
                     return;
@@ -72,12 +71,6 @@ namespace DCTS
                 if (File.Exists(zipPath))
                 {
                     updater.Close();
-
-                    MessageBox.Show(
-                       $"The update was downloaded!\n" + 
-                       $"Press OK to finish the update",
-                       "DCTS", MessageBoxButtons.OK, MessageBoxIcon.Information);
-
 
                     string bat = Path.Combine(Application.StartupPath, "unzip.bat");
                     var psi = new ProcessStartInfo("cmd.exe", $"/c \"{bat}\"")

@@ -36,10 +36,10 @@
             // 
             progressBar1.Anchor = AnchorStyles.Bottom | AnchorStyles.Left | AnchorStyles.Right;
             progressBar1.ForeColor = Color.IndianRed;
-            progressBar1.Location = new Point(32, 68);
+            progressBar1.Location = new Point(23, 62);
             progressBar1.MarqueeAnimationSpeed = 1;
             progressBar1.Name = "progressBar1";
-            progressBar1.Size = new Size(983, 40);
+            progressBar1.Size = new Size(989, 40);
             progressBar1.Step = 500;
             progressBar1.Style = ProgressBarStyle.Marquee;
             progressBar1.TabIndex = 0;
@@ -58,7 +58,7 @@
             AutoScaleDimensions = new SizeF(12F, 30F);
             AutoScaleMode = AutoScaleMode.Font;
             BackColor = Color.FromArgb(38, 40, 42);
-            ClientSize = new Size(1039, 129);
+            ClientSize = new Size(1035, 125);
             ControlBox = false;
             Controls.Add(label1);
             Controls.Add(progressBar1);

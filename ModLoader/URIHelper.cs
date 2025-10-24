@@ -26,7 +26,7 @@ namespace ModLoader
 
         public static async void HandleCustomUri(string uri)
         {
-            string baseUri = $@"{DCTS.Properties.Settings.Default.uriScheme}://";
+            string baseUri = $@"{StorageHelper.GetSetting<string>("UriScheme")}://";
 
             // if ends with slash remove it
             if(uri.Last() == '/')
@@ -74,26 +74,32 @@ namespace ModLoader
             }
         }
 
-        static void RestartAsAdmin()
+        static void RestartAsAdmin(string[] args)
         {
             var exeName = Application.ExecutablePath;
-            var psi = new ProcessStartInfo(exeName)
+
+            string joinedArgs = args != null && args.Length > 0
+                ? string.Join(" ", args.Select(a => $"\"{a}\""))
+                : "";
+
+            var psi = new ProcessStartInfo(exeName, joinedArgs)
             {
                 UseShellExecute = true,
-                Verb = "runas" // triggers UAC
+                Verb = "runas"
             };
 
             try
             {
                 Process.Start(psi);
             }
-            catch
+            catch (Exception ex)
             {
-                MessageBox.Show("Unable to get admin rights");
+                MessageBox.Show("Unable to get admin rights:\n" + ex.Message, "DCTS", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
 
-            Application.Exit(); // stop current instance
+            Application.Exit();
         }
+
 
         public static bool IsRunAsAdmin()
         {
@@ -112,16 +118,16 @@ namespace ModLoader
             }
         }
 
-        public static void RegisterUriScheme()
+        public static void RegisterUriScheme(bool force = false, params string[] args)
         {
-            if (IsUriSchemeRegistered(DCTS.Properties.Settings.Default.uriScheme))
+            if (IsUriSchemeRegistered(StorageHelper.GetSetting<string>("UriScheme")) && force == false)
             {
                 Logger.Log("URI is registered");
                 return;
             }
 
             bool isRunAsAdmin = IsRunAsAdmin();
-            if (!IsUriSchemeRegistered(DCTS.Properties.Settings.Default.uriScheme)) {
+            if (!IsUriSchemeRegistered(StorageHelper.GetSetting<string>("UriScheme")) || force == true) {
 
                 Logger.Log("URI is not registered");
 
@@ -137,14 +143,22 @@ namespace ModLoader
                     );
 
                     Logger.Log("Restarting as admin..");
-                    RestartAsAdmin();
+                    
+                    if(force == true)
+                    {
+                        RestartAsAdmin(args);
+                    }
+                    else
+                    {
+                        RestartAsAdmin(new string[] { });
+                    }
 
                     return;
                 }
                
             }
 
-            string schemeName = DCTS.Properties.Settings.Default.uriScheme;
+            string schemeName = StorageHelper.GetSetting<string>("UriScheme");
             string exePath = Application.ExecutablePath;
 
             Logger.Log("Setting URL Protocol");
@@ -152,7 +166,7 @@ namespace ModLoader
             Logger.Log($"Exe Path: {exePath}");
 
             RegistryKey key = Registry.ClassesRoot.CreateSubKey(schemeName);
-            key.SetValue("", $"URL:{DCTS.Properties.Settings.Default.uriScheme}");
+            key.SetValue("", $"URL:{StorageHelper.GetSetting<string>("UriScheme")}");
             key.SetValue("URL Protocol", "");
 
             RegistryKey defaultIcon = key.CreateSubKey("DefaultIcon");

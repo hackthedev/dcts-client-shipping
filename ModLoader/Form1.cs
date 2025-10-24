@@ -33,7 +33,7 @@ namespace ModLoader
         private System.Windows.Forms.Timer fadeTimer;
         private bool isFadingOut = false;
         public static bool isDebug = false;
-        public static string branch = DCTS.Properties.Settings.Default.branch;
+        public static string branch = "main";
         private bool didInit = false;
 
         public static string appPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "dcts");
@@ -121,6 +121,8 @@ namespace ModLoader
             this.Controls.Add(webView);
 
             InitializeAsync();
+
+            this.Text = $"DCTS | {GetVersion()}";
         }
 
         private int GetWidth(int percent)
@@ -208,8 +210,17 @@ namespace ModLoader
 
         async void InitializeAsync()
         {
-            CoreWebView2Environment env = await CoreWebView2Environment.CreateAsync();
+            string userDataDir = Path.Combine(Form1.appPath, "webview-data");
+            Directory.CreateDirectory(userDataDir);
+
+            CoreWebView2Environment env = await CoreWebView2Environment.CreateAsync(
+                null, // can pick browser with this apparently
+                userDataDir
+            );
+
             await webView.EnsureCoreWebView2Async(env);
+
+
             webView.CoreWebView2.Settings.AreHostObjectsAllowed = true;
             webView.CoreWebView2.AddHostObjectToScript("dcts", bridge);
 

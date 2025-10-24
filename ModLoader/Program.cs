@@ -7,20 +7,13 @@ namespace ModLoader
         [STAThread]
         static void Main(string[] args)
         {
-            string appPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "dcts");
-            string settingsDir = Path.Combine(appPath, "data");
-            if(!Directory.Exists(settingsDir)) Directory.CreateDirectory(settingsDir);
-            AppDomain.CurrentDomain.SetData("APPDATA", settingsDir);
-
-
-            if (DCTS.Properties.Settings.Default.FirstRunAfterUpgrade)
+            if (args.Contains("--register-uri"))
             {
-                DCTS.Properties.Settings.Default.Upgrade();
-                DCTS.Properties.Settings.Default.FirstRunAfterUpgrade = false;
-                DCTS.Properties.Settings.Default.Save();
+                URIHelper.RegisterUriScheme(true, args);
+                return;
             }
 
-            bool isNewInstance;
+                bool isNewInstance;
             using (Mutex mutex = new Mutex(true, "MySuperSickAppMutexForDCTS", out isNewInstance))
             {
                 if (isNewInstance)

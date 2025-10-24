@@ -18,7 +18,7 @@ if exist "%ZIP%" (
 )
 
 if exist "%EXE%" (
-    start "" "%EXE%"
+    start "" "%EXE%" --register-uri
     echo Restarted "%EXE%"
 ) else (
     echo Could not find "%EXE%" to restart.

@@ -11,9 +11,87 @@ namespace ModLoader
     public  class StorageHelper
     {
         public static StorageHelper instance { get; private set; }
+
+        public static string settingsDataPath = Path.Combine(Form1.appPath, "settings.json");
+        private static bool settingsDidInit = false;
+
         public StorageHelper()
         {
             instance = this;
+        }
+
+        public class AppSettings
+        {
+            public string SavedServers { get; set; } = "{}";
+            public string UriScheme { get; set; } = "dcts";
+            public string SkippedVersion { get; set; } = "";
+        }
+
+        public static AppSettings Current { get; private set; } = new AppSettings();
+
+        public static void InitSettings()
+        {
+            Directory.CreateDirectory(Path.GetDirectoryName(settingsDataPath)!);
+
+            if (!File.Exists(settingsDataPath))
+            {
+                SaveSettings(); // create file with defaults
+            }
+            else
+            {
+                LoadSettings();
+            }
+
+            settingsDidInit = true;
+        }
+
+        public static void SaveSettings()
+        {
+            if(!settingsDidInit) InitSettings();
+            string json = JsonSerializer.Serialize(Current, new JsonSerializerOptions { WriteIndented = true });
+            File.WriteAllText(settingsDataPath, json);
+        }
+
+        public static void LoadSettings()
+        {
+            if (!File.Exists(settingsDataPath))
+            {
+                Current = new AppSettings();
+                SaveSettings();
+                return;
+            }
+
+            try
+            {
+                string json = File.ReadAllText(settingsDataPath);
+                Current = JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
+            }
+            catch
+            {
+                Current = new AppSettings();
+                SaveSettings();
+            }
+        }
+
+        public static T GetSetting<T>(string settingName)
+        {
+            if (!settingsDidInit) InitSettings();
+            var prop = typeof(AppSettings).GetProperty(settingName);
+            if (prop == null) return default!;
+            object value = prop.GetValue(Current)!;
+            return (T)Convert.ChangeType(value, typeof(T));
+        }
+
+
+        public static void SetSetting(string settingName, string value)
+        {
+            if (!settingsDidInit) InitSettings();
+            var prop = typeof(AppSettings).GetProperty(settingName);
+            if (prop != null && prop.CanWrite)
+            {
+                prop.SetValue(Current, value);
+                SaveSettings();
+            }
         }
 
         public class ServerInfo
@@ -26,7 +104,7 @@ namespace ModLoader
 
         public Dictionary<string, ServerInfo> GetServers()
         {
-            var json = DCTS.Properties.Settings.Default.storedServers;
+            var json = StorageHelper.GetSetting<string>("SavedServers");
 
             if (!string.IsNullOrWhiteSpace(json))
             {
@@ -39,9 +117,8 @@ namespace ModLoader
 
         public void SaveServers(Dictionary<string, ServerInfo> serverInfo) 
         {
-            DCTS.Properties.Settings.Default.storedServers = JsonSerializer.Serialize<Dictionary<string, ServerInfo>>(serverInfo);
-            DCTS.Properties.Settings.Default.Save();
-            DCTS.Properties.Settings.Default.Reload();
+            StorageHelper.SetSetting("SavedServers", JsonSerializer.Serialize<Dictionary<string, ServerInfo>>(serverInfo));
+            StorageHelper.SaveSettings();
         }
         public void ResetServers()
         {
@@ -50,9 +127,8 @@ namespace ModLoader
 
             if (dr == DialogResult.Yes)
             {
-                DCTS.Properties.Settings.Default.storedServers = "{}";
-                DCTS.Properties.Settings.Default.Save();
-                DCTS.Properties.Settings.Default.Reload();
+                StorageHelper.SetSetting("SavedServers", "{}");
+                StorageHelper.SaveSettings();
             }
         }
 
