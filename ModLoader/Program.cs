@@ -1,4 +1,5 @@
 using System.IO.Pipes;
+using DCTS.Classes;
 
 namespace ModLoader
 {

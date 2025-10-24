@@ -1,5 +1,4 @@
-using DCTS;
-using Initra;
+using DCTS.Classes;
 using Microsoft.Web.WebView2.Core;
 using Microsoft.Web.WebView2.WinForms;
 using Microsoft.Win32;
@@ -30,8 +29,8 @@ namespace ModLoader
         public static DCTSHelper dctsHelper;
         public static CryptoHelper cryptoHelper;
 
-        private System.Windows.Forms.Timer fadeTimer;
-        private bool isFadingOut = false;
+        public static System.Windows.Forms.Timer fadeTimer;
+        public static bool isFadingOut = false;
         public static bool isDebug = false;
         public static string branch = "main";
         private bool didInit = false;
@@ -270,25 +269,25 @@ namespace ModLoader
             if (!didInit)
             {
                 formhelper = this;
-                StartFadeIn(10, 0.1);
+                StartFadeIn(this, 10, 0.1);
                 didInit = true;
             }
 
             webView.CoreWebView2.AddHostObjectToScript("dcts", bridge);
         }
 
-        private void StartFadeIn(int interval, double fadeStep)
+        public static void StartFadeIn(Form form, int interval, double fadeStep)
         {
-            this.Opacity = 0;
-            this.BringToFront();
+            form.Opacity = 0;
+            form.BringToFront();
 
             fadeTimer = new System.Windows.Forms.Timer();
             fadeTimer.Interval = interval; // milliseconds between steps
             fadeTimer.Tick += (s, e) =>
             {
-                if (this.Opacity < 1)
+                if (form.Opacity < 1)
                 {
-                    this.Opacity += fadeStep;
+                    form.Opacity += fadeStep;
                 }
                 else
                 {
@@ -296,27 +295,27 @@ namespace ModLoader
                     fadeTimer.Dispose();
                 }
 
-                if (this.Opacity == 1)
+                if (form.Opacity == 1)
                 {
-                    this.BringToFront();
+                    form.BringToFront();
                 }
             };
             fadeTimer.Start();
         }
 
-        private void StartFadeOut(int interval, double fadeStep)
+        public static void StartFadeOut(Form form, int interval, double fadeStep, bool exit = false)
         {
             isFadingOut = true;
-            this.Opacity = 1;
-            this.BringToFront();
+            form.Opacity = 1;
+            form.BringToFront();
 
             fadeTimer = new System.Windows.Forms.Timer();
             fadeTimer.Interval = interval; // milliseconds between steps
             fadeTimer.Tick += (s, e) =>
             {
-                if (this.Opacity > 0)
+                if (form.Opacity > 0)
                 {
-                    this.Opacity -= fadeStep;
+                    form.Opacity -= fadeStep;
                 }
                 else
                 {
@@ -324,11 +323,12 @@ namespace ModLoader
                     fadeTimer.Dispose();
                 }
 
-                if (this.Opacity == 0)
+                if (form.Opacity == 0)
                 {
                     fadeTimer.Stop();
                     fadeTimer.Dispose();
-                    Application.Exit();
+                    if (exit == true) Application.Exit();
+                    isFadingOut = false;
                 }
             };
             fadeTimer.Start();
@@ -360,10 +360,8 @@ namespace ModLoader
             if (!isFadingOut)
             {
                 e.Cancel = true;
-                StartFadeOut(10, 0.1);
+                StartFadeOut(this, 10, 0.1, true);
             }
-
-            webView.CoreWebView2.AddHostObjectToScript("dcts", bridge);
         }
     }
 }
