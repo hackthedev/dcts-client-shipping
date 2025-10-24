@@ -161,14 +161,13 @@ namespace ModLoader
         {
             if (!Form1.HandleArgs(publicKey)) return "";
 
-            string encoded = Form1.cryptoHelper.EncodeToBase64(publicKey);
-            if (encoded.Length >= 20)
+            if (publicKey.Length >= 120)
             {
-                return encoded.Substring(0, 20);
+                return Form1.cryptoHelper.EncodeToBase64(publicKey.Substring(80, 40));
             }
             else
             {
-                return encoded.Substring(0, encoded.Length);
+                return Form1.cryptoHelper.EncodeToBase64(publicKey.Substring(0, publicKey.Length));
             }
         }
 
@@ -178,6 +177,11 @@ namespace ModLoader
             Form1.webView.CoreWebView2.Navigate($"http://{url}");
             Form1.formhelper.Text = $"DCTS » {url} | {Form1.GetVersion()}";
             //Form1.webView.CoreWebView2.AddHostObjectToScript("dcts", Form1.bridge);
+        }
+
+        public void NavigateHome()
+        {
+            Form1.formhelper.NavigateHome();
         }
 
         private async Task WaitUntilDone()
@@ -205,6 +209,12 @@ namespace ModLoader
         public string GetServers()
         {
             return JsonSerializer.Serialize(Form1.storage.GetServers());
+        }
+
+        public string GetServer(string address)
+        {
+            if (!Form1.HandleArgs(address)) return "";
+            return JsonSerializer.Serialize(Form1.storage.GetServer(address));
         }
 
         public void DeleteServer(string address)

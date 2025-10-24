@@ -77,7 +77,6 @@ async function getSavedServers(container){
 
     let serverData = await Client().GetServers();
     let servers = JSON.parse(serverData)
-
     renderServersList(servers)
 }
 
@@ -90,6 +89,7 @@ async function renderServersList(servers) {
     for(let server in servers){
         let serverObj = servers[server];
         let address = serverObj.Address;
+        console.log(serverObj.JsonData)
         let serverData = JSON.parse(serverObj.JsonData);
 
         if (!serverData || serverData.length <= 0) {
@@ -123,7 +123,7 @@ async function renderServersList(servers) {
       </div>
 
       <div class="footer">
-        ${encodePlainText(serverData.serverinfo.slots.online)} / ${encodePlainText(serverData.serverinfo.slots.limit)} Online • ${encodePlainText(serverData.serverinfo.slots.reserved)} reserved
+        ${serverData.serverinfo.slots.online ? encodePlainText(serverData.serverinfo.slots.online) : "0"} / ${encodePlainText(serverData.serverinfo.slots.limit)} Online • ${encodePlainText(serverData.serverinfo.slots.reserved)} reserved
         <a class="joinButton" href="http://${address}">Join</a>
       </div>
     `;

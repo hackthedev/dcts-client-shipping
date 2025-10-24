@@ -5,7 +5,7 @@
     /* cyan: #012724;*/
     /* purple: #1d1635;*/
     --main: #131415;
-    --card-radius: 20px;
+    --card-radius: 10px;
     --accent: #131415;
 }
 
@@ -85,7 +85,7 @@ table td, table th {
 .server-card {
     background: linear-gradient(130deg, hsl(from var(--accent) h s calc(l * 3)), hsl(from var(--accent) h s calc(l * 3.5)));
     color: hsl(from var(--accent) h s calc(l * 10));
-    width: 350px;
+    width: 250px;
     height: fit-content;
     float: left;
 
@@ -147,9 +147,19 @@ table td, table th {
     font-size: 14px;
     text-align: left;
 
-    max-height: 200px !important;
-    text-overflow: ellipsis;
     overflow: hidden;
+    max-height: 50px;
+    transition: all 500ms;
+    user-select: none;
+}
+
+.server-card .about:hover{
+    max-height: 200px;
+    overflow: auto;
+}
+
+.server-card .about p{
+    margin-top: 0;
 }
 
 .server-card .about a, table a {
@@ -165,7 +175,6 @@ table td, table th {
     flex-wrap: wrap;
     justify-content: center;
     gap: 6px;
-
 
     border-top: 1px solid hsl(from var(--accent) h s calc(l * 1));
     border-bottom: 1px solid hsl(from var(--accent) h s calc(l * 1));
@@ -190,6 +199,7 @@ table td, table th {
     font-weight: bold;
 
     cursor: pointer;
+    user-select: none;
 }
 
 .footer {
@@ -213,6 +223,7 @@ table td, table th {
 
     display: flex;
     margin-left: auto;
+    user-select: none;
 }
 
 

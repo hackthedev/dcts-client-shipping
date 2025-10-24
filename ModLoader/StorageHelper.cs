@@ -26,6 +26,17 @@ namespace ModLoader
             public string UriScheme { get; set; } = "dcts";
             public string SkippedVersion { get; set; } = "";
         }
+        public class ServerInfo
+        {
+            public string Address { get; set; }
+            public string JsonData { get; set; }
+            public bool IsFavourite { get; set; }
+        }
+
+
+
+
+
 
         public static AppSettings Current { get; private set; } = new AppSettings();
 
@@ -94,13 +105,6 @@ namespace ModLoader
             }
         }
 
-        public class ServerInfo
-        {
-            public string Address { get; set; }
-            public string JsonData { get; set; }
-            public bool IsFavourite { get; set; }
-        }
-
 
         public Dictionary<string, ServerInfo> GetServers()
         {
@@ -155,6 +159,15 @@ namespace ModLoader
 
                 return false;
             }
+        }
+
+        public ServerInfo GetServer(string address)
+        {
+            Dictionary<string, ServerInfo> SavedServers = GetServers();
+            if (SavedServers.ContainsKey(address)){
+                return SavedServers[address];
+            }
+            return null;
         }
 
         public void DeleteServer(string address)
