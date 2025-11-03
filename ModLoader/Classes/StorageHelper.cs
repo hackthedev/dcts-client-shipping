@@ -59,9 +59,8 @@ namespace DCTS.Classes
 
         public static void SaveSettings()
         {
-            if (!settingsDidInit) InitSettings();
             string json = JsonSerializer.Serialize(Current, new JsonSerializerOptions { WriteIndented = true });
-            File.WriteAllText(settingsDataPath, json);
+            File.WriteAllText(settingsDataPath, json ?? "{}");
         }
 
         public static void LoadSettings()
@@ -87,7 +86,6 @@ namespace DCTS.Classes
 
         public static T GetSetting<T>(string settingName)
         {
-            if (!settingsDidInit) InitSettings();
             var prop = typeof(AppSettings).GetProperty(settingName);
             if (prop == null) return default!;
             object value = prop.GetValue(Current)!;
@@ -97,7 +95,6 @@ namespace DCTS.Classes
 
         public static void SetSetting(string settingName, string value)
         {
-            if (!settingsDidInit) InitSettings();
             var prop = typeof(AppSettings).GetProperty(settingName);
             if (prop != null && prop.CanWrite)
             {

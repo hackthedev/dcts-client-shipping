@@ -8,13 +8,14 @@ namespace ModLoader
         [STAThread]
         static void Main(string[] args)
         {
+            StorageHelper.InitSettings();
             if (args.Contains("--register-uri"))
             {
                 URIHelper.RegisterUriScheme(true, args);
                 return;
             }
 
-                bool isNewInstance;
+            bool isNewInstance;
             using (Mutex mutex = new Mutex(true, "MySuperSickAppMutexForDCTS", out isNewInstance))
             {
                 if (isNewInstance)

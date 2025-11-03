@@ -87,7 +87,6 @@ namespace ModLoader
         {
             isDebug = System.Diagnostics.Debugger.IsAttached;
 
-
             bridge = new JSBridge();
             storage = new StorageHelper();
             urihelper = new URIHelper();
@@ -109,7 +108,7 @@ namespace ModLoader
             this.StartPosition = FormStartPosition.CenterScreen;            
 
             InitializeComponent();
-            Task.Run(() => ListenForUris());
+            Task.Run(() => ListenForUrisAsync());
 
 
             webView = new WebView2
@@ -182,7 +181,7 @@ namespace ModLoader
 
 
 
-        private void ListenForUris()
+        private async Task ListenForUrisAsync()
         {
             while (true)
             {
@@ -191,38 +190,75 @@ namespace ModLoader
                     using (var pipe = new NamedPipeServerStream("MySuperSickAppPipeForDCTS", PipeDirection.In))
                     using (var reader = new StreamReader(pipe))
                     {
-                        pipe.WaitForConnection();
-                        string uri = reader.ReadLine();
+                        await pipe.WaitForConnectionAsync();
+
+                        string uri = await reader.ReadLineAsync();
                         if (!string.IsNullOrWhiteSpace(uri))
                         {
-                            this.Invoke(() => URIHelper.HandleCustomUri(uri));
+                            BeginInvoke(new Action(() =>
+                            {
+                                try
+                                {
+                                    URIHelper.HandleCustomUri(uri);
+                                }
+                                catch (Exception ex)
+                                {
+                                    Logger.Log(ex.Message);
+                                    Debug.WriteLine("URI handling failed: " + ex.Message);
+                                }
+                            }));
                         }
                     }
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine("Pipe error: " + ex.Message);
+                    Logger.Log(ex.Message);
+                    Debug.WriteLine("Pipe error: " + ex.Message);
+                    await Task.Delay(1000);
                 }
             }
         }
-
 
         async void InitializeAsync()
         {
             string userDataDir = Path.Combine(Form1.appPath, "webview-data");
             Directory.CreateDirectory(userDataDir);
 
-            CoreWebView2Environment env = await CoreWebView2Environment.CreateAsync(
-                null, // can pick browser with this apparently
-                userDataDir
+            var options = new CoreWebView2EnvironmentOptions(
+                "--enable-features=WebRTCHwEncoding " +
+                "--autoplay-policy=no-user-gesture-required " +
+                "--disable-background-timer-throttling " +
+                "--disable-renderer-backgrounding " +
+                "--disable-backgrounding-occluded-windows " +
+                "--disable-features=CalculateNativeWinOcclusion,StopNonTimersInBackground,StopAllInBackground," +
+                "ThrottleDisplayNoneAndVisibilityHiddenCrossOriginIframes,ComputePressure,BackForwardCache"
             );
 
+            var env = await CoreWebView2Environment.CreateAsync(
+                null,
+                userDataDir,
+                options
+            );
             await webView.EnsureCoreWebView2Async(env);
+
+            // nice
+            webView.CoreWebView2.Profile.PreferredColorScheme = CoreWebView2PreferredColorScheme.Dark;
+
+            await webView.CoreWebView2.Profile.SetPermissionStateAsync(CoreWebView2PermissionKind.Microphone, "http://localhost:2051", CoreWebView2PermissionState.Allow);
+            await webView.CoreWebView2.Profile.SetPermissionStateAsync(CoreWebView2PermissionKind.Camera, "http://localhost:2051", CoreWebView2PermissionState.Allow);
+            await webView.CoreWebView2.Profile.SetPermissionStateAsync(CoreWebView2PermissionKind.Autoplay, "http://localhost:2051", CoreWebView2PermissionState.Allow);
+
+            webView.CoreWebView2.PermissionRequested += (sender, args) =>
+            {
+                Debug.WriteLine(sender);
+                Debug.WriteLine(args.PermissionKind);
+                Debug.WriteLine(args.PermissionKind);
+                args.State = CoreWebView2PermissionState.Allow;
+            };
 
 
             webView.CoreWebView2.Settings.AreHostObjectsAllowed = true;
             webView.CoreWebView2.AddHostObjectToScript("dcts", bridge);
-
             webView.CoreWebView2.DOMContentLoaded += (s, e) =>
             {
                 try
@@ -247,6 +283,7 @@ namespace ModLoader
                     Debug.WriteLine("Frame rebind failed: " + ex.Message);
                 }
             };
+
 
             webView.CoreWebView2.NavigationCompleted += WebView_NavigationCompleted;
 
