@@ -2,7 +2,12 @@
 
 The desktop client was created to offer advanced features and security for users. Its fundamentally impossible to implement these features into the web client and still be able to guarantee integrity. Because of that i recommend using the desktop client to anyone wanting to use DCTS for more than just trying it out.
 
-![image-20251023223744845](./assets/image-20251023223744845.png)
+![Bild](https://media.discordapp.net/attachments/496366566741508107/1451345308775878759/image.png?ex=6945d626&is=694484a6&hm=37c07e5b435b9ac63c49e08be25a53e025a4633c9f574e318601661e6d45edda&=&format=webp&quality=lossless&width=2589&height=1259)
+
+> [!IMPORTANT]
+>
+> The windows client has been discontinued!
+> While it may still work, its not being updated anymore.
 
 ------
 
@@ -24,15 +29,6 @@ It is planned to add more features to the client, like potential warning popups 
 The DCTS server consists of two parts: the server and the web client. Since DCTS is open source and anyone running a server has access to the code, a bad actor could modify their server and or web client code to catch keys, modify messages and more. Thats why encryption can only be fully trusted and be done by the desktop client as its fully isolated from the server and web client. This way its impossible for the server and or client to catch private keys. 
 
 Thanks to the signing features and verification its also impossible to edit messages that have been signed.
-
-------
-
-## Potential requirements
-
-Depending on your system you may need to download the following two runtimes if you cant execute the client
-
-- Windows WebView Runtime: https://developer.microsoft.com/en-us/microsoft-edge/webview2/?ch=1&form=MA13LH#download
-- .NET 8 Runtime: https://dotnet.microsoft.com/en-us/download/dotnet/8.0/runtime
 
 ------
 

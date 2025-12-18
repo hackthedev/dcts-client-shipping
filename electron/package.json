@@ -1,0 +1,37 @@
+{
+  "name": "DCTS",
+  "productName": "DCTS",
+  "version": "1.0.0",
+  "description": "",
+  "license": "ISC",
+  "author": "",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "electron-builder"
+  },
+  "dependencies": {
+    "@hackthedev/dsync-sign": "^1.0.10"
+  },
+  "devDependencies": {
+    "electron": "^39.2.5",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.dcts.client",
+    "icon": "icon.png",
+    "productName": "DCTS",
+    "files": [
+      "**/*"
+    ],
+    "asar": true,
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage"
+    }
+  }
+}
