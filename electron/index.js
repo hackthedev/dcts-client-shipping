@@ -6,6 +6,7 @@ let win = null
 const applicationDataDir = path.join(app.getPath("documents"), "dcts")
 const profilePath = path.join(applicationDataDir, "profiles");
 
+
 // create appdata dir if it doesnt exist yet
 if(!fs.existsSync(applicationDataDir)){
     fs.mkdirSync(applicationDataDir)
@@ -45,7 +46,8 @@ function createWindow(width, height) {
         path.join(__dirname, "icon.png")
     ));
 
-    win.loadFile(path.join(__dirname, "web/index.html"))
+    win.webContents.loadURL("https://chat.network-z.com")
+    //win.loadFile(path.join(__dirname, "web/index.html"))
 }
 
 ipcMain.on("navigate", (e, url) => {
@@ -56,6 +58,8 @@ ipcMain.on("navigate", (e, url) => {
 app.whenReady().then(() => {
     const primaryDisplay = screen.getPrimaryDisplay()
     const { width, height } = primaryDisplay.workAreaSize
+
+    console.log(app.getGPUFeatureStatus())
 
     createWindow(getScreenWidthPercent(70, width), getScreenHightPercent(70, height))
 })

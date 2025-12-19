@@ -16,7 +16,6 @@
     "@hackthedev/dsync-sign": "^1.0.10"
   },
   "devDependencies": {
-    "electron": "^39.2.5",
     "electron-builder": "^26.0.12"
   },
   "build": {

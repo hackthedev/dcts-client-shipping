@@ -1,7 +1,7 @@
 const { contextBridge } = require("electron")
 const fs = require("fs/promises")
 const path = require("path")
-const { pathToFileURL } = require("url")
+const { pathToFileURL } = require("url")v
 const { dSyncSign } = require("@hackthedev/dsync-sign")
 
 const arg = process.argv.find(a => a.startsWith("--appdata="))

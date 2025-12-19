@@ -25,6 +25,9 @@ jobs:
       - run: npm ci
         working-directory: electron
 
+      - run: npm install electron --no-save
+        working-directory: electron
+
       - run: npm run build
         working-directory: electron
 
