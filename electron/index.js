@@ -46,8 +46,8 @@ function createWindow(width, height) {
         path.join(__dirname, "icon.png")
     ));
 
-    win.webContents.loadURL("https://chat.network-z.com")
-    //win.loadFile(path.join(__dirname, "web/index.html"))
+    //win.webContents.loadURL("https://chat.network-z.com")
+    win.loadFile(path.join(__dirname, "web/index.html"))
 }
 
 ipcMain.on("navigate", (e, url) => {

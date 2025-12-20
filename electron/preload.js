@@ -27,8 +27,6 @@ async function loadModules() {
         const mod = await import(pathToFileURL(path.join(bridgeDir, file)).href)
         const duration = Date.now() - start
 
-        console.log(`[preload] ${file} loaded in ${duration}ms`)
-
         for (const [name, fn] of Object.entries(mod)) {
             if (typeof fn !== "function") continue
 

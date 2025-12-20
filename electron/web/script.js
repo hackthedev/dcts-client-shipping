@@ -59,7 +59,7 @@ async function connectToServer(address){
 
         // is a valid host so we conenct
         if(testHost.status === 200){
-            await Client().NavigateToUrl(extractHost(address));
+            window.location.href = `https://${extractHost(address)}/`;
             urlInput.value = "";
         }
         else{
