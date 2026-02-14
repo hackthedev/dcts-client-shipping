@@ -1,67 +1,99 @@
-const { app, BrowserWindow, ipcMain, globalShortcut, screen, nativeImage } = require("electron")
-const path = require("path")
+const {
+  app,
+  BrowserWindow,
+  ipcMain,
+  globalShortcut,
+  screen,
+  nativeImage,
+  session,
+  desktopCapturer,
+} = require("electron");
+const path = require("path");
 const fs = require("node:fs");
 
-let win = null
-const applicationDataDir = path.join(app.getPath("documents"), "dcts")
+let win = null;
+const applicationDataDir = path.join(app.getPath("documents"), "dcts");
 const profilePath = path.join(applicationDataDir, "profiles");
 
-
 // create appdata dir if it doesnt exist yet
-if(!fs.existsSync(applicationDataDir)){
-    fs.mkdirSync(applicationDataDir)
+if (!fs.existsSync(applicationDataDir)) {
+  fs.mkdirSync(applicationDataDir);
 }
 
-if(!fs.existsSync(profilePath)){
-    fs.mkdirSync(profilePath)
+if (!fs.existsSync(profilePath)) {
+  fs.mkdirSync(profilePath);
 }
 
-function getScreenWidthPercent(percent, width){
-    return Number(width / 100 * percent)
+function getScreenWidthPercent(percent, width) {
+  return Number((width / 100) * percent);
 }
 
-function getScreenHightPercent(percent, height){
-    return Number(height / 100 * percent)
+function getScreenHightPercent(percent, height) {
+  return Number((height / 100) * percent);
 }
 
 function createWindow(width, height) {
-    win = new BrowserWindow({
-        width,
-        height,
-        icon: path.join(__dirname, "icon.png"),
-        autoHideMenuBar: true,
-        webPreferences: {
-            preload: path.join(__dirname, "preload.js"),
-            contextIsolation: true,
-            nodeIntegration: false,
-            sandbox: false,
-            devTools: true,
-            additionalArguments: [
-                "--appdata=" + applicationDataDir
-            ]
-        }
-    })
+  win = new BrowserWindow({
+    width,
+    height,
+    icon: path.join(__dirname, "icon.png"),
+    autoHideMenuBar: true,
+    webPreferences: {
+      preload: path.join(__dirname, "preload.js"),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: false,
+      devTools: true,
+      additionalArguments: ["--appdata=" + applicationDataDir],
+    },
+  });
 
-    win.setIcon(nativeImage.createFromPath(
-        path.join(__dirname, "icon.png")
-    ));
+  win.setIcon(nativeImage.createFromPath(path.join(__dirname, "icon.png")));
 
-    //win.webContents.loadURL("https://chat.network-z.com")
-    win.loadFile(path.join(__dirname, "web/index.html"))
+  //win.webContents.loadURL("https://chat.network-z.com")
+  win.loadFile(path.join(__dirname, "web/index.html"));
 }
 
 ipcMain.on("navigate", (e, url) => {
-    if (!/^https?:\/\//.test(url)) url = "https://" + url
-    win.loadURL(url)
-})
+  if (!/^https?:\/\//.test(url)) url = "https://" + url;
+  win.loadURL(url);
+});
+
+// Automatically detect X11 / Wayland and enable PipeWire support for Linux
+const isLinux = process.platform === "linux";
+
+app.commandLine.appendSwitch("ozone-platform-hint", "auto");
+app.commandLine.appendSwitch(
+  "enable-features",
+  [
+    "WebRTCPipeWireCapturer",
+    "AcceleratedVideoEncoder",
+    "AcceleratedVideoDecoder",
+    ...(isLinux
+      ? [
+          "AcceleratedVideoDecodeLinuxGL",
+          "AcceleratedVideoDecodeLinuxZeroCopyGL",
+        ]
+      : []),
+  ].join(","),
+);
 
 app.whenReady().then(() => {
-    const primaryDisplay = screen.getPrimaryDisplay()
-    const { width, height } = primaryDisplay.workAreaSize
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const { width, height } = primaryDisplay.workAreaSize;
 
-    console.log(app.getGPUFeatureStatus())
+  console.log(app.getGPUFeatureStatus());
 
-    createWindow(getScreenWidthPercent(70, width), getScreenHightPercent(70, height))
-})
+  session.defaultSession.setDisplayMediaRequestHandler((request, callback) => {
+    desktopCapturer
+      .getSources({ types: ["window", "screen"] })
+      .then((sources) => {
+        callback({ video: sources[0] });
+      });
+  });
 
-
+  createWindow(
+    getScreenWidthPercent(70, width),
+    getScreenHightPercent(70, height),
+  );
+});
