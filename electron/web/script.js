@@ -53,14 +53,12 @@ async function connectToServer(address) {
     status.style.marginTop = "20px";
     status.innerText = "connecting...";
 
+    let data = null;
     try {
         // test host
-        let testHost = await fetch(`https://${host}/`);
-
+        let testHost = await fetch(`https://${host}/discover`);
         if (testHost.status === 200) {
-            await Client().SaveServer(host, await testHost.json())
-            window.location.href = `https://${extractHost(address)}/`;
-            urlInput.value = "";
+            data = await testHost.json();
         } else {
             status.innerText = "Host doesnt seem to be a DCTS server";
         }
@@ -68,6 +66,10 @@ async function connectToServer(address) {
         console.warn(e)
         status.innerText = "Cant connect to host...";
     }
+
+    await Client().SaveServer(host, data || {})
+    window.location.href = `https://${extractHost(address)}/`;
+    urlInput.value = "";
 }
 
 async function getSavedServers(container) {

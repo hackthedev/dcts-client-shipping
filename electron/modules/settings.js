@@ -8,14 +8,20 @@ class Settings {
     static _writeQueue = Promise.resolve()
 
     static Server = class {
-        static async save(id, data, isFav = null) {
+        static async save(id, data = {}, isFav = null) {
             if (!id) throw new Error("id is required")
             await Settings._ensureLoaded()
 
             Settings.settings.servers ??= {}
             Settings.settings.servers[id] ??= {}
 
-            Object.assign(Settings.settings.servers[id], data)
+            if(typeof data === "object"){
+                Object.assign(Settings.settings.servers[id], data)
+            }
+            else{
+                Object.assign(Settings.settings.servers[id], {})
+            }
+
             if (isFav !== null) Settings.settings.servers[id].fav = isFav
 
             await Settings.saveSettings()
@@ -55,13 +61,17 @@ class Settings {
     }
 
     static async saveSettings() {
-        this._writeQueue = this._writeQueue.then(async () => {
-            const tmp = this.settingsPath + ".tmp"
-            await fs.writeFile(tmp, JSON.stringify(this.settings, null, 2))
-            await fs.rename(tmp, this.settingsPath)
-        })
-        return this._writeQueue
+        const disk = JSON.parse(
+            await fs.readFile(this.settingsPath, "utf8").catch(() => "{}")
+        )
+
+        this.settings = { ...disk, ...this.settings }
+
+        const tmp = this.settingsPath + ".tmp"
+        await fs.writeFile(tmp, JSON.stringify(this.settings, null, 2))
+        await fs.rename(tmp, this.settingsPath)
     }
+
 
     static async saveSetting(key, value) {
         await this._ensureLoaded()
