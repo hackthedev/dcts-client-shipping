@@ -3,10 +3,12 @@ const fs = require("fs/promises")
 const path = require("path")
 const { pathToFileURL } = require("url")
 const { dSyncSign } = require("@hackthedev/dsync-sign")
+const Settings = require("./modules/settings");
 
 const arg = process.argv.find(a => a.startsWith("--appdata="))
 const applicationDataDir = arg.split("=")[1]
 const bridgeDir = path.join(__dirname, "modules")
+Settings.initSettings(applicationDataDir);
 
 const exposed = {}
 let signer = null

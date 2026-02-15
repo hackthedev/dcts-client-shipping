@@ -59,6 +59,8 @@ async function connectToServer(address){
 
         // is a valid host so we conenct
         if(testHost.status === 200){
+            await Client().SaveServer(host, await testHost.json())
+            return;
             window.location.href = `https://${extractHost(address)}/`;
             urlInput.value = "";
         }
@@ -87,15 +89,14 @@ async function renderServersList(servers) {
 
     for(let server in servers){
         let serverObj = servers[server];
-        let address = serverObj.address;
-        let isFav = serverObj.isFav;
+        let address = server;
+        let isFav = serverObj?.fav;
 
         let serverInfoRequest = null;
         let serverInfoJson = null;
 
         try{
             serverInfoRequest = await fetch(`https://${extractHost(address)}/discover`);
-            serverData = await serverInfoRequest.json();
         }
         catch(err){
             console.warn("Failed to fetch server info for " + address)
@@ -104,38 +105,38 @@ async function renderServersList(servers) {
         }
 
 
-        if (!serverData || serverData.length <= 0) {
+        if (!serverObj || serverObj.length <= 0) {
             list.innerHTML = "<p>No servers found :(</p>"
             continue;
         }
 
         const idx = list.children.length;
-        if(serverData?.serverinfo?.error && !showOwnerActions) continue;
+        if(serverObj?.serverinfo?.error && !showOwnerActions) continue;
 
-        const versionText = encodePlainText(String(String(serverData.serverinfo?.version).split("")).replaceAll(",", "."));
+        const versionText = encodePlainText(String(String(serverObj.serverinfo?.version).split("")).replaceAll(",", "."));
         const card = document.createElement("div");
 
         card.className = "server-card";
         card.style.setProperty("--reveal-delay", `${idx * 200}ms`);
         card.innerHTML = `
-     <div class="banner" style="background-image:url('${serverData.serverinfo.banner.includes("://") ? serverData.serverinfo.banner : `http://${address}${serverData.serverinfo.banner}`}')">
-        <p class="name">${encodePlainText(truncateString(serverData.serverinfo.name, 25))}</p>
+     <div class="banner" style="background-image:url('${serverObj.serverinfo.banner.includes("://") ? serverObj.serverinfo.banner : `http://${address}${serverObj.serverinfo.banner}`}')">
+        <p class="name">${encodePlainText(truncateString(serverObj.serverinfo.name, 25))}</p>
       </div>
 
 
-      <div class="about">${sanitizeHtmlForRender(serverData.serverinfo.about)}</div>
+      <div class="about">${sanitizeHtmlForRender(serverObj.serverinfo.about)}</div>
 
       <div class="features">
         <label>Features</label>
-        ${serverData.serverinfo.ssl ? `<div id="ssl" class="feature">TLS Encryption</div>` : ""}
-        ${serverData.serverinfo.tenor ? `<div id="tenor" class="feature">Tenor GIFs</div>` : ""}
-        ${serverData.serverinfo.turn ? `<div id="turn-vc" class="feature">VC</div>` : ""}
-        ${serverData.serverinfo.turn ? `<div id="turn-ss" class="feature">Screensharing</div>` : ""}
+        ${serverObj.serverinfo.ssl ? `<div id="ssl" class="feature">TLS Encryption</div>` : ""}
+        ${serverObj.serverinfo.tenor ? `<div id="tenor" class="feature">Tenor GIFs</div>` : ""}
+        ${serverObj.serverinfo.turn ? `<div id="turn-vc" class="feature">VC</div>` : ""}
+        ${serverObj.serverinfo.turn ? `<div id="turn-ss" class="feature">Screensharing</div>` : ""}
         <div class="feature">Version ${versionText}</div>
       </div>
 
       <div class="footer">
-        ${serverData.serverinfo.slots.online ? encodePlainText(serverData.serverinfo.slots.online) : "0"} / ${encodePlainText(serverData.serverinfo.slots.limit)} Online • ${encodePlainText(serverData.serverinfo.slots.reserved)} reserved
+        ${serverObj.serverinfo.slots.online ? encodePlainText(serverObj.serverinfo.slots.online) : "0"} / ${encodePlainText(serverObj.serverinfo.slots.limit)} Online • ${encodePlainText(serverObj.serverinfo.slots.reserved)} reserved
         <a class="joinButton" href="http://${address}">Join</a>
       </div>
     `;

@@ -1,30 +1,48 @@
-const { app, BrowserWindow, ipcMain, globalShortcut, screen, nativeImage } = require("electron")
-const path = require("path")
+const {
+    app,
+    BrowserWindow,
+    ipcMain,
+    screen,
+    nativeImage,
+    session,
+    desktopCapturer
+} = require("electron");
+const path = require("path");
 const fs = require("node:fs");
+const Settings = require("./modules/settings");
 
-let win = null
-const applicationDataDir = path.join(app.getPath("documents"), "dcts")
+let win = null;
+const applicationDataDir = path.join(app.getPath("documents"), "dcts");
 const profilePath = path.join(applicationDataDir, "profiles");
 
+if (!fs.existsSync(applicationDataDir)) fs.mkdirSync(applicationDataDir);
+if (!fs.existsSync(profilePath)) fs.mkdirSync(profilePath);
 
-// create appdata dir if it doesnt exist yet
-if(!fs.existsSync(applicationDataDir)){
-    fs.mkdirSync(applicationDataDir)
+const windowKey = "window.bounds";
+
+async function restoreWindowBounds(win, fallbackWidth, fallbackHeight) {
+    const bounds = await Settings.getSetting(windowKey, null);
+    if (!bounds) return;
+
+    win.setBounds({
+        x: bounds.x,
+        y: bounds.y,
+        width: bounds.width ?? fallbackWidth,
+        height: bounds.height ?? fallbackHeight,
+    });
 }
 
-if(!fs.existsSync(profilePath)){
-    fs.mkdirSync(profilePath)
+function registerWindowBoundsPersistence(win) {
+    const save = async () => {
+        await Settings.saveSetting(windowKey, win.getBounds());
+    };
+
+    win.on("resize", save);
+    win.on("move", save);
+    win.on("close", save);
 }
 
-function getScreenWidthPercent(percent, width){
-    return Number(width / 100 * percent)
-}
-
-function getScreenHightPercent(percent, height){
-    return Number(height / 100 * percent)
-}
-
-function createWindow(width, height) {
+async function createWindow(width, height) {
     win = new BrowserWindow({
         width,
         height,
@@ -36,32 +54,62 @@ function createWindow(width, height) {
             nodeIntegration: false,
             sandbox: false,
             devTools: true,
-            additionalArguments: [
-                "--appdata=" + applicationDataDir
-            ]
-        }
-    })
+            additionalArguments: ["--appdata=" + applicationDataDir],
+        },
+    });
 
-    win.setIcon(nativeImage.createFromPath(
-        path.join(__dirname, "icon.png")
-    ));
+    win.setIcon(nativeImage.createFromPath(path.join(__dirname, "icon.png")));
 
-    //win.webContents.loadURL("https://chat.network-z.com")
-    win.loadFile(path.join(__dirname, "web/index.html"))
+    await restoreWindowBounds(win, width, height);
+    registerWindowBoundsPersistence(win);
+
+    win.loadFile(path.join(__dirname, "web/index.html"));
 }
 
 ipcMain.on("navigate", (e, url) => {
-    if (!/^https?:\/\//.test(url)) url = "https://" + url
-    win.loadURL(url)
-})
+    if (!/^https?:\/\//.test(url)) url = "https://" + url;
+    win.loadURL(url);
+});
 
-app.whenReady().then(() => {
-    const primaryDisplay = screen.getPrimaryDisplay()
-    const { width, height } = primaryDisplay.workAreaSize
+const isLinux = process.platform === "linux";
 
-    console.log(app.getGPUFeatureStatus())
+app.commandLine.appendSwitch("ozone-platform-hint", "auto");
+app.commandLine.appendSwitch(
+    "enable-features",
+    [
+        "WebRTCPipeWireCapturer",
+        "AcceleratedVideoEncoder",
+        "AcceleratedVideoDecoder",
+        ...(isLinux
+            ? [
+                "AcceleratedVideoDecodeLinuxGL",
+                "AcceleratedVideoDecodeLinuxZeroCopyGL",
+            ]
+            : []),
+    ].join(","),
+);
 
-    createWindow(getScreenWidthPercent(70, width), getScreenHightPercent(70, height))
-})
+app.whenReady().then(async () => {
+    Settings.initSettings(applicationDataDir);
 
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const {width, height} = primaryDisplay.workAreaSize;
 
+    session.defaultSession.setDisplayMediaRequestHandler((request, callback) => {
+        desktopCapturer
+            .getSources({types: ["window", "screen"]})
+            .then((sources) => {
+                callback({video: sources[0]});
+            });
+    })
+
+    await createWindow(
+        1080,
+        720
+    );
+});
+
+module.exports = {
+    applicationDataDir,
+    profilePath
+}
