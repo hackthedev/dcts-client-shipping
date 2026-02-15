@@ -6,8 +6,8 @@ function isLauncher() {
     return !!Client();
 }
 
-function extractHost(url){
-    if(!url) return null;
+function extractHost(url) {
+    if (!url) return null;
     const s = String(url).trim();
 
     const looksLikeBareIPv6 = !s.includes('://') && !s.includes('/') && s.includes(':') && /^[0-9A-Fa-f:.]+$/.test(s);
@@ -32,19 +32,19 @@ function extractHost(url){
     }
 }
 
-async function connectToServer(address){
-    if(!isLauncher()) return;
+async function connectToServer(address) {
+    if (!isLauncher()) return;
 
     let host = extractHost(address);
     let urlInput = document.getElementById('connectUrl');
     let status = document.getElementById('connectionStatus');
 
-    if(!urlInput){
+    if (!urlInput) {
         console.warn("Couldnt find connect url field")
         return;
     }
 
-    if(!status){
+    if (!status) {
         console.warn("Couldnt find status element")
         return;
     }
@@ -53,29 +53,26 @@ async function connectToServer(address){
     status.style.marginTop = "20px";
     status.innerText = "connecting...";
 
-    try{
+    try {
         // test host
-        let testHost = await fetch(`https://${host}/discover`);
+        let testHost = await fetch(`https://${host}/`);
 
-        // is a valid host so we conenct
-        if(testHost.status === 200){
+        if (testHost.status === 200) {
             await Client().SaveServer(host, await testHost.json())
-            return;
             window.location.href = `https://${extractHost(address)}/`;
             urlInput.value = "";
-        }
-        else{
+        } else {
             status.innerText = "Host doesnt seem to be a DCTS server";
         }
-    }catch(e){
+    } catch (e) {
         console.warn(e)
         status.innerText = "Cant connect to host...";
     }
 }
 
-async function getSavedServers(container){
-    if(!isLauncher()) return;
-    if(!container) return;
+async function getSavedServers(container) {
+    if (!isLauncher()) return;
+    if (!container) return;
 
     let serverData = await Client().GetServers();
     renderServersList(serverData)
@@ -87,7 +84,7 @@ async function renderServersList(servers) {
     if (!list) return;
     list.innerHTML = "";
 
-    for(let server in servers){
+    for (let server in servers) {
         let serverObj = servers[server];
         let address = server;
         let isFav = serverObj?.fav;
@@ -95,23 +92,13 @@ async function renderServersList(servers) {
         let serverInfoRequest = null;
         let serverInfoJson = null;
 
-        try{
-            serverInfoRequest = await fetch(`https://${extractHost(address)}/discover`);
-        }
-        catch(err){
-            console.warn("Failed to fetch server info for " + address)
-            console.warn(err)
-            continue;
-        }
-
-
         if (!serverObj || serverObj.length <= 0) {
             list.innerHTML = "<p>No servers found :(</p>"
             continue;
         }
 
         const idx = list.children.length;
-        if(serverObj?.serverinfo?.error && !showOwnerActions) continue;
+        if (serverObj?.serverinfo?.error && !showOwnerActions) continue;
 
         const versionText = encodePlainText(String(String(serverObj.serverinfo?.version).split("")).replaceAll(",", "."));
         const card = document.createElement("div");
@@ -119,27 +106,27 @@ async function renderServersList(servers) {
         card.className = "server-card";
         card.style.setProperty("--reveal-delay", `${idx * 200}ms`);
         card.innerHTML = `
-     <div class="banner" style="background-image:url('${serverObj.serverinfo.banner.includes("://") ? serverObj.serverinfo.banner : `http://${address}${serverObj.serverinfo.banner}`}')">
-        <p class="name">${encodePlainText(truncateString(serverObj.serverinfo.name, 25))}</p>
-      </div>
-
-
-      <div class="about">${sanitizeHtmlForRender(serverObj.serverinfo.about)}</div>
-
-      <div class="features">
-        <label>Features</label>
-        ${serverObj.serverinfo.ssl ? `<div id="ssl" class="feature">TLS Encryption</div>` : ""}
-        ${serverObj.serverinfo.tenor ? `<div id="tenor" class="feature">Tenor GIFs</div>` : ""}
-        ${serverObj.serverinfo.turn ? `<div id="turn-vc" class="feature">VC</div>` : ""}
-        ${serverObj.serverinfo.turn ? `<div id="turn-ss" class="feature">Screensharing</div>` : ""}
-        <div class="feature">Version ${versionText}</div>
-      </div>
-
-      <div class="footer">
-        ${serverObj.serverinfo.slots.online ? encodePlainText(serverObj.serverinfo.slots.online) : "0"} / ${encodePlainText(serverObj.serverinfo.slots.limit)} Online • ${encodePlainText(serverObj.serverinfo.slots.reserved)} reserved
-        <a class="joinButton" href="http://${address}">Join</a>
-      </div>
-    `;
+             <div class="banner" style="background-image:url('${serverObj.serverinfo.banner.includes("://") ? serverObj.serverinfo.banner : `http://${address}${serverObj.serverinfo.banner}`}')">
+                <p class="name">${encodePlainText(truncateString(serverObj.serverinfo.name, 25))}</p>
+              </div>
+        
+        
+              <div class="about">${sanitizeHtmlForRender(serverObj.serverinfo.about)}</div>
+        
+              <div class="features">
+                <label>Features</label>
+                ${serverObj.serverinfo.ssl ? `<div id="ssl" class="feature">TLS Encryption</div>` : ""}
+                ${serverObj.serverinfo.tenor ? `<div id="tenor" class="feature">Tenor GIFs</div>` : ""}
+                ${serverObj.serverinfo.turn ? `<div id="turn-vc" class="feature">VC</div>` : ""}
+                ${serverObj.serverinfo.turn ? `<div id="turn-ss" class="feature">Screensharing</div>` : ""}
+                <div class="feature">Version ${versionText}</div>
+              </div>
+        
+              <div class="footer">
+                ${serverObj.serverinfo.slots.online ? encodePlainText(serverObj.serverinfo.slots.online) : "0"} / ${encodePlainText(serverObj.serverinfo.slots.limit)} Online • ${encodePlainText(serverObj.serverinfo.slots.reserved)} reserved
+                <a class="joinButton" href="http://${address}">Join</a>
+              </div>
+            `;
         list.appendChild(card);
         const aboutEl = card.querySelector(".about");
         setTimeout(() => card.classList.add("reveal"), idx * 200);

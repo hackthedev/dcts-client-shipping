@@ -37,8 +37,6 @@ function registerWindowBoundsPersistence(win) {
         await Settings.saveSetting(windowKey, win.getBounds());
     };
 
-    win.on("resize", save);
-    win.on("move", save);
     win.on("close", save);
 }
 
