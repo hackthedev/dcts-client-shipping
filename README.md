@@ -6,7 +6,7 @@ The desktop client was created to offer advanced features and security for users
 
 > [!IMPORTANT]
 >
-> The windows client has been discontinued!
+> The **native** windows client has been discontinued! It has been replaced with a new client!
 > While it may still work, its not being updated anymore.
 
 ------
