@@ -102,30 +102,30 @@ async function renderServersList(servers) {
         const idx = list.children.length;
         if (serverObj?.serverinfo?.error && !showOwnerActions) continue;
 
-        const versionText = encodePlainText(String(String(serverObj.serverinfo?.version).split("")).replaceAll(",", "."));
+        const versionText = encodePlainText(String(String(serverObj?.serverinfo?.version).split("")).replaceAll(",", "."));
         const card = document.createElement("div");
 
         card.className = "server-card";
         card.style.setProperty("--reveal-delay", `${idx * 200}ms`);
         card.innerHTML = `
-             <div class="banner" style="background-image:url('${serverObj.serverinfo.banner.includes("://") ? serverObj.serverinfo.banner : `http://${address}${serverObj.serverinfo.banner}`}')">
-                <p class="name">${encodePlainText(truncateString(serverObj.serverinfo.name, 25))}</p>
+             <div class="banner" style="background-image:url('${serverObj?.serverinfo?.banner?.includes("://") ? serverObj.serverinfo.banner : `https://${address}${serverObj?.serverinfo?.banner}`}')">
+                <p class="name">${encodePlainText(truncateString(serverObj?.serverinfo?.name || address, 25))}</p>
               </div>
         
         
-              <div class="about">${sanitizeHtmlForRender(serverObj.serverinfo.about)}</div>
+              <div class="about">${sanitizeHtmlForRender(serverObj?.serverinfo?.about)}</div>
         
               <div class="features">
                 <label>Features</label>
-                ${serverObj.serverinfo.ssl ? `<div id="ssl" class="feature">TLS Encryption</div>` : ""}
-                ${serverObj.serverinfo.tenor ? `<div id="tenor" class="feature">Tenor GIFs</div>` : ""}
-                ${serverObj.serverinfo.turn ? `<div id="turn-vc" class="feature">VC</div>` : ""}
-                ${serverObj.serverinfo.turn ? `<div id="turn-ss" class="feature">Screensharing</div>` : ""}
+                ${serverObj?.serverinfo?.ssl ? `<div id="ssl" class="feature">TLS Encryption</div>` : ""}
+                ${serverObj?.serverinfo?.tenor ? `<div id="tenor" class="feature">Tenor GIFs</div>` : ""}
+                ${serverObj?.serverinfo?.turn ? `<div id="turn-vc" class="feature">VC</div>` : ""}
+                ${serverObj?.serverinfo?.turn ? `<div id="turn-ss" class="feature">Screensharing</div>` : ""}
                 <div class="feature">Version ${versionText}</div>
               </div>
         
               <div class="footer">
-                ${serverObj.serverinfo.slots.online ? encodePlainText(serverObj.serverinfo.slots.online) : "0"} / ${encodePlainText(serverObj.serverinfo.slots.limit)} Online • ${encodePlainText(serverObj.serverinfo.slots.reserved)} reserved
+                ${serverObj?.serverinfo?.slots?.online ? encodePlainText(serverObj?.serverinfo?.slots?.online) : "0"} / ${encodePlainText(serverObj?.serverinfo?.slots?.limit)} Online • ${encodePlainText(serverObj?.serverinfo?.slots?.reserved)} reserved
                 <a class="joinButton" href="http://${address}">Join</a>
               </div>
             `;
