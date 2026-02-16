@@ -102,7 +102,7 @@ async function renderServersList(servers) {
         const idx = list.children.length;
         if (serverObj?.serverinfo?.error && !showOwnerActions) continue;
 
-        const versionText = encodePlainText(String(String(serverObj?.serverinfo?.version).split("")).replaceAll(",", "."));
+        const versionText = encodePlainText(String(String(serverObj?.serverinfo?.version || "?").split("")).replaceAll(",", "."));
         const card = document.createElement("div");
 
         card.className = "server-card";
@@ -126,13 +126,24 @@ async function renderServersList(servers) {
         
               <div class="footer">
                 ${serverObj?.serverinfo?.slots?.online ? encodePlainText(serverObj?.serverinfo?.slots?.online) : "0"} / ${encodePlainText(serverObj?.serverinfo?.slots?.limit)} Online • ${encodePlainText(serverObj?.serverinfo?.slots?.reserved)} reserved
-                <a class="joinButton" href="http://${address}">Join</a>
+                
+                
+                <div class="buttons">
+                    <a class="joinButton" href="http://${address}">Join</a>
+                    <a class="joinButton delete" onclick="deleteServer('${extractHost(address)}')"">&#128465;</a>
+                </div>
+                
               </div>
             `;
         list.appendChild(card);
         const aboutEl = card.querySelector(".about");
         setTimeout(() => card.classList.add("reveal"), idx * 200);
     }
+}
+
+async function deleteServer(ip){
+    await Client().DeleteServer(ip)
+    getSavedServers(document.querySelector('.serverlistingContainer'))
 }
 
 document.addEventListener('DOMContentLoaded', async () => {

@@ -203,6 +203,8 @@ table td, table th {
 }
 
 .footer {
+    display: flex;
+    gap: 4px;
     padding: 10px;
     width: calc(100% - 20px);
 
@@ -211,6 +213,13 @@ table td, table th {
 
     display: flex;
     align-items: center;
+}
+
+.footer .buttons{
+    display: flex;
+    justify-content: end;
+    margin-left: auto;
+    gap: 4px;
 }
 
 .joinButton {
@@ -224,6 +233,11 @@ table td, table th {
     display: flex;
     margin-left: auto;
     user-select: none;
+}
+
+.joinButton.delete {
+    padding: 6px;
+    background: indianred;
 }
 
 
