@@ -53,6 +53,7 @@ async function createWindow(width, height) {
             preload: path.join(__dirname, "preload.js"),
             contextIsolation: true,
             nodeIntegration: false,
+            nodeIntegrationInSubFrames: true,
             sandbox: false,
             devTools: true,
             additionalArguments: ["--appdata=" + applicationDataDir],
