@@ -5,11 +5,14 @@ const {
     screen,
     nativeImage,
     session,
-    desktopCapturer
+    desktopCapturer,
+    Notification,
+    net
 } = require("electron");
 const path = require("path");
 const fs = require("node:fs");
 const Settings = require("./modules/settings");
+
 
 let win = null;
 const applicationDataDir = path.join(app.getPath("documents"), "dcts");
@@ -44,7 +47,7 @@ async function createWindow(width, height) {
     win = new BrowserWindow({
         width,
         height,
-        icon: path.join(__dirname, "icon.png"),
+        icon: path.join(__dirname, "logo.ico"),
         autoHideMenuBar: true,
         webPreferences: {
             preload: path.join(__dirname, "preload.js"),
@@ -56,7 +59,7 @@ async function createWindow(width, height) {
         },
     });
 
-    win.setIcon(nativeImage.createFromPath(path.join(__dirname, "icon.png")));
+    win.setIcon(nativeImage.createFromPath(path.join(__dirname, "logo.ico")));
 
     await restoreWindowBounds(win, width, height);
     registerWindowBoundsPersistence(win);
@@ -71,6 +74,8 @@ ipcMain.on("navigate", (e, url) => {
 
 const isLinux = process.platform === "linux";
 
+app.setName("DCTS Chat");
+app.setAppUserModelId("DCTS");
 app.commandLine.appendSwitch("ozone-platform-hint", "auto");
 app.commandLine.appendSwitch(
     "enable-features",
@@ -105,6 +110,27 @@ app.whenReady().then(async () => {
         1080,
         720
     );
+});
+
+
+ipcMain.handle("show-notification", async (event, json) => {
+    const options = {
+        title: json.title,
+        body: json.text,
+    };
+
+    if (json.icon) {
+        try {
+            const resp = await net.fetch(json.icon);
+            const buffer = Buffer.from(await resp.arrayBuffer());
+            options.icon = nativeImage.createFromBuffer(buffer);
+        } catch (e) {
+            // no pic so we ignore that shit
+        }
+    }
+
+    const notif = new Notification(options);
+    notif.show();
 });
 
 module.exports = {

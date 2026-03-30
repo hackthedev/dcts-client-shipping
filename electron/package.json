@@ -21,17 +21,19 @@
   },
   "build": {
     "appId": "com.dcts.client",
-    "icon": "icon.png",
-    "productName": "DCTS",
+    "icon": "icon.ico",
+    "productName": "DCTS Chat",
     "files": [
       "**/*"
     ],
     "asar": true,
     "win": {
-      "target": "nsis"
+      "target": "nsis",
+      "icon": "logo.ico"
     },
     "linux": {
-      "target": "AppImage"
+      "target": "AppImage",
+      "icon": "logo.ico"
     }
   }
 }
