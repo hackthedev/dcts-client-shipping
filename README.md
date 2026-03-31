@@ -11,6 +11,35 @@ The desktop client was created to offer advanced features and security for users
 
 ------
 
+## How to run
+
+```
+cd electron
+npm start
+```
+
+------
+
+## How to build
+
+You will need `electron builder` to be installed.
+You can install it with:
+
+```
+cd electron
+npm install electron-builder
+```
+
+Then you can build the client with:
+
+```
+npm run build
+```
+
+The command will create a dist folder containing the client and the relative App Image.
+
+------
+
 ## Key Features
 
 As mentioned above the desktop client offers some additional features in terms of functionality and security. 
