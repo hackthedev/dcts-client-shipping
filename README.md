@@ -4,12 +4,11 @@ The desktop client was created to offer advanced features and security for users
 
 ![image-20260406190936976](./assets/image-20260406190936976.png)
 
-> [!IMPORTANT]
->
-> The **native** windows client has been discontinued! It has been replaced with a new client!
-> While it may still work, its not being updated anymore.
+
 
 ------
+
+
 
 ## Key Features
 
@@ -22,7 +21,11 @@ As mentioned above the desktop client offers some additional features in terms o
 
 It is planned to add more features to the client, like potential warning popups of malicious servers, server badges and more!
 
+
+
 ------
+
+
 
 ## Why it matters
 
@@ -30,7 +33,11 @@ The DCTS server consists of two parts: the server and the web client. Since DCTS
 
 Thanks to the signing features and verification its also impossible to edit messages that have been signed.
 
+
+
 ------
+
+
 
 ## Potential issues
 
