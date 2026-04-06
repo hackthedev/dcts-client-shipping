@@ -49,7 +49,7 @@ function registerWindowBoundsPersistence(win) {
 async function createWindow(width, height) {
     // installing multiple packages
     const results = await FrontendLibs.installMultiple([
-        { package: '@hackthedev/icons@latest', path: libDir }
+        { package: '@hackthedev/icons@1.0.4', path: libDir }
     ]);
 
     results.forEach((r) => {

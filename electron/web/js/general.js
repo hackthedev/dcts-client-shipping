@@ -33,25 +33,10 @@ function extractHost(url) {
 }
 
 async function connectToServer(address) {
+    if(!address) throw new Error('Missing address');
     if (!isLauncher()) return;
 
     let host = extractHost(address);
-    let urlInput = document.getElementById('connectUrl');
-    let status = document.getElementById('connectionStatus');
-
-    if (!urlInput) {
-        console.warn("Couldnt find connect url field")
-        return;
-    }
-
-    if (!status) {
-        console.warn("Couldnt find status element")
-        return;
-    }
-
-    // apply status etc
-    status.style.marginTop = "20px";
-    status.innerText = "connecting...";
 
     let data = null;
     try {
@@ -68,6 +53,5 @@ async function connectToServer(address) {
     }
 
     await Client().SaveServer(host, data || {})
-    window.location.href = `http://${extractHost(address)}/`;
-    urlInput.value = "";
+    window.location.href = `http://${host}/`;
 }

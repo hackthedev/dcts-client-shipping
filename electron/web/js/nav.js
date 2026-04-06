@@ -9,15 +9,15 @@ async function buildNavHTML(initial = false){
             ${Icon.display("server")}
         </div>
         
-        <div class="entry" onclick="selectNavEntry(this);">
+        <div class="entry" onclick="selectNavEntry(this);loadMessages()">
             ${Icon.display("message")}
         </div>
         
-        <div class="entry" onclick="selectNavEntry(this);">
+        <div class="entry" onclick="selectNavEntry(this);loadAccount()">
             ${Icon.display("account")}
         </div>
         
-        <div class="entry" onclick="selectNavEntry(this);">
+        <div class="entry" onclick="selectNavEntry(this);loadSettings();">
             ${Icon.display("edit")}
         </div>
         `;

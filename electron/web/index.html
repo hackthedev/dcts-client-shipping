@@ -20,7 +20,12 @@
     <link rel="stylesheet" href="css/content.css">
 
     <script src="js/libs/icons/Icons.js"></script>
+
     <script src="js/content/serverlist.js"></script>
+    <script src="js/content/messages.js"></script>
+    <script src="js/content/account.js"></script>
+    <script src="js/content/settings.js"></script>
+
     <script src="js/content.js"></script>
     <script src="js/nav.js"></script>
     <script src="js/header.js"></script>
@@ -42,7 +47,7 @@
 
         <div class="connection-bar">
             <input type="text" placeholder="Connect...">
-            <button>Connect</button>
+            <button onclick="connectToServer(this.parentNode.querySelector('input').value)">Connect</button>
         </div>
     </div>
 

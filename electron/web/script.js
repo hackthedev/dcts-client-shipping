@@ -16,6 +16,8 @@ async function renderServersList(container, servers) {
 
     for (let server in servers) {
         let serverObj = servers[server];
+        serverObj.serverinfo = null;
+
         let address = server;
         let isFav = serverObj?.fav;
 
@@ -54,7 +56,9 @@ async function renderServersList(container, servers) {
               </div>
         
               <div class="footer">
-                ${serverObj?.serverinfo?.slots?.online ? encodePlainText(serverObj?.serverinfo?.slots?.online) : "0"} / ${encodePlainText(serverObj?.serverinfo?.slots?.limit)} Online • ${encodePlainText(serverObj?.serverinfo?.slots?.reserved)} reserved
+                <label class="online">
+                    ${serverObj?.serverinfo?.slots?.online ? encodePlainText(serverObj?.serverinfo?.slots?.online) : "0"} / ${encodePlainText(serverObj?.serverinfo?.slots?.limit)} Online • ${encodePlainText(serverObj?.serverinfo?.slots?.reserved)} reserved
+                </label>
                                 
                 <div class="buttons">
                     <a class="joinButton" href="http://${address}">Join</a>

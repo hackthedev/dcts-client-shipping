@@ -3,7 +3,6 @@
     flex-direction: row;
     flex-wrap: wrap;
     justify-content: center;
-    align-items: start;
 
     gap: 1rem;
 }
@@ -57,12 +56,17 @@
 
 .layout > .content-container > .content > .serverList > .server-card .about{
     font-size: 12px;
-    max-height: 150px;
+    max-height: 100px;
     overflow: auto;
 }
 
 .layout > .content-container > .content > .serverList > .server-card .features{
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: column;
     margin: 1rem 0;
+    font-size: 12px;
+
 }
 .layout > .content-container > .content > .serverList > .server-card .features .list{
     margin-top: 0.5rem;
@@ -75,17 +79,18 @@
     padding: 0.25rem 0.5rem;
     border-radius: 2px;
 }
-
-.layout > .content-container > .content > .serverList > .server-card .footer{
-    border-top: 1px solid var(--border-color-bright);
-}
-
 .layout > .content-container > .content > .serverList > .server-card .footer{
     display: flex;
     flex-direction: row;
     flex-wrap: wrap;
     gap: 1rem;
+
     align-items: center;
+    align-content: end;
+    justify-content: end;
+
+    margin-top: auto;
+    margin-bottom: 0;
 
     margin-left: -1rem;
     margin-right: -1rem;
@@ -93,7 +98,9 @@
     padding-left: 1rem;
     padding-right: 1rem;
     padding-top: 1rem;
+
     font-size: 12px;
+    border-top: 1px solid var(--border-color-bright);
 }
 
 .layout > .content-container > .content > .serverList > .server-card .footer .buttons{

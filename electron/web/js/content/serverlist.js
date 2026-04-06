@@ -13,6 +13,7 @@ async function lazyFetchAndUpdateServerCard(address) {
     setServerCardName(serverCard, serverObj?.serverinfo?.name ?? address)
     setServerCardAbout(serverCard, serverObj?.serverinfo?.about ?? "")
     setServerCardBanner(serverCard, bannerUrl)
+    setServerOnline(serverCard, serverObj)
     setServerCardFeatures(serverCard, getServerCardFeaturesHTML(serverObj))
 }
 
@@ -28,6 +29,13 @@ function setServerCardAbout(serverCardElement, about) {
 
 function setServerCardBanner(serverCardElement, url) {
     serverCardElement.querySelector(".banner").style.backgroundImage = `url('${url}')`;
+}
+
+function setServerOnline(serverCardElement, serverObj) {
+    serverCardElement.querySelector(".footer .online").textContent =
+        `${serverObj?.serverinfo?.slots?.online ? 
+            encodePlainText(serverObj?.serverinfo?.slots?.online) : "0"} / ${encodePlainText(serverObj?.serverinfo?.slots?.limit)} Online • 
+            ${encodePlainText(serverObj?.serverinfo?.slots?.reserved)} reserved`;
 }
 
 function setServerCardName(serverCardElement, name) {
