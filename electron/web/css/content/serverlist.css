@@ -1,0 +1,123 @@
+.layout > .content-container > .content > .serverList{
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+
+    gap: 1rem;
+}
+
+.layout > .content-container > .content > .serverList > .server-card{
+    display: flex;
+    flex-direction: column;
+    padding: 1rem;
+    border-radius: 8px;
+    overflow: hidden;
+    width: calc(300px - 1rem);
+}
+
+.layout > .content-container > .content > .serverList > .server-card .banner{
+    display: flex;
+    align-items: center;
+
+    margin-top: -1rem;
+    margin-left: -1rem;
+    margin-right: -1rem;
+    margin-bottom: 1rem;
+    padding: 1rem;
+
+    position: relative;
+
+    object-fit: cover;
+    background-position: center center;
+    background-size: cover;
+    background-repeat: no-repeat;
+
+    height: calc(100px - 1rem);
+
+    text-shadow: -1px 0 0 var(--main), 1px 0 0 var(--main),
+    0 -1px 0 var(--main), 0 1px 0 var(--main),
+    0 0 8px var(--main);
+    z-index: 1;
+}
+
+.layout > .content-container > .content > .serverList > .server-card .banner:before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+            to right,
+            rgba(0,0,0,0.75),
+            transparent
+    );
+    pointer-events: none;
+    z-index: -1;
+}
+
+.layout > .content-container > .content > .serverList > .server-card .about{
+    font-size: 12px;
+    max-height: 100px;
+    overflow: auto;
+}
+
+.layout > .content-container > .content > .serverList > .server-card .features{
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: column;
+    margin: 1rem 0;
+    font-size: 12px;
+
+}
+.layout > .content-container > .content > .serverList > .server-card .features .list{
+    margin-top: 0.5rem;
+    display: flex;
+    flex-direction: row;
+    gap: 0.5rem;
+    font-size: 12px;
+}
+.layout > .content-container > .content > .serverList > .server-card .features .list .feature{
+    padding: 0.25rem 0.5rem;
+    border-radius: 2px;
+}
+.layout > .content-container > .content > .serverList > .server-card .footer{
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 1rem;
+
+    align-items: center;
+    align-content: end;
+    justify-content: end;
+
+    margin-top: auto;
+    margin-bottom: 0;
+
+    margin-left: -1rem;
+    margin-right: -1rem;
+
+    padding-left: 1rem;
+    padding-right: 1rem;
+    padding-top: 1rem;
+
+    font-size: 12px;
+    border-top: 1px solid var(--border-color-bright);
+}
+
+.layout > .content-container > .content > .serverList > .server-card .footer .buttons{
+    font-size: 16px;
+    display: flex;
+    margin-left: auto;
+    gap: 1rem;
+}
+
+.layout > .content-container > .content > .serverList > .server-card .footer .buttons .joinButton{
+    background-color: var(--accent-two);
+    color: white;
+    padding: 2px 8px;
+    border-radius: 2px;
+    text-decoration: none;
+}
+
+.layout > .content-container > .content > .serverList > .server-card .footer .buttons .joinButton.delete{
+    background-color: indianred;
+}

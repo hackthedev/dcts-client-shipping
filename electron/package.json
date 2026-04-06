@@ -13,7 +13,8 @@
     "build": "electron-builder"
   },
   "dependencies": {
-    "@hackthedev/dsync-sign": "^1.0.14"
+    "@hackthedev/dsync-sign": "^1.0.14",
+    "@hackthedev/frontend-libs": "^1.0.5"
   },
   "devDependencies": {
     "electron": "^40.4.1",

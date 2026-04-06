@@ -7,11 +7,14 @@ const {
     session,
     desktopCapturer,
     Notification,
-    net
+    net,
 } = require("electron");
 const path = require("path");
 const fs = require("node:fs");
 const Settings = require("./modules/settings");
+
+const FrontendLibs = require("@hackthedev/frontend-libs").default;
+let libDir = path.join(path.resolve(), "web", "js", "libs");
 
 
 let win = null;
@@ -44,6 +47,21 @@ function registerWindowBoundsPersistence(win) {
 }
 
 async function createWindow(width, height) {
+    // installing multiple packages
+    const results = await FrontendLibs.installMultiple([
+        { package: '@hackthedev/icons@1.0.4', path: libDir }
+    ]);
+
+    results.forEach((r) => {
+        if(r?.success || r?.skipped){
+            console.log(r?.message)
+        }
+        else{
+            console.error(r?.message)
+        }
+    });
+
+
     win = new BrowserWindow({
         width,
         height,
