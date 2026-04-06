@@ -2,7 +2,7 @@
 
 The desktop client was created to offer advanced features and security for users. Its fundamentally impossible to implement these features into the web client and still be able to guarantee integrity. Because of that i recommend using the desktop client to anyone wanting to use DCTS for more than just trying it out.
 
-![Bild](https://media.discordapp.net/attachments/496366566741508107/1451345308775878759/image.png?ex=6945d626&is=694484a6&hm=37c07e5b435b9ac63c49e08be25a53e025a4633c9f574e318601661e6d45edda&=&format=webp&quality=lossless&width=2589&height=1259)
+![image-20260406190936976](./assets/image-20260406190936976.png)
 
 > [!IMPORTANT]
 >
