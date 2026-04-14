@@ -18,6 +18,7 @@ As mentioned above the desktop client offers some additional features in terms o
 - Signing and verification of messages sent in a server channel
 - User Badge System
 - Unique global ID system
+- Automatic sign-in
 
 It is planned to add more features to the client, like potential warning popups of malicious servers, server badges and more!
 
