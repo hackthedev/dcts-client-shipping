@@ -9,6 +9,7 @@ async function buildNavHTML(initial = false){
             ${Icon.display("server")}
         </div>
         
+        ${isLocal() ? `
         <div class="entry" onclick="selectNavEntry(this);loadMessages()">
             ${Icon.display("message")}
         </div>
@@ -20,6 +21,8 @@ async function buildNavHTML(initial = false){
         <div class="entry" onclick="selectNavEntry(this);loadSettings();">
             ${Icon.display("edit")}
         </div>
+        ` : ""}
+        
         `;
 }
 

@@ -9,6 +9,7 @@ const {
     Notification,
     net,
 } = require("electron");
+
 const path = require("path");
 const fs = require("node:fs");
 const Settings = require("./modules/settings");
@@ -49,7 +50,9 @@ function registerWindowBoundsPersistence(win) {
 async function createWindow(width, height) {
     // installing multiple packages
     const results = await FrontendLibs.installMultiple([
-        { package: '@hackthedev/icons@1.0.4', path: libDir }
+        { package: '@hackthedev/icons@1.0.5', path: libDir },
+        { package: '@hackthedev/mobile-ui@latest', path: libDir },
+        { package: '@hackthedev/prompts@latest', path: libDir }
     ]);
 
     results.forEach((r) => {

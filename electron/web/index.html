@@ -15,11 +15,14 @@
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/header.css">
     <link rel="stylesheet" href="css/nav.css">
+    <link rel="stylesheet" href="css/mobile.css">
 
     <link rel="stylesheet" href="css/content/serverlist.css">
     <link rel="stylesheet" href="css/content.css">
 
     <script src="js/libs/icons/Icons.js"></script>
+    <script src="js/libs/prompts/prompts.js"></script>
+    <script src="js/libs/mobile-ui/MobileUI.js"></script>
 
     <script src="js/content/serverlist.js"></script>
     <script src="js/content/messages.js"></script>
@@ -48,6 +51,10 @@
         <div class="connection-bar">
             <input type="text" placeholder="Connect...">
             <button onclick="connectToServer(this.parentNode.querySelector('input').value)">Connect</button>
+        </div>
+
+        <div class="end-bar">
+            <button onclick="submitServerUI()">Submit a server</button>
         </div>
     </div>
 

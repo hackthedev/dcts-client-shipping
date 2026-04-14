@@ -43,7 +43,7 @@ function setServerCardName(serverCardElement, name) {
 }
 
 function setServerCardFeatures(serverCardElement, html){
-    serverCardElement.querySelector(".features .list").innerHTML = html
+    serverCardElement.querySelector(".features").innerHTML = html
 }
 
 async function fetchServerInfo(address){
@@ -60,7 +60,7 @@ async function fetchServerInfo(address){
 function getServerCardFeaturesHTML(serverObj) {
     const versionText = encodePlainText(String(String(serverObj?.serverinfo?.version || "?").split("")).replaceAll(",", "."));
 
-    return ` ${serverObj?.serverinfo?.voip === true ? `<div id="turn-vc" class="feature">VC</div>` : ""}
-            ${serverObj?.serverinfo?.voip === true ? `<div id="turn-ss" class="feature">Screensharing</div>` : ""}
-            <div class="feature">Version ${versionText}</div>`
+    return ` ${serverObj?.serverinfo?.voip === true ? `<div id="turn-vc" class="feature" title="Voice chat suported">${Icon.display("mic")}</div>` : ""}
+            ${serverObj?.serverinfo?.voip === true ? `<div id="turn-ss" class="feature" title="Screensharing supported">${Icon.display("screenshare")}</div>` : ""}
+            <div class="feature" title="Version ${versionText}">${Icon.display("tag")}</div>`
 }

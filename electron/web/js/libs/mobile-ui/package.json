@@ -1,13 +1,13 @@
 {
-  "name": "@hackthedev/icons",
-  "version": "1.0.5",
+  "name": "@hackthedev/mobile-ui",
+  "version": "1.0.0",
   "description": "",
   "keywords": [
     "frontend"
   ],
   "license": "ISC",
   "author": "",
-  "main": "Icons.js",
+  "main": "MobileUI.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   }

@@ -16,10 +16,10 @@ a {
 }
 
 .layout > .header input, .layout > .header button {
-    background-color: hsl(from var(--main) h s calc(l * 1));
+    background-color: hsl(from var(--main) h s calc(l * 2));
     color: hsl(from var(--main) h s calc(l * 10));
 
-    border: 1px solid var(--border-color-bright);
+    border: 1.5px solid var(--border-color);
     border-radius: 4px;
     outline: none;
     cursor: pointer;
@@ -49,4 +49,9 @@ a {
 .layout > .content-container > .content > .serverList > .server-card .features .list .feature{
     background-color: hsl(from var(--main) h s calc(l * 4));
     border: 1.25px solid var(--border-color-bright);
+}
+
+.layout > .header .end-bar button {
+    background-color: hsl(from var(--main) h s calc(l * 2));
+    border: 1.5px solid var(--border-color);
 }

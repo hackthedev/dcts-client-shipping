@@ -1,17 +1,134 @@
+let customPrompts = null;
+
+function isLocal(){
+    return window.location.origin.startsWith("file://");
+}
+
+async function getDiscoveredHosts(){
+    return new Promise(async (resolve, reject) => {
+        let servers = await fetch("/servers");
+        resolve(servers.json())
+    })
+}
+
+
 async function getSavedServers(container) {
-    if (!isLauncher()) return;
     if (!container) return console.warn("No container supplied!");
 
-    container.innerHTML = `<div class="serverList"></div>`
+    container.innerHTML = `<div class="serverList"></div>`;
 
-    let servers = await Client().GetServers();
-    renderServersList(container.querySelector(".serverList"), servers)
+    let servers = isLauncher() ? await Client().GetServers() : {};
+    let remoteServers = [];
+
+    // if not connected to an instance. using file:// url...
+    if (!isLocal()) {
+        const discovered = await getDiscoveredHosts();
+        remoteServers = Array.isArray(discovered?.servers) ? discovered.servers : [];
+    }
+
+    const mergedServers = { ...(servers || {}) };
+
+    for (const server of remoteServers) {
+        if (!server?.address) continue;
+
+        if (!mergedServers[server.address]) {
+            mergedServers[server.address] = {
+                address: server.address
+            };
+        }
+    }
+
+    renderServersList(container.querySelector(".serverList"), mergedServers);
+}
+
+function submitServerUI(){
+    customPrompts.showPrompt(
+        `Submit Server`,
+        `
+         <div class="prompt-form-group">
+             <p>
+                You can submit servers and if valid and verified they will be added to the discovery list.
+             </p>
+         </div>
+         
+         <div class="prompt-form-group">
+            <input class="prompt-input" autocomplete="off" type="text" name="address" id="address" placeholder="Enter the server url" value="">
+         </div>
+        `,
+        async function (values) {
+            let address = values?.address;
+
+            if (address && address.length > 0) {
+                submitServer(address)
+            }
+
+            if (!address) {
+                submitServerUI();
+            }
+        }
+    )
+}
+
+async function submitServer(host){
+    if(!host || isLocal()) return;
+    let extractedHost = extractHost(host);
+
+    // lets give the user some feedback
+    showSystemMessage({
+        title: "Checking server...",
+        text: "",
+        icon: "info",
+        img: null,
+        type: "info",
+        duration: 4000
+    });
+    let isValidHost = await testHost(extractedHost);
+
+    if(isValidHost){
+        let submitInfo = await fetch(`/servers/add/${encodeURIComponent(extractedHost)}`, {
+            method: "POST"
+        })
+
+        let submitData = await submitInfo.json();
+
+        if(submitInfo.status === 200){
+            showSystemMessage({
+                title: "Server submitted!",
+                text: "",
+                icon: "success",
+                img: null,
+                type: "success",
+                duration: 4000
+            });
+
+            getSavedServers();
+        }
+        else{
+            showSystemMessage({
+                title: "Server not submitted",
+                text: submitData?.error,
+                icon: "error",
+                img: null,
+                type: "error",
+                duration: 10000
+            });
+        }
+    }
+    else{
+        showSystemMessage({
+            title: "Server not found",
+            text: "The url doesnt seem to be a DCTS server or discovery was disabled",
+            icon: "error",
+            img: null,
+            type: "error",
+            duration: 10000
+        });
+    }
 }
 
 async function renderServersList(container, servers) {
-
     const list = container;
-    if (!list) return;
+    if (!list) throw new Error("No list found to display items in");
     list.innerHTML = "";
 
     for (let server in servers) {
@@ -42,18 +159,15 @@ async function renderServersList(container, servers) {
         card.innerHTML = `
              <div class="banner" style="background-image:url('${serverObj?.serverinfo?.banner?.includes("://") ? serverObj.serverinfo.banner : `https://${address}${serverObj?.serverinfo?.banner}`}')">
                 <p class="name">${encodePlainText(truncateString(serverObj?.serverinfo?.name || address, 25))}</p>
+                
+                 <div class="features">
+                    ${serverObj?.serverinfo?.voip === true ? `<div id="turn-vc" class="feature" title="Voice chat suported">${Icon.display("mic")}</div>` : ""}
+                    ${serverObj?.serverinfo?.voip === true ? `<div id="turn-ss" class="feature" title="Screensharing supported">${Icon.display("screenshare")}</div>` : ""}
+                    <div class="feature" title="Version ${versionText}">${Icon.display("tag")}</div>
+                  </div>
               </div>        
         
-              <div class="about">${sanitizeHtmlForRender(serverObj?.serverinfo?.about)}</div>
-                           
-              <div class="features">
-                <label>Features</label>
-                <div class="list">
-                    ${serverObj?.serverinfo?.voip === true ? `<div id="turn-vc" class="feature">VC</div>` : ""}
-                    ${serverObj?.serverinfo?.voip === true ? `<div id="turn-ss" class="feature">Screensharing</div>` : ""}
-                    <div class="feature">Version ${versionText}</div>
-                </div>
-              </div>
+              <div class="about">${sanitizeHtmlForRender(serverObj?.serverinfo?.about ?? "No info found.")}</div>
         
               <div class="footer">
                 <label class="online">
@@ -85,6 +199,8 @@ async function deleteServer(ip) {
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
+    customPrompts = new Prompt();
+
     ensureDomPurify();
     buildNavHTML(true);
     getSavedServers(getContentElement())
