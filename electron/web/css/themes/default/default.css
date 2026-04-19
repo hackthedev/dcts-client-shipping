@@ -55,3 +55,54 @@ a {
     background-color: hsl(from var(--main) h s calc(l * 2));
     border: 1.5px solid var(--border-color);
 }
+
+.layout > .content-container > .content > .message-container .chats{
+    border-right: 1.5px solid var(--border-color);
+}
+.layout > .content-container > .content > .message-container .chats .chat:hover{
+    background-color: hsl(from var(--main) h s calc(l * 2));
+}
+.layout > .content-container > .content > .message-container .chats .chat .latestMessage{
+    color: hsl(from var(--main) h s calc(l * 6));
+}
+.layout > .content-container > .content > .message-container .chats .chat .badge{
+    background-color: hsl(from var(--main) h s calc(l * 6));
+    color: hsl(from var(--main) h s calc(l * 1));
+}
+
+.layout > .content-container > .content > .message-container .chat-content .header{
+    border-bottom: 1.5px solid var(--border-color);
+}
+
+.layout > .content-container > .content > .message-container .chat-content .editor-container {
+    border-top: 1.5px solid var(--border-color);
+}
+
+.ql-toolbar {
+    background: hsl(from var(--main) h s calc(l * 8));
+    border: none;
+}
+
+.editor-container .rich-editor .editor {
+    border: 1.5px solid var(--border-color-bright) !important;
+}
+
+.ql-toolbar button {
+    color: hsl(from var(--main) h s calc(l * 1));
+}
+
+.ql-toolbar button:hover {
+    color: hsl(from var(--main) h s calc(l * 1));
+}
+
+.ql-toolbar .ql-stroke {
+    stroke: hsl(from var(--main) h s calc(l * 1));
+}
+
+.ql-toolbar .ql-fill {
+    fill: hsl(from var(--main) h s calc(l * 1));
+}
+
+.ql-editor.ql-blank::before {
+    color: hsl(from var(--main) h s calc(l * 8));
+}

@@ -18,7 +18,7 @@ async function getSavedServers(container) {
     container.innerHTML = `<div class="serverList"></div>`;
 
     let servers = isLauncher() ? await Client().GetServers() : {};
-    if(typeof servers === "string" && servers === "{}") servers = {}; // android bridge fix
+    if(typeof servers === "string") servers = JSON.parse(servers || "{}"); // android bridge fix
 
     let remoteServers = [];
 
@@ -206,6 +206,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     ensureDomPurify();
     buildNavHTML(true);
     getSavedServers(getContentElement())
+    loadMessages();
 });
 
 function truncateString(value, length) {

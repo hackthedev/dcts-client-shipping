@@ -1,0 +1,98 @@
+.layout > .content-container > .content > .message-container{
+    display: flex;
+    flex-direction: row;
+    flex: 1 1 auto;
+
+    margin: -1rem;
+}
+
+.layout > .content-container > .content > .message-container .chats{
+    display: flex;
+    flex-direction: column;
+
+    height: 100%;
+    width: 400px;
+}
+.layout > .content-container > .content > .message-container .chat-content{
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+}
+
+
+.layout > .content-container > .content > .message-container .chats .chat{
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
+
+    width: calc(100% - 2rem);
+    height: fit-content;
+
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    transition: all 150ms ease-in-out;
+}
+.layout > .content-container > .content > .message-container .chats .chat .icon,
+.layout > .content-container > .content > .message-container .chat-content .header .icon{
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: black;
+}
+.layout > .content-container > .content > .message-container .chats .chat .badge:after {
+    content: "";
+    display: block;
+    padding-bottom: 100%;
+}
+.layout > .content-container > .content > .message-container .chats .chat .badge{
+    margin-left: auto;
+
+    padding: 8px;
+    border-radius: 50%;
+
+    line-height: 0;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    font-weight: bold;
+    font-size: 14px;
+}
+
+.layout > .content-container > .content > .message-container .chat-content .header{
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.5rem 1rem;
+}
+.layout > .content-container > .content > .message-container .chat-content .header h1{
+    font-size: 16px;
+}
+
+.layout > .content-container > .content > .message-container .chat-content .content {
+    display: flex;
+    flex-direction: column;
+    width: calc(100% - 2rem);
+    height: calc(100% - 2rem);
+
+    padding: 1rem;
+
+    flex: 1 1 auto;
+    overflow: auto;
+}
+
+.layout > .content-container > .content > .message-container > .chat-content .editor-container {
+    padding: 1rem;
+    padding-bottom: 0;
+
+    height: fit-content;
+    margin-bottom: 1rem;
+}
+
+.chat-content .editor-container .ql-editor {
+    max-height: 150px;
+    overflow-y: auto;
+}
