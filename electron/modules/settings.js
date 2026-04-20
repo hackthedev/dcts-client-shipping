@@ -7,6 +7,36 @@ class Settings {
     static _loaded = false
     static _writeQueue = Promise.resolve()
 
+    static Session = class {
+        static async saveSession(id, session) {
+            if (!id) throw new Error("id is required")
+            await Settings._ensureLoaded()
+
+            Settings.settings.sessions ??= {}
+            Settings.settings.sessions[id] = session
+
+            await Settings.saveSettings()
+        }
+
+        static async getSession(id) {
+            if (!id) return null
+            await Settings._ensureLoaded()
+            return Settings.settings.sessions?.[id] ?? null
+        }
+
+        static async getSessions() {
+            await Settings._ensureLoaded()
+            return Settings.settings.sessions ?? {}
+        }
+
+        static async deleteSession(id) {
+            await Settings._ensureLoaded()
+            if (!Settings.settings.sessions) return
+            delete Settings.settings.sessions[id]
+            await Settings.saveSettings()
+        }
+    }
+
     static Server = class {
         static async save(id, data = {}, isFav = null) {
             if (!id) throw new Error("id is required")

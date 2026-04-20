@@ -234,3 +234,105 @@ function truncateString(value, length) {
 
     return value;
 }
+
+async function getSessionIdFromHost(host){
+    if(!host) throw new Error("Cant get session from host")
+
+    // if session already exists, check if valid
+    let existingSession = await Client().GetSession(extractHost(host));
+    if(existingSession){
+        let existingSessionCheckRes = await verifySessionId(host, existingSession);
+        if(existingSessionCheckRes.status === 200){
+            let existingSessionJson = await existingSession.json();
+
+            console.log("existing: ", existingSessionJson);
+        }
+    }
+    else{
+        let requestedChallenge = await requestSessionChallenge(host);
+        if(!requestedChallenge) throw new Error("couldnt request challenge")
+
+        let solvedChallenge = await solveSessionChallenge(requestedChallenge, host);
+        if(!solvedChallenge) throw new Error("couldnt get solved challenge")
+
+        console.log(solvedChallenge)
+    }
+}
+
+async function requestSessionChallenge(host){
+    if(!host) throw new Error("Cant get session challenge from host");
+
+    let request = await fetch(`https://${host}/dSyncAuth/login`, {
+        method: "POST",
+        headers: {
+            "content-type": "application/json"
+        },
+        body: JSON.stringify({
+            publicKey: await Client().GetPublicKey(),
+        })
+    })
+
+    if(request.status === 200){
+        let json = await request.json();
+        if(json?.challenge){
+            return json;
+        }
+
+        return null;
+    }
+    else{
+        return null;
+    }
+}
+
+async function solveSessionChallenge(challengeData, host){
+    if(!challengeData) throw new Error("Challenge not supplied retard!")
+    if(!host) throw new Error("No host supplied either in solveSessionChallenge dumfak!")
+
+    let challenge = challengeData.challenge;
+
+    let solution = await Client().DecryptData(challenge.method, challenge.encKey, challenge.iv, challenge.tag, challenge.ciphertext);
+    if(solution){
+        let request = await fetch(`https://${host}/dSyncAuth/verify`, {
+            method: "POST",
+            headers: {
+                "content-type": "application/json"
+            },
+            body: JSON.stringify({
+                identifier: challengeData.identifier,
+                solution,
+                publicKey: await Client().GetPublicKey(),
+            })
+        })
+
+        if(request.status === 200){
+            let json = await request.json();
+            if(json){
+                return json;
+            }
+        }
+    }
+}
+
+async function verifySessionId(host, sessionId){
+    if(!host) throw new Error("host not supplied retard!")
+    if(!sessionId) throw new Error("No sessionId supplied either in verifySessionId dumfak!")
+
+    let request = await fetch(`https://${host}/dSyncAuth/verify/session`, {
+        method: "POST",
+        headers: {
+            "content-type": "application/json"
+        },
+        body: JSON.stringify({
+            sessionId,
+            publicKey: await Client().GetPublicKey(),
+        })
+    })
+
+    if(request.status === 200){
+        let json = await request.json();
+        if(json){
+            return json;
+        }
+    }
+}

@@ -1,7 +1,8 @@
 
-export const DecryptData = async ({ signer, applicationDataDir }, method,  encKey, iv,  tag, ciphertext) => {
+export const DecryptData = async ({ signer, applicationDataDir }, method, encKey, iv, tag, ciphertext) => {
     try{
-        console.log("PRELOAD: DecryptData aufgerufen:", { method, encKey, iv, tag, ciphertext })
+        console.log(method, encKey, iv, tag, ciphertext)
+
         if(!method) throw new Error("DecryptData: No method specified")
         if(!encKey) throw new Error("DecryptData: No encKey specified")
         if(!iv) throw new Error("DecryptData: No iv specified")
