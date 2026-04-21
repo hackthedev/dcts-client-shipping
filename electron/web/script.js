@@ -242,12 +242,12 @@ async function getSessionIdFromHost(host){
     let existingSession = await Client().GetSession(extractHost(host));
     if(existingSession){
         let existingSessionCheckRes = await verifySessionId(host, existingSession);
-        if(existingSessionCheckRes.status === 200){
-            let existingSessionJson = await existingSession.json();
 
-            console.log("existing: ", existingSessionJson);
+        if(existingSessionCheckRes?.error === null){
+            return await existingSession ?? null;
         }
     }
+    // if there is session saved or invalid just get a new one and save it
     else{
         let requestedChallenge = await requestSessionChallenge(host);
         if(!requestedChallenge) throw new Error("couldnt request challenge")
@@ -255,7 +255,10 @@ async function getSessionIdFromHost(host){
         let solvedChallenge = await solveSessionChallenge(requestedChallenge, host);
         if(!solvedChallenge) throw new Error("couldnt get solved challenge")
 
-        console.log(solvedChallenge)
+        if(solvedChallenge?.error === null && solvedChallenge?.sessionId){
+            await Client().SaveSession(host, solvedChallenge.sessionId)
+            return solvedChallenge.sessionId;
+        }
     }
 }
 
@@ -273,12 +276,7 @@ async function requestSessionChallenge(host){
     })
 
     if(request.status === 200){
-        let json = await request.json();
-        if(json?.challenge){
-            return json;
-        }
-
-        return null;
+        return await request.json() ?? null;
     }
     else{
         return null;
@@ -290,8 +288,8 @@ async function solveSessionChallenge(challengeData, host){
     if(!host) throw new Error("No host supplied either in solveSessionChallenge dumfak!")
 
     let challenge = challengeData.challenge;
-
     let solution = await Client().DecryptData(challenge.method, challenge.encKey, challenge.iv, challenge.tag, challenge.ciphertext);
+
     if(solution){
         let request = await fetch(`https://${host}/dSyncAuth/verify`, {
             method: "POST",
@@ -306,10 +304,7 @@ async function solveSessionChallenge(challengeData, host){
         })
 
         if(request.status === 200){
-            let json = await request.json();
-            if(json){
-                return json;
-            }
+            return await request.json() ?? null;
         }
     }
 }
@@ -330,9 +325,6 @@ async function verifySessionId(host, sessionId){
     })
 
     if(request.status === 200){
-        let json = await request.json();
-        if(json){
-            return json;
-        }
+        return await request.json() ?? null;
     }
 }
