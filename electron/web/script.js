@@ -243,12 +243,18 @@ async function getSessionIdFromHost(host){
     if(existingSession){
         let existingSessionCheckRes = await verifySessionId(host, existingSession);
 
-        if(existingSessionCheckRes?.error === null){
+        if(existingSessionCheckRes?.error === null && existingSessionCheckRes){
             return await existingSession ?? null;
         }
+
+        return await requestChallenge();
     }
     // if there is session saved or invalid just get a new one and save it
     else{
+        return await requestChallenge();
+    }
+
+    async function requestChallenge(){
         let requestedChallenge = await requestSessionChallenge(host);
         if(!requestedChallenge) throw new Error("couldnt request challenge")
 
@@ -265,7 +271,7 @@ async function getSessionIdFromHost(host){
 async function requestSessionChallenge(host){
     if(!host) throw new Error("Cant get session challenge from host");
 
-    let request = await fetch(`https://${host}/dSyncAuth/login`, {
+    let request = await fetch(`http://${host}/dSyncAuth/login`, {
         method: "POST",
         headers: {
             "content-type": "application/json"
@@ -291,7 +297,7 @@ async function solveSessionChallenge(challengeData, host){
     let solution = await Client().DecryptData(challenge.method, challenge.encKey, challenge.iv, challenge.tag, challenge.ciphertext);
 
     if(solution){
-        let request = await fetch(`https://${host}/dSyncAuth/verify`, {
+        let request = await fetch(`http://${host}/dSyncAuth/verify`, {
             method: "POST",
             headers: {
                 "content-type": "application/json"
@@ -313,7 +319,7 @@ async function verifySessionId(host, sessionId){
     if(!host) throw new Error("host not supplied retard!")
     if(!sessionId) throw new Error("No sessionId supplied either in verifySessionId dumfak!")
 
-    let request = await fetch(`https://${host}/dSyncAuth/verify/session`, {
+    let request = await fetch(`http://${host}/dSyncAuth/verify/session`, {
         method: "POST",
         headers: {
             "content-type": "application/json"
