@@ -11,7 +11,6 @@ async function getDiscoveredHosts(){
     })
 }
 
-
 async function getSavedServers(container) {
     if (!container) return console.warn("No container supplied!");
 
@@ -131,6 +130,7 @@ async function submitServer(host){
 async function renderServersList(container, servers) {
     const list = container;
     if (!list) throw new Error("No list found to display items in");
+
     list.innerHTML = "";
 
     for (let server in servers) {
@@ -271,7 +271,7 @@ async function getSessionIdFromHost(host){
 async function requestSessionChallenge(host){
     if(!host) throw new Error("Cant get session challenge from host");
 
-    let request = await fetch(`http://${host}/dSyncAuth/login`, {
+    let request = await fetch(`${getProtocol(host)}://${host}/dSyncAuth/login`, {
         method: "POST",
         headers: {
             "content-type": "application/json"
@@ -297,7 +297,7 @@ async function solveSessionChallenge(challengeData, host){
     let solution = await Client().DecryptData(challenge.method, challenge.encKey, challenge.iv, challenge.tag, challenge.ciphertext);
 
     if(solution){
-        let request = await fetch(`http://${host}/dSyncAuth/verify`, {
+        let request = await fetch(`${getProtocol(host)}://${host}/dSyncAuth/verify`, {
             method: "POST",
             headers: {
                 "content-type": "application/json"
@@ -319,7 +319,7 @@ async function verifySessionId(host, sessionId){
     if(!host) throw new Error("host not supplied retard!")
     if(!sessionId) throw new Error("No sessionId supplied either in verifySessionId dumfak!")
 
-    let request = await fetch(`http://${host}/dSyncAuth/verify/session`, {
+    let request = await fetch(`${getProtocol(host)}://${host}/dSyncAuth/verify/session`, {
         method: "POST",
         headers: {
             "content-type": "application/json"

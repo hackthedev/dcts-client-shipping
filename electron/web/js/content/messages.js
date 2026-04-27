@@ -4,35 +4,69 @@ async function getMessagesFromServers(){
 }
 
 async function fetchServerInbox(host) {
-    /*try {
-        const creds = await getAccountCredentials(host);
-        if (!creds) return null;
+    let sessionId = await getSessionIdFromHost("localhost:2052");
+    if(!sessionId) return console.warn("Session id not found for host ", host)
 
-        const response = await fetch(`https://${host}/inbox/fetch`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                id: creds?.id ?? null,
-                token: creds?.token ?? null
-            })
-        });
+    let hostInbox = await Client().FetchInbox(host)
+    if(!hostInbox?.inbox) return console.warn("Host inbox not found for host ", host)
 
-        const jsonString = await response.text();
-        console.log("response code:", response.status);
-        console.log("response json:", jsonString);
+    for(let item of hostInbox.inbox){
+        item.isServer = true;
+        item.host = host;
+        item.title = host;
 
-        if (!response.ok) return null;
+        // add it to item obj
+        let serverInfo = await fetchServerInfo(host);
+        if(serverInfo) item.serverinfo = serverInfo?.serverinfo ?? {};
 
-        const result = JSON.parse(jsonString);
-        return result?.inbox || [];
-    } catch (e) {
-        console.error("fetchInbox error", e);
-        return null;
+        // if its there lets set some values
+        if(item?.serverinfo?.icon) item.icon = getFixedUrl(host, item.serverinfo.icon);
+        if(item?.serverinfo?.name) item.title = item.serverinfo.name;
+
+        await addInboxEntry(item);
     }
 
-     */
+    async function addInboxEntry(item){
+        if(!item) throw new Error("item not found for adding inbox element");
+
+        let chatId = item.host;
+        let chatName = item?.title ?? item?.host
+        let latestMessage = `@${chatId}`
+
+        let rawIconUrl = item?.serverinfo?.icon;
+        let iconUrl = getFixedUrl(chatId, rawIconUrl) ?? "";
+
+        // check if chat already exists
+        let serverChatSelector = getContentElement().querySelector(`.chats .chat[data-gid="${chatId}"]`);
+        if(serverChatSelector) serverChatSelector.remove();
+
+        // we need to actually create the fucking html too lol
+        getContentElement().querySelector(`.chats`).insertAdjacentHTML("beforeend", `
+                <div class="chat" data-gid="${chatId}" data-host="${chatId}" data-server="true">
+                    <div class="icon" style="background-image: url('${iconUrl}')"></div>
+                    <div class="middle-section">
+                        <div class="name">${chatName}</div>
+                        ${latestMessage ? `<div class="latestMessage">${latestMessage}</div>` : ""}
+                    </div>
+                    <div class="badge">5</div>                
+                <div>
+            `)
+
+        // update variable again then set click handler
+        serverChatSelector = getContentElement().querySelector(`.chats .chat[data-gid="${chatId}"]`);
+        serverChatSelector?.addEventListener("click", async (e) => {
+            renderChat(null, item)
+        })
+    }
+}
+
+function getFixedUrl(host, url){
+    if(!host || !url) return;
+
+    return url.startsWith("/uploads") ?
+        `${getProtocol(host)}}://${host}${url}` :
+        url.startsWith("/") ?
+            `${getProtocol(host)}://${host}${url}` : `${getProtocol(host)}://${host}/${url}`
 }
 
 function getChats(){
@@ -50,26 +84,22 @@ function getChats(){
                 targetGid: "dfjhsiuhfisuzhv=="
             },
             isServer: false,
-        },
-        "123456789033": {
-            protected: {
-                timestamp_sent: 1776573992346,
-                message: {
-                    client_id: null,
-                },
-                icon: null,
-                name: "some cool shit",
-                sig: "23urshfdjk1shbfsdkf",
-                memberGid: "nsdfhfioshd7fz==",
-                targetGid: "dfjhsiuhfisuzhv=="
-            },
-            isServer: false,
         }
     };
 }
 
 async function loadMessages(){
     renderMessages();
+
+    let clientServers = await Client().GetServers();
+    if(clientServers){
+        for(let server in clientServers){
+            try{
+                await fetchServerInbox(server)
+            }
+            catch{}
+        }
+    }
 }
 
 async function renderMessages(){
@@ -118,13 +148,14 @@ function getChatContentElement(){
     return document.querySelector(`.message-container .chat-content`);
 }
 
-async function renderChat(chatId){
-    let chats = await getChats();
-    let chat = Object.values(chats).filter(chat => chat.protected.memberGid === chatId);
+async function renderChat(chatId, customChatObject = null){
+    let chats = customChatObject ?? await getChats();
+    let chat = customChatObject ? null : Object.values(chats).filter(chat => chat.protected.memberGid === chatId);
 
-    if(chat[0]){
-        await setChatHeader(chat[0]);
-    }
+    if(chat && !chat[0] && !customChatObject) throw new Error("Chat not found");
+
+
+    await setChatHeader(customChatObject ?? chat[0]);
 
     getChatContentElement().innerHTML +=
         `
@@ -149,15 +180,17 @@ async function renderChat(chatId){
 
 
     // display actual messages
+    console.log(chat ?? customChatObject)
 }
 
 async function setChatHeader(chat){
-    let chatTitle = chat?.protected?.name ?? "Unkown";
+    let chatTitle = chat?.title ?? chat?.protected?.name ?? "Unkown";
+    let chatIcon = chat?.icon ?? chat?.protected?.icon ?? "";
 
     getChatContentElement().innerHTML =
         `
         <div class="header">
-            <div class="icon" style="background-image: url('${chat.protected.icon}')"></div>
+            <div class="icon" style="background-image: url('${chatIcon}')"></div>
             <h1>${chatTitle}</h1>
         </div>`;
 }

@@ -1,7 +1,23 @@
 import Settings from "./settings.js";
 
+function getProtocol(host) {
+    if (!host) return "https";
+
+    const h = host.toLowerCase();
+
+    if (
+        h.includes("localhost") ||
+        h.startsWith("127.")
+    ) {
+        return "http";
+    }
+
+    return "https";
+}
+
+
 export const FetchInbox = async ({ signer, applicationDataDir }, host) => {
-    let fetched = await fetch(`http://${host}/inbox/fetch`, {
+    let fetched = await fetch(`${getProtocol(host)}://${host}/inbox/fetch`, {
         method: "POST",
         headers: {
             "Content-Type": "application/json"

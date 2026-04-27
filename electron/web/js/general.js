@@ -6,6 +6,21 @@ function isLauncher() {
     return !!Client();
 }
 
+function getProtocol(host) {
+    if (!host) return "https";
+
+    const h = host.toLowerCase();
+
+    if (
+        h.includes("localhost") ||
+        h.startsWith("127.")
+    ) {
+        return "http";
+    }
+
+    return "https";
+}
+
 function extractHost(url) {
     if (!url) return null;
     const s = String(url).trim();
@@ -41,7 +56,7 @@ async function connectToServer(address) {
     let data = null;
     try {
         // test host
-        let testHost = await fetch(`https://${host}/discover`);
+        let testHost = await fetch(`${getProtocol(host)}://${host}/discover`);
         if (testHost.status === 200) {
             data = await testHost.json();
         } else {
@@ -53,5 +68,5 @@ async function connectToServer(address) {
     }
 
     await Client().SaveServer(host, data || {})
-    window.location.href = `http://${host}/`;
+    window.location.href = `https://${host}/`;
 }

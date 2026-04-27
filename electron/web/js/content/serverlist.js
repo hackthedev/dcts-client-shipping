@@ -48,12 +48,20 @@ function setServerCardFeatures(serverCardElement, html){
 
 async function fetchServerInfo(address){
     try{
-        let res = await fetch(`https://${extractHost(address)}/discover`)
+        let res = await fetch(`${getProtocol(address)}://${extractHost(address)}/discover`, {
+            signal: AbortSignal.timeout(5000) // hehe
+        })
+
         if(res.status !== 200) return console.warn("Discovery check failed for host ", address);
-        return await res.json()
+
+        let jsonData = await res.json();
+        localStorage.setItem(`serverinfo_cache_${address}`, JSON.stringify(jsonData))
+
+        return jsonData
     }
     catch(err){
         console.warn(err)
+        return localStorage.getItem(`serverinfo_cache_${address}`);
     }
 }
 

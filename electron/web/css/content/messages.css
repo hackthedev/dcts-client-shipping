@@ -37,10 +37,18 @@
 }
 .layout > .content-container > .content > .message-container .chats .chat .icon,
 .layout > .content-container > .content > .message-container .chat-content .header .icon{
-    width: 40px;
-    height: 40px;
+    width: 50px;
+    height: 50px;
+
+    background-repeat: no-repeat;
+    object-fit: cover;
+    background-size: cover;
+
     border-radius: 50%;
     background-color: black;
+}
+.layout > .content-container > .content > .message-container .chats .chat .latestMessage{
+    font-size: 14.5px;
 }
 .layout > .content-container > .content > .message-container .chats .chat .badge:after {
     content: "";
