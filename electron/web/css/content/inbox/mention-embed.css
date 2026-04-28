@@ -1,0 +1,27 @@
+.layout > .content-container > .content > .message-container > .chat-content > .content > .message-container > .content > .mention-embed {
+    display: flex;
+    gap: 0.5rem;
+    flex-direction: row;
+    padding: 1rem;
+    border-radius: 8px;
+
+    width: fit-content;
+    height: fit-content;
+}
+.layout > .content-container > .content > .message-container > .chat-content > .content > .message-container > .content > .mention-embed > .icon {
+    width: 40px;
+    height: 40px;
+
+    border-radius: 50%;
+
+    background-size: cover;
+    object-fit: cover;
+    background-repeat: no-repeat;
+}
+.layout > .content-container > .content > .message-container > .chat-content > .content > .message-container > .content > .mention-embed > .content {
+    display: flex;
+    flex-direction: column;
+    width: auto;
+    height: auto;
+    padding: 0;
+}

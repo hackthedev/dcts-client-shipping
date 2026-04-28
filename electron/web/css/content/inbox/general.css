@@ -1,0 +1,40 @@
+.layout > .content-container > .content > .message-container > .chat-content * {
+    box-sizing: border-box;
+}
+
+.layout > .content-container > .content > .message-container > .chat-content > .content > .message-container{
+    position: relative;
+    display: flex;
+    flex-direction: column;
+
+    padding: 0.5rem;
+    border-radius: 6px;
+
+    width: fit-content;
+    height: fit-content;
+}
+.layout > .content-container > .content > .message-container > .chat-content > .content > .message-container > .content {
+    display: flex;
+    width: fit-content;
+    height: fit-content;
+
+    padding: 0;
+    max-height: 400px;
+}
+.layout > .content-container > .content > .message-container > .chat-content > .content > .message-container .content p{
+    margin: 4px;
+}
+.layout > .content-container > .content > .message-container > .chat-content > .content > .message-container blockquote{
+    margin: 4px;
+    padding-left: 0.5rem;
+}
+.layout > .content-container > .content > .message-container > .chat-content > .content > .message-container > .meta {
+    display: flex;
+    flex-direction: row;
+    justify-content: end;
+    font-size: 12px;
+    margin-top: 0.5rem;
+}
+.layout > .content-container > .content > .message-container > .chat-content > .content > .message-container > .meta p{
+    margin: 0;
+}

@@ -106,3 +106,26 @@ a {
 .ql-editor.ql-blank::before {
     color: hsl(from var(--main) h s calc(l * 8));
 }
+
+.layout > .content-container > .content > .message-container > .chat-content > .content > .message-container {
+    background-color: hsl(from var(--main) h s calc(l * 3));
+}
+.layout > .content-container > .content > .message-container > .chat-content > .content > .message-container blockquote{
+    border-left: 3px solid hsl(from var(--main) h s calc(l * 8));
+    color: hsl(from var(--main) h s calc(l * 8));
+    background-color: hsl(from var(--main) h s calc(l * 8) / 10%);
+}
+.layout > .content-container > .content > .message-container > .chat-content > .content > .message-container > .meta {
+    color: hsl(from var(--main) h s calc(l * 6) / 100%);
+}
+
+.layout > .content-container > .content > .message-container > .chat-content > .content > .message-container > .content .mention-embed {
+    background: linear-gradient(
+        70deg,
+        hsl(from var(--main) h s calc(l * 0.5) / 50%),
+        hsl(from var(--main) h s calc(l * 1.5) / 50%)
+    );
+}
+.layout > .content-container > .content > .message-container > .chat-content > .content > .message-container > .content > .mention-embed {
+    border: 1.5px solid hsl(from var(--main) h s calc(l * 4) / 100%);
+}

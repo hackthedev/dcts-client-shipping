@@ -1,33 +1,33 @@
-async function getMessagesFromServers(){
+async function getMessagesFromServers() {
     let servers = await Client().GetServers()
     console.log(servers)
 }
 
 async function fetchServerInbox(host) {
     let sessionId = await getSessionIdFromHost("localhost:2052");
-    if(!sessionId) return console.warn("Session id not found for host ", host)
+    if (!sessionId) return console.warn("Session id not found for host ", host)
 
     let hostInbox = await Client().FetchInbox(host)
-    if(!hostInbox?.inbox) return console.warn("Host inbox not found for host ", host)
+    if (!hostInbox?.inbox) return console.warn("Host inbox not found for host ", host)
 
-    for(let item of hostInbox.inbox){
+    for (let item of hostInbox.inbox) {
         item.isServer = true;
         item.host = host;
         item.title = host;
 
         // add it to item obj
         let serverInfo = await fetchServerInfo(host);
-        if(serverInfo) item.serverinfo = serverInfo?.serverinfo ?? {};
+        if (serverInfo) item.serverinfo = serverInfo?.serverinfo ?? {};
 
         // if its there lets set some values
-        if(item?.serverinfo?.icon) item.icon = getFixedUrl(host, item.serverinfo.icon);
-        if(item?.serverinfo?.name) item.title = item.serverinfo.name;
+        if (item?.serverinfo?.icon) item.icon = getFixedUrl(host, item.serverinfo.icon);
+        if (item?.serverinfo?.name) item.title = item.serverinfo.name;
 
         await addInboxEntry(item);
     }
 
-    async function addInboxEntry(item){
-        if(!item) throw new Error("item not found for adding inbox element");
+    async function addInboxEntry(item) {
+        if (!item) throw new Error("item not found for adding inbox element");
 
         let chatId = item.host;
         let chatName = item?.title ?? item?.host
@@ -38,7 +38,7 @@ async function fetchServerInbox(host) {
 
         // check if chat already exists
         let serverChatSelector = getContentElement().querySelector(`.chats .chat[data-gid="${chatId}"]`);
-        if(serverChatSelector) serverChatSelector.remove();
+        if (serverChatSelector) serverChatSelector.remove();
 
         // we need to actually create the fucking html too lol
         getContentElement().querySelector(`.chats`).insertAdjacentHTML("beforeend", `
@@ -60,8 +60,8 @@ async function fetchServerInbox(host) {
     }
 }
 
-function getFixedUrl(host, url){
-    if(!host || !url) return;
+function getFixedUrl(host, url) {
+    if (!host || !url) return;
 
     return url.startsWith("/uploads") ?
         `${getProtocol(host)}}://${host}${url}` :
@@ -69,7 +69,7 @@ function getFixedUrl(host, url){
             `${getProtocol(host)}://${host}${url}` : `${getProtocol(host)}://${host}/${url}`
 }
 
-function getChats(){
+function getChats() {
     return {
         "123456789013": {
             protected: {
@@ -88,21 +88,21 @@ function getChats(){
     };
 }
 
-async function loadMessages(){
+async function loadMessages() {
     renderMessages();
 
     let clientServers = await Client().GetServers();
-    if(clientServers){
-        for(let server in clientServers){
-            try{
+    if (clientServers) {
+        for (let server in clientServers) {
+            try {
                 await fetchServerInbox(server)
+            } catch {
             }
-            catch{}
         }
     }
 }
 
-async function renderMessages(){
+async function renderMessages() {
     getContentElement().innerHTML =
         `
             <div class="message-container">
@@ -122,10 +122,10 @@ async function renderMessages(){
 
     addChatEntries(getContentElement().querySelector(`.chats`))
 
-    async function addChatEntries(element){
-        if(!element) throw new Error("Element not found for adding chat element");
+    async function addChatEntries(element) {
+        if (!element) throw new Error("Element not found for adding chat element");
 
-        for(let chat of Object.values(uniqueChats)){
+        for (let chat of Object.values(uniqueChats)) {
             let chatId = chat.protected.memberGid;
             let chatName = chat?.protected?.name ?? "Unkown"
             let latestMessage = chat?.protected.message.client_id // will need to actually decrypt this
@@ -144,15 +144,19 @@ async function renderMessages(){
     }
 }
 
-function getChatContentElement(){
+function getChatContentElement() {
     return document.querySelector(`.message-container .chat-content`);
 }
 
-async function renderChat(chatId, customChatObject = null){
+function getInnerChatContentElement() {
+    return getChatContentElement().querySelector(`.content`);
+}
+
+async function renderChat(chatId, customChatObject = null) {
     let chats = customChatObject ?? await getChats();
     let chat = customChatObject ? null : Object.values(chats).filter(chat => chat.protected.memberGid === chatId);
 
-    if(chat && !chat[0] && !customChatObject) throw new Error("Chat not found");
+    if (chat && !chat[0] && !customChatObject) throw new Error("Chat not found");
 
 
     await setChatHeader(customChatObject ?? chat[0]);
@@ -180,10 +184,66 @@ async function renderChat(chatId, customChatObject = null){
 
 
     // display actual messages
-    console.log(chat ?? customChatObject)
+    await renderInboxElementsInChat(chat ?? customChatObject)
 }
 
-async function setChatHeader(chat){
+async function renderInboxElementsInChat(item) {
+    let inboxType = item?.type
+    if (!item || !inboxType) throw new Error("No item for rendering inbox messages");
+
+    if (inboxType === "mention") await renderMention()
+    console.log(item)
+
+    async function renderMention() {
+        let message = item?.data?.message;
+        let author = message?.author;
+
+        let text = `
+            <div class="mention-embed">
+                <div class="icon" style="background-image: url('${getFixedUrl(item?.host, author?.icon)}')"></div>
+                
+                <div class="content">
+                    <p>@${author?.name ?? "Unkown"} mentioned in #${message.channelName ?? "Unkown"}:</p>
+                    <blockquote>
+                        ${message?.message ?? ""}
+                    </blockquote>
+                </div>
+            </div>            
+        `;
+
+        getInnerChatContentElement().insertAdjacentHTML("beforeend", await getMessageHTML({
+            text,
+            timestamp: message?.timestamp
+        }))
+    }
+}
+
+async function getMessageHTML({
+                                  text,
+                                  timestamp,
+                              } = {}) {
+    if (!text) throw new Error("No text for messages");
+
+
+    return `
+            <div class="message-container">
+                <div class="content">
+                    ${text}
+                </div>
+                <div class="meta">
+                    <p class="timestamp">
+                        ${new Date(timestamp).toLocaleTimeString("en-US", {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            }) ?? ""}
+                    </p>
+                </div>
+            </div>
+            `
+}
+
+
+async function setChatHeader(chat) {
     let chatTitle = chat?.title ?? chat?.protected?.name ?? "Unkown";
     let chatIcon = chat?.icon ?? chat?.protected?.icon ?? "";
 
