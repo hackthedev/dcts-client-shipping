@@ -127,5 +127,5 @@ a {
     );
 }
 .layout > .content-container > .content > .message-container > .chat-content > .content > .message-container > .content > .mention-embed {
-    border: 1.5px solid hsl(from var(--main) h s calc(l * 4) / 100%);
+    border: 1.5px solid hsl(from var(--main) h s calc(l * 4) / 50%);
 }
