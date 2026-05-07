@@ -37,6 +37,95 @@ class Settings {
         }
     }
 
+    static Message = class {
+        static async saveChat(chatId, data = {}) {
+            if (!chatId) throw new Error("chatId is required")
+            if(Object.keys(data || {}).length === 0) throw new Error("Data was empty")
+
+            await Settings._ensureLoaded()
+
+            Settings.settings.messages ??= {}
+            Settings.settings.messages[chatId] ??= {
+                data: {},
+                messages: {}
+            }
+
+            Object.assign(Settings.settings.messages[chatId].data, data)
+
+            await Settings.saveSettings()
+        }
+
+        static async getChat(chatId) {
+            if (!chatId) return null
+
+            await Settings._ensureLoaded()
+
+            return Settings.settings.messages?.[chatId] ?? null
+        }
+
+        static async getChats() {
+            await Settings._ensureLoaded()
+
+            return Settings.settings.messages ?? {}
+        }
+
+        static async saveMessage(chatId, messageId, data = {}) {
+            if (!chatId) throw new Error("chatId is required")
+            if (!messageId) throw new Error("messageId is required")
+
+            await Settings._ensureLoaded()
+
+            Settings.settings.messages ??= {}
+            Settings.settings.messages[chatId] ??= {
+                data: {},
+                messages: {}
+            }
+
+            Settings.settings.messages[chatId].messages[messageId] = {
+                data,
+                updatedAt: Date.now()
+            }
+
+            await Settings.saveSettings()
+        }
+
+        static async getMessage(chatId, messageId) {
+            if (!chatId || !messageId) return null
+
+            await Settings._ensureLoaded()
+
+            return Settings.settings.messages?.[chatId]?.messages?.[messageId] ?? null
+        }
+
+        static async getMessages(chatId) {
+            if (!chatId) return {}
+
+            await Settings._ensureLoaded()
+
+            return Settings.settings.messages?.[chatId]?.messages ?? {}
+        }
+
+        static async deleteMessage(chatId, messageId) {
+            if (!chatId || !messageId) return
+
+            await Settings._ensureLoaded()
+
+            delete Settings.settings.messages?.[chatId]?.messages?.[messageId]
+
+            await Settings.saveSettings()
+        }
+
+        static async deleteChat(chatId) {
+            if (!chatId) return
+
+            await Settings._ensureLoaded()
+
+            delete Settings.settings.messages?.[chatId]
+
+            await Settings.saveSettings()
+        }
+    }
+
     static Server = class {
         static async save(id, data = {}, isFav = null) {
             if (!id) throw new Error("id is required")

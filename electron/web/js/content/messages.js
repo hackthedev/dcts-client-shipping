@@ -17,6 +17,9 @@ async function fetchServerInbox(host) {
 
         // add it to item obj
         let serverInfo = await fetchServerInfo(host);
+        let storedInfo = await Client().GetChat(host);
+
+        if(!serverInfo && storedInfo?.data) serverInfo = storedInfo.data;
         if (serverInfo) item.serverinfo = serverInfo?.serverinfo ?? {};
 
         // if its there lets set some values
@@ -57,6 +60,8 @@ async function fetchServerInbox(host) {
         serverChatSelector?.addEventListener("click", async (e) => {
             renderChat(null, item)
         })
+
+        if(typeof Client().SaveChat === "function") await Client().SaveChat(chatId, item);
     }
 }
 
@@ -67,25 +72,6 @@ function getFixedUrl(host, url) {
         `${getProtocol(host)}}://${host}${url}` :
         url.startsWith("/") ?
             `${getProtocol(host)}://${host}${url}` : `${getProtocol(host)}://${host}/${url}`
-}
-
-function getChats() {
-    return {
-        "123456789013": {
-            protected: {
-                timestamp_sent: 1776573992346,
-                message: {
-                    client_id: "test",
-                },
-                icon: null,
-                name: "someone cool",
-                sig: "23urshfdjkshbfsdkf",
-                memberGid: "nsdhfioshd7fz==",
-                targetGid: "dfjhsiuhfisuzhv=="
-            },
-            isServer: false,
-        }
-    };
 }
 
 async function loadMessages() {
@@ -112,13 +98,15 @@ async function renderMessages() {
             </div>
         `;
 
-    let chats = await getChats();
+    let uniqueChats = await Client().GetChats();
 
-    const uniqueChats = Object.values(chats).reduce((acc, chat) => {
+    /*
+       const uniqueChats = Object.values(chats).reduce((acc, chat) => {
         const gid = chat.protected.memberGid;
         if (!acc[gid]) acc[gid] = chat;
         return acc;
     }, {});
+     */
 
     addChatEntries(getContentElement().querySelector(`.chats`))
 
@@ -126,13 +114,21 @@ async function renderMessages() {
         if (!element) throw new Error("Element not found for adding chat element");
 
         for (let chat of Object.values(uniqueChats)) {
-            let chatId = chat.protected.memberGid;
-            let chatName = chat?.protected?.name ?? "Unkown"
-            let latestMessage = chat?.protected.message.client_id // will need to actually decrypt this
+            let chatId = chat?.host ?? chat?.data?.host;
+            if(!chatId) {
+                console.warn("No chat id found for chat ", chat)
+                continue;
+            }
 
+            console.log(chat)
+
+            let chatName = chat?.title ?? chat?.data?.title ?? "Unkown"
+            let latestMessage = `@${chat?.host ?? chat?.data?.host}`// will need to actually decrypt this
+
+            console.log("insert")
             element.insertAdjacentHTML("beforeend", `
                 <div class="chat" data-gid="${chatId}" onclick="renderChat('${chatId}')">
-                    <div class="icon"></div>
+                    <div class="icon" style="background-image: url('${getFixedUrl(chat?.data?.host, chat?.data?.icon)}')"></div>
                     <div class="middle-section">
                         <div class="name">${chatName}</div>
                         ${latestMessage ? `<div class="latestMessage">${latestMessage}</div>` : ""}
@@ -153,7 +149,7 @@ function getInnerChatContentElement() {
 }
 
 async function renderChat(chatId, customChatObject = null) {
-    let chats = customChatObject ?? await getChats();
+    let chats = customChatObject ?? await Client().GetChat(chatId);
     let chat = customChatObject ? null : Object.values(chats).filter(chat => chat.protected.memberGid === chatId);
 
     if (chat && !chat[0] && !customChatObject) throw new Error("Chat not found");
@@ -192,7 +188,6 @@ async function renderInboxElementsInChat(item) {
     if (!item || !inboxType) throw new Error("No item for rendering inbox messages");
 
     if (inboxType === "mention") await renderMention()
-    console.log(item)
 
     async function renderMention() {
         let message = item?.data?.message;
@@ -203,7 +198,7 @@ async function renderInboxElementsInChat(item) {
                 <div class="icon" style="background-image: url('${getFixedUrl(item?.host, author?.icon)}')"></div>
                 
                 <div class="content">
-                    <p>@${author?.name ?? "Unkown"} mentioned in #${message.channelName ?? "Unkown"}:</p>
+                    <p><span class="mention">@${author?.name ?? "Unkown"}</span> mentioned you in <span class="mention">#${message.channelName ?? "Unkown"}</span>:</p>
                     <blockquote>
                         ${message?.message ?? ""}
                     </blockquote>

@@ -276,6 +276,7 @@ async function requestSessionChallenge(host){
         headers: {
             "content-type": "application/json"
         },
+        signal: AbortSignal.timeout(2000),
         body: JSON.stringify({
             publicKey: await Client().GetPublicKey(),
         })
@@ -302,6 +303,7 @@ async function solveSessionChallenge(challengeData, host){
             headers: {
                 "content-type": "application/json"
             },
+            signal: AbortSignal.timeout(2000),
             body: JSON.stringify({
                 identifier: challengeData.identifier,
                 solution,
@@ -324,6 +326,7 @@ async function verifySessionId(host, sessionId){
         headers: {
             "content-type": "application/json"
         },
+        signal: AbortSignal.timeout(2000),
         body: JSON.stringify({
             sessionId,
             publicKey: await Client().GetPublicKey(),
@@ -332,5 +335,8 @@ async function verifySessionId(host, sessionId){
 
     if(request.status === 200){
         return await request.json() ?? null;
+    }
+    else{
+        return null;
     }
 }

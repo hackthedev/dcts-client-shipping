@@ -22,6 +22,7 @@ export const FetchInbox = async ({ signer, applicationDataDir }, host) => {
         headers: {
             "Content-Type": "application/json"
         },
+        signal: AbortSignal.timeout(2000),
         body: JSON.stringify({
             publicKey: await signer.getPublicKey(),
             sessionId:  await Settings.Session.getSession(host)
