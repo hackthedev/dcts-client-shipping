@@ -8,7 +8,6 @@ function isLauncher() {
 
 function getProtocol(host) {
     if (!host) return "https";
-
     const h = host.toLowerCase();
 
     if (
