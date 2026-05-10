@@ -4,74 +4,114 @@ async function getMessagesFromServers() {
 }
 
 async function fetchServerInbox(host) {
-    let sessionId = await getSessionIdFromHost("localhost:2052");
+    host = extractHost(host);
+
+    if(typeof Client().SaveChat !== "function") throw new Error("Unsupported Client!")
+    if(typeof Client().SaveChatMessage !== "function") throw new Error("Unsupported Client!")
+    if(typeof Client().GetChat !== "function") throw new Error("Unsupported Client!")
+    if(typeof Client().GetChatMessages !== "function") throw new Error("Unsupported Client!")
+
+    let sessionId = await getSessionIdFromHost(host);
     if (!sessionId) return console.warn("Session id not found for host ", host)
 
     let hostInbox = await Client().FetchInbox(host)
     if (!hostInbox?.inbox) return console.warn("Host inbox not found for host ", host)
 
+    // get stored shit
+    let storedChat = await Client().GetChat(host) ?? {};
+    let localMessages = await Client().GetChatMessages(host) ?? {};
+
+    let serverInfo = Object.keys(storedChat?.data?.serverinfo ?? {}).length > 0
+        ? storedChat.data.serverinfo
+        : await fetchServerInfo(host) ?? null;
+
+    let chatData = {
+        isServer: true,
+        host,
+        title: serverInfo?.name ?? host,
+        serverinfo: serverInfo ?? {},
+        icon: serverInfo?.icon ? getFixedUrl(host, serverInfo.icon) : null
+    };
+
+    let mergedMessages = { ...localMessages };
+
+    // some processing
     for (let item of hostInbox.inbox) {
-        item.isServer = true;
-        item.host = host;
-        item.title = host;
+        let message = item.data?.message ?? item;
+        if (!message?.messageId) continue;
 
-        // add it to item obj
-        let serverInfo = await fetchServerInfo(host);
-        let storedInfo = await Client().GetChat(host);
+        message.type = item.type;
+        message.inboxId = item.id;
+        message.isRead = item.isRead;
+        message.isServer = true;
+        message.host = host;
+        message.title = chatData.title;
+        message.serverinfo = chatData.serverinfo;
+        message.icon = chatData.icon;
 
-        if(!serverInfo && storedInfo?.data) serverInfo = storedInfo.data;
-        if (serverInfo) item.serverinfo = serverInfo?.serverinfo ?? {};
+        mergedMessages[message.messageId] = {
+            data: message,
+            updatedAt: Date.now()
+        };
 
-        // if its there lets set some values
-        if (item?.serverinfo?.icon) item.icon = getFixedUrl(host, item.serverinfo.icon);
-        if (item?.serverinfo?.name) item.title = item.serverinfo.name;
-
-        await addInboxEntry(item);
+        await Client().SaveChatMessage(host, message);
     }
+
+    // sorting
+    let messages = Object.values(mergedMessages)
+        .map(item => item.data ?? item)
+        .sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0));
+
+    chatData.messages = messages;
+    chatData.lastMessage = messages.at(-1) ?? null;
+
+    await Client().SaveChat(host, chatData);
+    await addInboxEntry(chatData);
+
+    return chatData;
 
     async function addInboxEntry(item) {
         if (!item) throw new Error("item not found for adding inbox element");
 
         let chatId = item.host;
-        let chatName = item?.title ?? item?.host
-        let latestMessage = `@${chatId}`
+        let chatName = item?.title ?? item?.host;
+        let latestMessage = item?.lastMessage?.message ?? item?.lastMessage?.text ?? `@${chatId}`;
+        let iconUrl = item?.icon ?? "";
 
-        let rawIconUrl = item?.serverinfo?.icon;
-        let iconUrl = getFixedUrl(chatId, rawIconUrl) ?? "";
-
-        // check if chat already exists
         let serverChatSelector = getContentElement().querySelector(`.chats .chat[data-gid="${chatId}"]`);
         if (serverChatSelector) serverChatSelector.remove();
 
-        // we need to actually create the fucking html too lol
         getContentElement().querySelector(`.chats`).insertAdjacentHTML("beforeend", `
-                <div class="chat" data-gid="${chatId}" data-host="${chatId}" data-server="true">
-                    <div class="icon" style="background-image: url('${iconUrl}')"></div>
-                    <div class="middle-section">
-                        <div class="name">${chatName}</div>
-                        ${latestMessage ? `<div class="latestMessage">${latestMessage}</div>` : ""}
-                    </div>
-                    <div class="badge">5</div>                
-                <div>
-            `)
+            <div class="chat" data-gid="${chatId}" data-host="${chatId}" data-server="true">
+                <div class="icon" style="background-image: url('${iconUrl}')"></div>
+                <div class="middle-section">
+                    <div class="name">${chatName}</div>
+                    ${latestMessage ? `<div class="latestMessage">${latestMessage}</div>` : ""}
+                </div>
+                <div class="badge">${messages.length}</div>
+            </div>
+        `)
 
-        // update variable again then set click handler
         serverChatSelector = getContentElement().querySelector(`.chats .chat[data-gid="${chatId}"]`);
-        serverChatSelector?.addEventListener("click", async (e) => {
+        serverChatSelector?.addEventListener("click", async () => {
             renderChat(null, item)
         })
-
-        if(typeof Client().SaveChat === "function") await Client().SaveChat(chatId, item);
     }
 }
 
 function getFixedUrl(host, url) {
-    if (!host || !url) return;
+    if (!host || !url) return null;
 
-    return url.startsWith("/uploads") ?
-        `${getProtocol(host)}}://${host}${url}` :
-        url.startsWith("/") ?
-            `${getProtocol(host)}://${host}${url}` : `${getProtocol(host)}://${host}/${url}`
+    const base = `${getProtocol(host)}://${host}`;
+    const cleanUrl = String(url).trim();
+
+    if (cleanUrl.startsWith("http://") || cleanUrl.startsWith("https://")) {
+        return cleanUrl;
+    }
+
+    return cleanUrl.startsWith("/")
+        ? `${base}${cleanUrl}`
+        : `${base}/${cleanUrl}`;
 }
 
 async function loadMessages() {
@@ -99,15 +139,6 @@ async function renderMessages() {
         `;
 
     let uniqueChats = await Client().GetChats();
-
-    /*
-       const uniqueChats = Object.values(chats).reduce((acc, chat) => {
-        const gid = chat.protected.memberGid;
-        if (!acc[gid]) acc[gid] = chat;
-        return acc;
-    }, {});
-     */
-
     addChatEntries(getContentElement().querySelector(`.chats`))
 
     async function addChatEntries(element) {
@@ -120,12 +151,9 @@ async function renderMessages() {
                 continue;
             }
 
-            console.log(chat)
-
             let chatName = chat?.title ?? chat?.data?.title ?? "Unkown"
             let latestMessage = `@${chat?.host ?? chat?.data?.host}`// will need to actually decrypt this
 
-            console.log("insert")
             element.insertAdjacentHTML("beforeend", `
                 <div class="chat" data-gid="${chatId}" onclick="renderChat('${chatId}')">
                     <div class="icon" style="background-image: url('${getFixedUrl(chat?.data?.host, chat?.data?.icon)}')"></div>
@@ -133,7 +161,7 @@ async function renderMessages() {
                         <div class="name">${chatName}</div>
                         ${latestMessage ? `<div class="latestMessage">${latestMessage}</div>` : ""}
                     </div>
-                    <div class="badge">5</div>                
+                    <div class="badge"></div>                
                 <div>
             `)
         }
@@ -149,19 +177,23 @@ function getInnerChatContentElement() {
 }
 
 async function renderChat(chatId, customChatObject = null) {
-    let chats = customChatObject ?? await Client().GetChat(chatId);
-    let chat = customChatObject ? null : Object.values(chats).filter(chat => chat.protected.memberGid === chatId);
+    let activeChat = customChatObject ?? await Client().GetChat(chatId);
 
-    if (chat && !chat[0] && !customChatObject) throw new Error("Chat not found");
+    if (activeChat?.data && !activeChat?.host) {
+        activeChat = {
+            ...activeChat.data,
+            messages: activeChat.messages ?? activeChat.data.messages ?? []
+        };
+    }
 
+    if (!activeChat) throw new Error("Chat not found");
 
-    await setChatHeader(customChatObject ?? chat[0]);
+    await setChatHeader(activeChat);
 
-    getChatContentElement().innerHTML +=
-        `
+    getChatContentElement().innerHTML += `
         <div class="content"></div>
         <div class="editor-container"></div>
-        `
+    `;
 
     const editor = new RichEditor({
         selector: ".message-container .chat-content .editor-container",
@@ -178,19 +210,31 @@ async function renderChat(chatId, customChatObject = null) {
         }
     });
 
-
-    // display actual messages
-    await renderInboxElementsInChat(chat ?? customChatObject)
+    await renderInboxElementsInChat(activeChat);
 }
 
-async function renderInboxElementsInChat(item) {
-    let inboxType = item?.type
-    if (!item || !inboxType) throw new Error("No item for rendering inbox messages");
+async function renderInboxElementsInChat(chat) {
+    if (!chat) throw new Error("No chat for rendering inbox messages");
 
-    if (inboxType === "mention") await renderMention()
+    let messages = chat?.messages ?? chat?.data?.messages ?? [];
 
-    async function renderMention() {
-        let message = item?.data?.message;
+    if (!Array.isArray(messages)) {
+        messages = Object.values(messages).map(item => item.data ?? item);
+    }
+
+    for (let item of messages) {
+        if (!item?.type) continue;
+
+        if (item.type === "mention") {
+            await renderMention(item);
+        }
+        else{
+            console.warn("Didnt render chat because of unsupported type: ", item.type)
+        }
+    }
+
+    async function renderMention(item) {
+        let message = item?.data?.message ?? item;
         let author = message?.author;
 
         let text = `
@@ -208,7 +252,7 @@ async function renderInboxElementsInChat(item) {
 
         getInnerChatContentElement().insertAdjacentHTML("beforeend", await getMessageHTML({
             text,
-            timestamp: message?.timestamp
+            timestamp: message?.timestamp ?? message?.createdAt
         }))
     }
 }

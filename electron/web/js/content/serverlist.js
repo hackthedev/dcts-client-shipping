@@ -57,7 +57,7 @@ async function fetchServerInfo(address){
         let jsonData = await res.json();
         localStorage.setItem(`serverinfo_cache_${address}`, JSON.stringify(jsonData))
 
-        return jsonData
+        return jsonData?.serverinfo ?? jsonData?.error
     }
     catch(err){
         console.warn(err)

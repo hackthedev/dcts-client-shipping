@@ -9,11 +9,11 @@
     height: fit-content;
 }
 .layout > .content-container > .content > .message-container > .chat-content > .content > .message-container > .content > .mention-embed > .icon {
-    width: 40px;
-    height: 40px;
+    width: 34px;
+    height: 34px;
 
     border-radius: 50%;
-
+    background-color: black;
     background-size: cover;
     object-fit: cover;
     background-repeat: no-repeat;
@@ -24,4 +24,5 @@
     width: auto;
     height: auto;
     padding: 0;
+    font-size: 14px;
 }

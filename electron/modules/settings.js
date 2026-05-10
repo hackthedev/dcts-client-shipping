@@ -146,6 +146,39 @@ class Settings {
             await Settings.saveSettings()
         }
 
+        static async setHomeServer(address) {
+            if (!address) throw new Error("address is required")
+
+            await Settings._ensureLoaded()
+
+            Settings.settings.homeServer = address
+
+            await Settings.saveSettings()
+        }
+
+        static async getHomeServer() {
+            await Settings._ensureLoaded()
+
+            const id = Settings.settings.homeServer
+            if (!id) return null
+
+            return id ?? null
+        }
+
+        static async getHomeServerId() {
+            await Settings._ensureLoaded()
+
+            return Settings.settings.homeServer ?? null
+        }
+
+        static async clearHomeServer() {
+            await Settings._ensureLoaded()
+
+            delete Settings.settings.homeServer
+
+            await Settings.saveSettings()
+        }
+
         static async getServer(id) {
             await Settings._ensureLoaded()
             return Settings.settings.servers?.[id] ?? null
@@ -159,7 +192,13 @@ class Settings {
         static async deleteServer(id) {
             await Settings._ensureLoaded()
             if (!Settings.settings.servers) return
+
             delete Settings.settings.servers[id]
+
+            if (Settings.settings.homeServer === id) {
+                delete Settings.settings.homeServer
+            }
+
             await Settings.saveSettings()
         }
     }

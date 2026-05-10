@@ -4,6 +4,7 @@
     flex: 1 1 auto;
 
     margin: -1rem;
+    overflow: hidden;
 }
 
 .layout > .content-container > .content > .message-container .chats{
@@ -18,7 +19,6 @@
     flex-direction: column;
     width: 100%;
     height: 100%;
-    overflow: auto;
 }
 
 
@@ -47,8 +47,14 @@
     border-radius: 50%;
     background-color: black;
 }
-.layout > .content-container > .content > .message-container .chats .chat .latestMessage{
-    font-size: 14.5px;
+.layout > .content-container > .content > .message-container .chats .chat .latestMessage p{
+    font-size: 14px;
+    margin: 0;
+    word-break: keep-all;
+    word-wrap: normal;
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
 }
 .layout > .content-container > .content > .message-container .chats .chat .badge:after {
     content: "";

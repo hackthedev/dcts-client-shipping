@@ -30,6 +30,10 @@ connectToSocketHost(preferedSocketHost);
 
 
 async function connectToSocketHost(address) {
+    // check some important needed functions
+    if(typeof Client().GetHomeServer !== "function") throw new Error("Socket Connection canceled due to unsupported client")
+
+
     let socketUrl = `${getProtocol(preferedSocketHost)}://${preferedSocketHost}`;
     if (socket && socket?.connected === true) socket.disconnect()
 
@@ -45,13 +49,17 @@ async function connectToSocketHost(address) {
 }
 
 async function socketHello(address){
+    if(typeof Client().GetHomeServer !== "function") throw new Error("Socket Connection canceled due to unsupported client")
+
     return new Promise(async (resolve, reject) => {
         socket.emit("/messenger/hello",
             {
                 publicKey: await Client().GetPublicKey(),
-                sessionId: await getSessionIdFromHost(address)
+                sessionId: await getSessionIdFromHost(address),
+                home_server: await Client().GetHomeServer()
             },
             async function (response){
+                if(response?.error) console.error(response?.error);
                 resolve(true)
             })
     })
