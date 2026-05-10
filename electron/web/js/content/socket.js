@@ -24,35 +24,66 @@ async function waitForSocket(socket) {
     });
 }
 
-let socket = null;
-let preferedSocketHost = `localhost:2052`;
-connectToSocketHost(preferedSocketHost);
+const sockets = new Map();
+async function getSocket(host) {
+    host = extractHost(host);
 
+    if (sockets.has(host)) {
+        let socket = sockets.get(host);
 
-async function connectToSocketHost(address) {
-    // check some important needed functions
-    if(typeof Client().GetHomeServer !== "function") throw new Error("Socket Connection canceled due to unsupported client")
+        if (socket.connected) return socket;
+        return socket;
+    }
 
-
-    let socketUrl = `${getProtocol(preferedSocketHost)}://${preferedSocketHost}`;
-    if (socket && socket?.connected === true) socket.disconnect()
-
-    socket = io.connect(socketUrl)
-
-    socket.on("connect", async () => {
-        if(!window?.didRegisterSocketListeners) registerSocketListeners();
-        await socketHello(address)
-        window.didRegisterSocketListeners = true;
+    let socket = io.connect(`${getProtocol(host)}://${host}`, {
+        reconnection: true
     });
 
-    return socket
+    sockets.set(host, socket);
+
+    socket.on("connect", async () => {
+        await socketHello(socket, host);
+    });
+
+    return socket;
+}
+
+function terminateSocket(address) {
+    address = extractHost(address);
+
+    let socket = sockets.get(address);
+    if (!socket) return false;
+
+    socket.disconnect();
+    sockets.delete(address);
+
+    return true;
+}
+
+async function connectToSocketHost(address) {
+    if(typeof Client().GetHomeServer !== "function") {
+        throw new Error("Socket Connection canceled due to unsupported client");
+    }
+
+    let socket = await getSocket(address);
+
+    socket.on("connect", async () => {
+        if(!socket.didRegisterSocketListeners) {
+            registerSocketListeners(socket);
+            socket.didRegisterSocketListeners = true;
+        }
+
+        await socketHello(socket, address);
+    });
+
+    return socket;
 }
 
 async function socketHello(address){
     if(typeof Client().GetHomeServer !== "function") throw new Error("Socket Connection canceled due to unsupported client")
 
     return new Promise(async (resolve, reject) => {
-        socket.emit("/messenger/hello",
+        (await getSocket(address)).emit("/messenger/hello",
             {
                 publicKey: await Client().GetPublicKey(),
                 sessionId: await getSessionIdFromHost(address),
@@ -65,9 +96,8 @@ async function socketHello(address){
     })
 }
 
-function registerSocketListeners(){
+async function registerSocketListeners(socket){
     socket.on("/messenger/receive", async (message) => {
-
         let myMessage = message[await Client().GenerateGid(await Client().GetPublicKey())]
         let decryptedMessageText = await Client().DecryptData(
             myMessage.method,

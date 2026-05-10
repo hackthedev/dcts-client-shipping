@@ -203,6 +203,12 @@ async function deleteServer(ip) {
 document.addEventListener('DOMContentLoaded', async () => {
     customPrompts = new Prompt();
 
+    // default server lol
+    if(await Client().GetHomeServer()?.trim?.length === 0) await Client().SetHomeServer("chat.network-z.com");
+
+    // connect to it
+    connectToSocketHost(await Client().GetHomeServer());
+
     ensureDomPurify();
     buildNavHTML(true);
     getSavedServers(getContentElement())

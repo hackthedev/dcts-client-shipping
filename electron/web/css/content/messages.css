@@ -21,6 +21,28 @@
     height: 100%;
 }
 
+.layout > .content-container > .content > .message-container .chat-content > .content > .system-message {
+    position: relative;
+    display: flex;
+    width: 100%;
+    justify-content: center;
+    align-items: center;
+    margin: 2rem 0;
+}
+.layout > .content-container > .content > .message-container .chat-content > .content > .system-message > hr {
+    position: absolute;
+    display: flex;
+    width: 100%;
+    justify-content: center;
+    z-index: 1;
+}
+.layout > .content-container > .content > .message-container .chat-content > .content > .system-message > span {
+    position: absolute;
+    z-index: 2;
+    padding: 4px 8px;
+    border-radius: 1rem;
+    font-size: 12px;
+}
 
 .layout > .content-container > .content > .message-container .chats .chat{
     display: flex;

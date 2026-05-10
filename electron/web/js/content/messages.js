@@ -60,7 +60,12 @@ async function fetchServerInbox(host) {
     // sorting
     let messages = Object.values(mergedMessages)
         .map(item => item.data ?? item)
-        .sort((a, b) => (a.createdAt ?? 0) - (b.createdAt ?? 0));
+        .sort((a, b) => {
+            const aTimestamp = a?.timestamp ?? 0;
+            const bTimestamp = b?.timestamp ?? 0;
+
+            return aTimestamp - bTimestamp;
+        });
 
     chatData.messages = messages;
     chatData.lastMessage = messages.at(-1) ?? null;
@@ -222,8 +227,31 @@ async function renderInboxElementsInChat(chat) {
         messages = Object.values(messages).map(item => item.data ?? item);
     }
 
+    let lastDate = null;
+
     for (let item of messages) {
         if (!item?.type) continue;
+
+        let timestamp = item?.timestamp;
+        let currentDate = new Date(timestamp).toDateString();
+
+        if (currentDate !== lastDate) {
+            lastDate = currentDate;
+
+            getInnerChatContentElement().insertAdjacentHTML("beforeend", `
+            <div class="system-message">
+                <span>
+                    ${new Date(timestamp).toLocaleDateString("en-US", {
+                        weekday: "long",
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric"
+                    })}
+                </span>
+                <hr>
+            </div>
+        `);
+        }
 
         if (item.type === "mention") {
             await renderMention(item);
@@ -250,9 +278,10 @@ async function renderInboxElementsInChat(chat) {
             </div>            
         `;
 
+        console.log(message.timestamp)
         getInnerChatContentElement().insertAdjacentHTML("beforeend", await getMessageHTML({
             text,
-            timestamp: message?.timestamp ?? message?.createdAt
+            timestamp: message?.timestamp
         }))
     }
 }
@@ -273,7 +302,7 @@ async function getMessageHTML({
                     <p class="timestamp">
                         ${new Date(timestamp).toLocaleTimeString("en-US", {
                                 hour: '2-digit',
-                                minute: '2-digit'
+                                minute: '2-digit',
                             }) ?? ""}
                     </p>
                 </div>

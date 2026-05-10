@@ -133,3 +133,18 @@ a {
 span.mention{
     color: hsl(from var(--accent) h s calc(l * 1)) !important;
 }
+
+.layout > .content-container > .content > .message-container .chat-content > .content > .system-message > span {
+    background-color: hsl(from var(--main) h s calc(l * 1.75));
+    color: hsl(from var(--main) h s calc(l * 5));
+    border: 1.5px solid hsl(from var(--main) h s calc(l * 4));
+}
+.layout > .content-container > .content > .message-container .chat-content > .content > .system-message > hr {
+    border: 1px solid transparent;
+    border-image: linear-gradient(
+            90deg,
+            transparent,
+            hsl(from var(--main) h s calc(l * 4)),
+            transparent
+    ) 1;
+}
