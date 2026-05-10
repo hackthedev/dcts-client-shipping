@@ -6,7 +6,9 @@ function isLocal(){
 
 async function getDiscoveredHosts(){
     return new Promise(async (resolve, reject) => {
-        let servers = await fetch("/servers");
+        let servers = await fetch("/servers", {
+            signal: AbortSignal.timeout(2000)
+        });
         resolve(servers.json())
     })
 }
@@ -127,6 +129,14 @@ async function submitServer(host){
     }
 }
 
+async function updateLocalServerInfo(address){
+    let fetchedServerInfo = await fetchServerInfo(address);
+    if(fetchedServerInfo?.version){
+        await Client().SaveServer(address, fetchedServerInfo);
+        console.log("updated server lazily")
+    }
+}
+
 async function renderServersList(container, servers) {
     const list = container;
     if (!list) throw new Error("No list found to display items in");
@@ -134,14 +144,13 @@ async function renderServersList(container, servers) {
     list.innerHTML = "";
 
     for (let server in servers) {
-        let serverObj = servers[server];
-        serverObj.serverinfo = null;
-
         let address = server;
-        let isFav = serverObj?.fav;
+        let serverObj = servers[address];
 
-        let serverInfoRequest = null;
-        let serverInfoJson = null;
+        serverObj.serverinfo = await Client().GetServer(address)?.serverinfo ?? await fetchServerInfo(address);
+
+        // do not await this. its not needed here, just updating local version
+        updateLocalServerInfo(address)
 
         if (!serverObj || serverObj.length <= 0) {
             list.innerHTML = "<p>No servers found :(</p>"
@@ -149,7 +158,7 @@ async function renderServersList(container, servers) {
         }
 
         const idx = list.children.length;
-        if (serverObj?.serverinfo?.error && !showOwnerActions) continue;
+        if (serverObj?.serverinfo?.error) continue;
 
         const versionText = encodePlainText(String(String(serverObj?.serverinfo?.version || "?").split("")).replaceAll(",", "."));
         const card = document.createElement("div");
@@ -159,7 +168,7 @@ async function renderServersList(container, servers) {
         card.style.setProperty("--reveal-delay", `${idx * 200}ms`);
 
         card.innerHTML = `
-             <div class="banner" style="background-image:url('${serverObj?.serverinfo?.banner?.includes("://") ? serverObj.serverinfo.banner : `https://${address}${serverObj?.serverinfo?.banner}`}')">
+             <div class="banner" style="background-image:url('${getFixedUrl(address, serverObj?.serverinfo?.banner)}')">
                 <p class="name">${encodePlainText(truncateString(serverObj?.serverinfo?.name || address, 25))}</p>
                 
                  <div class="features">

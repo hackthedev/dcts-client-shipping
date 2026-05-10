@@ -42,7 +42,7 @@
     justify-content: end;
     font-size: 12px;
 
-    padding: 0.5rem;
+    padding: 0.25rem;
 }
 .layout > .content-container > .content > .message-container > .chat-content > .content > .message-container > .meta p{
     margin: 0;
