@@ -1,4 +1,4 @@
-.layout > .content-container > .content > .message-container > .chat-content > .content > .message-container > .content > .mention-embed {
+.layout > .content-container > .content > .message-page-container > .chat-content > .content > .message-container > .content > .mention-embed {
     display: flex;
     gap: 0.5rem;
     flex-direction: row;
@@ -8,7 +8,7 @@
     width: fit-content;
     height: fit-content;
 }
-.layout > .content-container > .content > .message-container > .chat-content > .content > .message-container > .content > .mention-embed > .icon {
+.layout > .content-container > .content > .message-page-container > .chat-content > .content > .message-container > .content > .mention-embed > .icon {
     width: 34px;
     height: 34px;
 
@@ -18,7 +18,7 @@
     object-fit: cover;
     background-repeat: no-repeat;
 }
-.layout > .content-container > .content > .message-container > .chat-content > .content > .message-container > .content > .mention-embed > .content {
+.layout > .content-container > .content > .message-page-container > .chat-content > .content > .message-container > .content > .mention-embed > .content {
     display: flex;
     flex-direction: column;
     width: auto;

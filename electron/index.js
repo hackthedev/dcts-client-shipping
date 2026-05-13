@@ -50,10 +50,10 @@ function registerWindowBoundsPersistence(win) {
 async function createWindow(width, height) {
     // installing multiple packages
     const results = await FrontendLibs.installMultiple([
-        { package: '@hackthedev/icons@1.0.5', path: libDir },
+        { package: '@hackthedev/icons@1.0.6', path: libDir },
         { package: '@hackthedev/mobile-ui@latest', path: libDir },
         { package: '@hackthedev/prompts@latest', path: libDir },
-        { package: '@hackthedev/rich-editor', path: libDir }
+        { package: '@hackthedev/rich-editor', path: libDir },
     ]);
 
     results.forEach((r) => {

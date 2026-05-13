@@ -37,6 +37,7 @@
     <link rel="stylesheet" href="css/content/messages.css">
     <link rel="stylesheet" href="css/content/inbox/general.css">
     <link rel="stylesheet" href="css/content/inbox/mention-embed.css">
+    <link rel="stylesheet" href="css/content/inbox/user_message.css">
 
     <link rel="stylesheet" href="css/content/serverlist.css">
     <link rel="stylesheet" href="css/content.css">
@@ -66,6 +67,14 @@
 </head>
 <body>
 
+<script>
+
+    let prompts = null;
+    document.addEventListener("DOMContentLoaded", function() {
+        prompts = new Prompt();
+    })
+
+</script>
 
 <div class="layout">
 

@@ -25,21 +25,45 @@ async function waitForSocket(socket) {
 }
 
 const sockets = new Map();
+
+function getChatSocket() {
+    // if we're not connected we can use this to get
+    // the second socket as it depends on if we're
+    // connected to the home server or nah.
+    //
+    // getChatSocket.host gives the address of the host.
+    // this is important for chat handling, message sending etc
+    return sockets.get("remote")
+        ?? [...sockets.values()][0]
+        ?? null;
+}
+
 async function getSocket(host) {
     host = extractHost(host);
 
-    if (sockets.has(host)) {
-        let socket = sockets.get(host);
+    // ok so we want a persistent connection to our home server,
+    // and every other server is only going to be "temporary", as in
+    // "if we open another chat, kill the previous connection, but never home server connection".
+    let homeServer = extractHost(await Client().GetHomeServer());
+    let socketKey = host === homeServer ? host : "remote";
 
-        if (socket.connected) return socket;
-        return socket;
+    if (sockets.has(socketKey)) {
+        let existingSocket = sockets.get(socketKey);
+
+        if (socketKey === "remote" && existingSocket.host !== host) {
+            existingSocket.disconnect();
+            sockets.delete(socketKey);
+        } else {
+            return existingSocket;
+        }
     }
 
     let socket = io.connect(`${getProtocol(host)}://${host}`, {
         reconnection: true
     });
 
-    sockets.set(host, socket);
+    socket.host = host;
+    sockets.set(socketKey, socket);
 
     socket.on("connect", async () => {
         await socketHello(socket, host);
@@ -108,12 +132,12 @@ async function registerSocketListeners(socket){
             myMessage.ciphertext
         );
 
-        console.log(decryptedMessageText, myMessage);
-
+        message.messageId = message.timestamp;
+        await Client().SaveChatMessage(message?.gid, message)
     })
 }
 
-async function sendMessage(text, targetPublicKey, host){
+async function sendMessage(text, targetPublicKey, host, test = false){
     if(text?.trim()?.length === 0) throw new Error("no text found to send");
     if(!targetPublicKey) throw new Error("target gid not found");
     if(!host) throw new Error("host not found to send");
@@ -126,10 +150,12 @@ async function sendMessage(text, targetPublicKey, host){
     // this creates the message object. payload itself is just temporary
     let payload = {
         message: {
+            gid: await Client().GenerateGid(await Client().GetPublicKey()),
             publicKey: await Client().GetPublicKey(),
-            targetPublicKey: await Client().GetPublicKey(),
+            targetIdentifier: targetPublicKey,
             timestamp: new Date().getTime(),
-            type: "user_message"
+            type: "user_message",
+            test,
         }
     }
 
@@ -140,11 +166,9 @@ async function sendMessage(text, targetPublicKey, host){
     // super fucking important!!!
     payload.message = await Client().SignJson(payload.message)
 
-    console.log(payload)
-
-    return new Promise((resolve, reject) => {
-        socket.emit("/messenger/send", {message: payload.message, sessionId}, async function (response){
-            console.log(response)
+    return await new Promise(async (resolve, reject) => {
+        (await getChatSocket()).emit("/messenger/send", {message: payload.message, sessionId}, async function (response){
+            resolve(response)
         })
     })
 }

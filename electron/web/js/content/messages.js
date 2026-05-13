@@ -1,15 +1,10 @@
-async function getMessagesFromServers() {
-    let servers = await Client().GetServers()
-    console.log(servers)
-}
-
 async function fetchServerInbox(host) {
     host = extractHost(host);
 
-    if(typeof Client().SaveChat !== "function") throw new Error("Unsupported Client!")
-    if(typeof Client().SaveChatMessage !== "function") throw new Error("Unsupported Client!")
-    if(typeof Client().GetChat !== "function") throw new Error("Unsupported Client!")
-    if(typeof Client().GetChatMessages !== "function") throw new Error("Unsupported Client!")
+    if (typeof Client().SaveChat !== "function") throw new Error("Unsupported Client!")
+    if (typeof Client().SaveChatMessage !== "function") throw new Error("Unsupported Client!")
+    if (typeof Client().GetChat !== "function") throw new Error("Unsupported Client!")
+    if (typeof Client().GetChatMessages !== "function") throw new Error("Unsupported Client!")
 
     let sessionId = await getSessionIdFromHost(host);
     if (!sessionId) return console.warn("Session id not found for host ", host)
@@ -33,7 +28,7 @@ async function fetchServerInbox(host) {
         icon: serverInfo?.icon ? getFixedUrl(host, serverInfo.icon) : null
     };
 
-    let mergedMessages = { ...localMessages };
+    let mergedMessages = {...localMessages};
 
     // some processing
     for (let item of hostInbox.inbox) {
@@ -136,8 +131,16 @@ async function loadMessages() {
 async function renderMessages() {
     getContentElement().innerHTML =
         `
-            <div class="message-container">
-                <div class="chats"></div>
+            <div class="message-page-container">
+            
+                <div class="chats">
+                    <div class="header">
+                        <h1>Chats</h1>
+                        <span class="new-chat" onclick="startNewChat()">
+                            ${Icon.display("message_add")}
+                        </span>
+                    </div>
+                </div>
                 <div class="chat-content">
                 </div>
             </div>
@@ -150,14 +153,14 @@ async function renderMessages() {
         if (!element) throw new Error("Element not found for adding chat element");
 
         for (let chat of Object.values(uniqueChats)) {
-            let chatId = chat?.host ?? chat?.data?.host;
-            if(!chatId) {
+            let chatId = chat?.host ?? chat?.data?.host ?? chat?.data?.gid;
+            if (!chatId) {
                 console.warn("No chat id found for chat ", chat)
                 continue;
             }
 
             let chatName = chat?.title ?? chat?.data?.title ?? "Unkown"
-            let latestMessage = `@${chat?.host ?? chat?.data?.host}`// will need to actually decrypt this
+            let latestMessage = `@${chat?.host ?? chat?.data?.host ?? chat?.data?.home_server}`// will need to actually decrypt this
 
             element.insertAdjacentHTML("beforeend", `
                 <div class="chat" data-gid="${chatId}" onclick="renderChat('${chatId}')">
@@ -174,7 +177,7 @@ async function renderMessages() {
 }
 
 function getChatContentElement() {
-    return document.querySelector(`.message-container .chat-content`);
+    return document.querySelector(`.message-page-container .chat-content`);
 }
 
 function getInnerChatContentElement() {
@@ -200,20 +203,34 @@ async function renderChat(chatId, customChatObject = null) {
         <div class="editor-container"></div>
     `;
 
-    const editor = new RichEditor({
-        selector: ".message-container .chat-content .editor-container",
-        toolbar: [
-            ["bold", "italic", "underline", "strike"],
-            ["clean", "link", "image", "video"],
-            ["code", "code-block", "blockquote"]
-        ],
-        onImg: async (src) => {
+    console.log(activeChat)
+    let chatHost = activeChat?.data?.host ?? activeChat?.host ?? activeChat?.data?.home_server ?? null;
+    if (!chatHost) throw new Error("No chat host found!");
+    await connectToSocketHost(chatHost);
 
-        },
-        onSend: async (html) => {
-            console.log("sending ", html)
-        }
-    });
+    if (!activeChat?.isServer) {
+        const editor = new RichEditor({
+            selector: ".message-page-container .chat-content .editor-container",
+            toolbar: [
+                ["bold", "italic", "underline", "strike"],
+                ["clean", "link", "image", "video"],
+                ["code", "code-block", "blockquote"]
+            ],
+            onImg: async (src) => {
+
+            },
+            onSend: async (html) => {
+                console.log("sending ", html)
+                console.log(activeChat.data)
+
+                let messageResult = await sendMessage(html, activeChat.data.publicKey, chatHost);
+                console.log(messageResult)
+                if (messageResult?.error) {
+                    alert(`Error while sending message!\n\n${messageResult.error}`)
+                }
+            }
+        });
+    }
 
     await renderInboxElementsInChat(activeChat);
 }
@@ -242,11 +259,11 @@ async function renderInboxElementsInChat(chat) {
             <div class="system-message">
                 <span>
                     ${new Date(timestamp).toLocaleDateString("en-US", {
-                        weekday: "long",
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric"
-                    })}
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric"
+            })}
                 </span>
                 <hr>
             </div>
@@ -255,17 +272,57 @@ async function renderInboxElementsInChat(chat) {
 
         if (item.type === "mention") {
             await renderMention(item);
-        }
-        else{
+        } else if (item.type === "user_message") {
+            await renderUserMessage(item);
+        } else {
             console.warn("Didnt render chat because of unsupported type: ", item.type)
         }
     }
+}
 
-    async function renderMention(item) {
-        let message = item?.data?.message ?? item;
-        let author = message?.author;
+async function renderUserMessage(item, element = null) {
+    let message = item?.data?.message ?? item;
+    let author = message?.author;
 
-        let text = `
+    // OUR gid comrade.
+    let gid = await Client().GenerateGid(await Client().GetPublicKey());
+    let encryptedMessage = message[gid];
+
+    // skill issue
+    if (!encryptedMessage?.method) throw new Error("Invalid message data", message);
+
+    // okayyyy lets go. decrypt message lol
+    let decryptedMessageText;
+    try {
+        decryptedMessageText = await Client().DecryptData(
+            encryptedMessage.method,
+            encryptedMessage.encKey,
+            encryptedMessage.iv,
+            encryptedMessage.tag,
+            encryptedMessage.ciphertext
+        );
+    } catch (blyat) {
+        console.error(blyat);
+        return;
+    }
+
+    let text = `
+            <div class="user_message-container">
+                ${decryptedMessageText ?? ""}
+            </div>            
+        `;
+    let renderElement = element ? element : getInnerChatContentElement();
+    renderElement.insertAdjacentHTML("beforeend", await getMessageHTML({
+        text,
+        timestamp: message?.timestamp
+    }))
+}
+
+async function renderMention(item, element = null) {
+    let message = item?.data?.message ?? item;
+    let author = message?.author;
+
+    let text = `
             <div class="mention-embed">
                 <div class="icon" style="background-image: url('${getFixedUrl(item?.host, author?.icon)}')"></div>
                 
@@ -278,12 +335,11 @@ async function renderInboxElementsInChat(chat) {
             </div>            
         `;
 
-        console.log(message.timestamp)
-        getInnerChatContentElement().insertAdjacentHTML("beforeend", await getMessageHTML({
-            text,
-            timestamp: message?.timestamp
-        }))
-    }
+    let renderElement = element ? element : getInnerChatContentElement();
+    renderElement.insertAdjacentHTML("beforeend", await getMessageHTML({
+        text,
+        timestamp: message?.timestamp
+    }))
 }
 
 async function getMessageHTML({
@@ -301,9 +357,9 @@ async function getMessageHTML({
                 <div class="meta">
                     <p class="timestamp">
                         ${new Date(timestamp).toLocaleTimeString("en-US", {
-                                hour: '2-digit',
-                                minute: '2-digit',
-                            }) ?? ""}
+                            hour: '2-digit',
+                            minute: '2-digit',
+                        }) ?? ""}
                     </p>
                 </div>
             </div>
@@ -321,4 +377,116 @@ async function setChatHeader(chat) {
             <div class="icon" style="background-image: url('${chatIcon}')"></div>
             <h1>${chatTitle}</h1>
         </div>`;
+}
+
+async function startNewChat({
+                                identifier = null,
+                                error = null,
+                            } = {}) {
+    prompts.showPrompt(
+        "New Chat",
+        `
+
+        <style>
+        #promptContainer p.chat-start-error{
+            background-color: rgba(205,92,92,0.20);
+            color: indianred;
+            border-radius: 6px;
+            border: 1.5px solid indianred;
+            padding: 0.25rem;
+            width: 100%;
+            text-align: center;
+        }
+        </style>
+
+        ${error ?
+            `<p class="chat-start-error">
+            ${error}
+        </p>` : ""}
+
+        <div class="prompt-form-group">
+            <label class="prompt-label">User Address</label>
+            <input class="prompt-input" ${identifier ? `value="${identifier}"` : ""} name="address" type="text" placeholder="123456789==@server.com, vanity@server.com, ...">
+        </div>
+    `,
+        async ({address}) => {
+            address = address?.trim();
+            if (!address || !address?.includes("@")) {
+                await prompts.closePrompt();
+                return await startNewChat({error: "Invalid address!"});
+            }
+
+            let splitName = address.split("@");
+            let identifierName = splitName[0] ?? null;
+            let host = splitName[1] ?? null;
+
+            if (!identifierName || !host) {
+                return await reopenWithError("No identifier or host found")
+            }
+
+            // send a test message that wont store anything but still validate everything etc and reolve
+            // the user if it exists
+            let testMessage
+            try {
+                testMessage = await sendMessage("Test", identifierName, host, true);
+            } catch (sendingError) {
+                console.error(sendingError)
+                return await reopenWithError("Unable to check on user");
+            }
+
+            let extractedHost = extractHost(testMessage?.target?.home_server);
+            let fullIdentifier = `${identifierName}@${extractedHost}`;
+
+            // CHECK FOR ERRORS N SHIT
+            // if the host changed we will redirect it
+            await checkForErrors();
+
+            // ok lets assume there were no errors then
+            if (testMessage?.target?.publicKey) {
+                let targetGid = await Client().GenerateGid(testMessage.target.publicKey);
+
+                // some more tests
+                if (!targetGid) throw new Error("Couldnt generate target gid");
+                if (targetGid !== testMessage.target?.gid) throw new Error("Calculated GID and given GID doesnt match");
+
+                let existingChat = await Client().GetChat(targetGid);
+                if (existingChat?.data?.gid) {
+                    await renderChat(existingChat.data.gid)
+                } else {
+                    await Client().SaveChat(targetGid, {
+                        publicKey: testMessage.target?.publicKey,
+                        gid: targetGid,
+                        title: `New Chat`,
+                        home_server: testMessage.target?.home_server,
+                        lastMessage: null,
+                        icon: null,
+                    })
+
+                    await loadMessages();
+                }
+            }
+
+
+            async function checkForErrors() {
+                if (extractedHost !== extractHost(host) && extractedHost) {
+                    return await reopenWithError("User moved to different home server", fullIdentifier)
+                }
+
+                if (!testMessage?.target?.gid) {
+                    return await reopenWithError("No user found :/")
+                }
+            }
+
+            async function reopenWithError(errorText, identifier) {
+                prompts.closePrompt();
+                return await startNewChat({
+                    identifier,
+                    error: errorText,
+                });
+            }
+        },
+        ["Check", "success"],
+        false,
+        350
+    );
 }
