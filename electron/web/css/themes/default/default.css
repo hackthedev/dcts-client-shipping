@@ -85,8 +85,13 @@ a {
 }
 
 .ql-toolbar {
-    background: hsl(from var(--main) h s calc(l * 8));
+    background: hsl(from var(--main) h s calc(l * 10));
     border: none;
+}
+
+.ql-formats {
+    background: hsl(from var(--main) h s calc(l * 9.5));
+    border: 1.5px solid hsl(from var(--main) h s calc(l * 1) / 10%);
 }
 
 .editor-container .rich-editor .editor {

@@ -83,8 +83,8 @@
 }
 .layout > .content-container > .content > .message-page-container .chats .chat .icon,
 .layout > .content-container > .content > .message-page-container .chat-content .header .icon{
-    width: 50px;
-    height: 50px;
+    width: 39px;
+    height: 39px;
 
     background-repeat: no-repeat;
     object-fit: cover;
@@ -130,6 +130,7 @@
 }
 .layout > .content-container > .content > .message-page-container .chat-content .header h1{
     font-size: 16px;
+    margin: 0;
 }
 
 .layout > .content-container > .content > .message-page-container > .chat-content > .content {

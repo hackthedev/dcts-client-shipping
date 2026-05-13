@@ -134,6 +134,8 @@ async function registerSocketListeners(socket){
 
         message.messageId = message.timestamp;
         await Client().SaveChatMessage(message?.gid, message)
+
+        if(message?.type === "user_message") await renderUserMessage(message, getInnerChatContentElement())
     })
 }
 

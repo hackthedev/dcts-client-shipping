@@ -203,7 +203,6 @@ async function renderChat(chatId, customChatObject = null) {
         <div class="editor-container"></div>
     `;
 
-    console.log(activeChat)
     let chatHost = activeChat?.data?.host ?? activeChat?.host ?? activeChat?.data?.home_server ?? null;
     if (!chatHost) throw new Error("No chat host found!");
     await connectToSocketHost(chatHost);
@@ -220,14 +219,12 @@ async function renderChat(chatId, customChatObject = null) {
 
             },
             onSend: async (html) => {
-                console.log("sending ", html)
-                console.log(activeChat.data)
-
                 let messageResult = await sendMessage(html, activeChat.data.publicKey, chatHost);
-                console.log(messageResult)
                 if (messageResult?.error) {
-                    alert(`Error while sending message!\n\n${messageResult.error}`)
+                    return alert(`Error while sending message!\n\n${messageResult.error}`)
                 }
+
+                editor.quill.setContents([{ insert: "\n"}]);
             }
         });
     }

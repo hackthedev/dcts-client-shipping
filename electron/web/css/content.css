@@ -6,3 +6,7 @@
     padding: 1rem;
     overflow: auto;
 }
+
+.ql-formats {
+    border-radius: 4px;
+}
