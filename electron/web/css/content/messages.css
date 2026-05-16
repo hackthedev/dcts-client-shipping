@@ -11,7 +11,11 @@
     flex-direction: column;
 
     height: 100%;
+
+    max-width: 400px;
     width: 400px;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 .layout > .content-container > .content > .message-page-container .chat-content{
     display: flex;
@@ -89,12 +93,27 @@
     background-repeat: no-repeat;
     object-fit: cover;
     background-size: cover;
+    flex-shrink: 0;
 
     border-radius: 50%;
     background-color: black;
 }
-.layout > .content-container > .content > .message-page-container .chats .chat .latestMessage p{
+.layout > .content-container > .content > .message-page-container .chats .chat .middle-section {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    width: fit-content;
+    overflow: hidden;
+}
+.layout > .content-container > .content > .message-page-container .chats .chat .latestMessage {
+    display: flex;
+    flex-direction: row;
     font-size: 14px;
+    position: relative;
+}
+.layout > .content-container > .content > .message-page-container .chats .chat .latestMessage p{
+    position: relative;
     margin: 0;
     word-break: keep-all;
     word-wrap: normal;
@@ -102,23 +121,31 @@
     overflow: hidden;
     white-space: nowrap;
 }
-.layout > .content-container > .content > .message-page-container .chats .chat .badge:after {
-    content: "";
-    display: block;
-    padding-bottom: 100%;
+
+.layout > .content-container > .content > .message-page-container .chats .chat .badge.visible{
+    display: flex;
 }
 .layout > .content-container > .content > .message-page-container .chats .chat .badge{
+    display: none;
     margin-left: auto;
 
-    padding: 8px;
     border-radius: 50%;
-
     line-height: 0;
-    display: inline-flex;
+
     justify-content: center;
     align-items: center;
+    align-self: end;
+    align-content: end;
+
+
     font-weight: bold;
     font-size: 14px;
+
+    width: 26px;
+    height: 26px;
+
+    min-width: 26px;
+    min-height: 26px;
 }
 
 .layout > .content-container > .content > .message-page-container .chat-content .header{

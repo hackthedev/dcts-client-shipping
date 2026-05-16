@@ -88,7 +88,7 @@ async function fetchServerInbox(host) {
                     <div class="name">${chatName}</div>
                     ${latestMessage ? `<div class="latestMessage">${latestMessage}</div>` : ""}
                 </div>
-                <div class="badge">${messages.length}</div>
+                <div class="badge ${messages?.length > 0 ? "visible" : ""}">${messages.length}</div>
             </div>
         `)
 
@@ -147,20 +147,44 @@ async function renderMessages() {
         `;
 
     let uniqueChats = await Client().GetChats();
+    uniqueChats = Object.values(uniqueChats).sort(
+        (a, b) => (b?.lastMessage?.timestamp ?? 0) - (a?.lastMessage?.timestamp ?? 0)
+    );
+
+    let gid = await Client().GenerateGid(await Client().GetPublicKey());
+
     addChatEntries(getContentElement().querySelector(`.chats`))
 
     async function addChatEntries(element) {
         if (!element) throw new Error("Element not found for adding chat element");
 
-        for (let chat of Object.values(uniqueChats)) {
+        for (let chat of Object.values(uniqueChats.reverse())) {
             let chatId = chat?.host ?? chat?.data?.host ?? chat?.data?.gid;
             if (!chatId) {
                 console.warn("No chat id found for chat ", chat)
                 continue;
             }
 
+            let messages = Object.values(chat.messages)
+                .map(item => item.data ?? item)
+                .sort((a, b) => {
+                    const aTimestamp = a?.timestamp ?? 0;
+                    const bTimestamp = b?.timestamp ?? 0;
+
+                    return aTimestamp - bTimestamp;
+                });
+
+            chat.messages = messages;
+            chat.lastMessage = messages.at(-1) ?? null;
+
+            if(chat.lastMessage) {
+                chat.lastMessage = chat.lastMessage[gid];
+                chat.lastMessage = await decryptUserMessage(chat.lastMessage)
+            }
+
+
             let chatName = chat?.title ?? chat?.data?.title ?? "Unkown"
-            let latestMessage = `@${chat?.host ?? chat?.data?.host ?? chat?.data?.home_server}`// will need to actually decrypt this
+            let latestMessage = chat.lastMessage ?? `@${chat?.host ?? chat?.data?.host ?? chat?.data?.home_server}`// will need to actually decrypt this
 
             element.insertAdjacentHTML("beforeend", `
                 <div class="chat" data-gid="${chatId}" onclick="renderChat('${chatId}')">
@@ -169,8 +193,8 @@ async function renderMessages() {
                         <div class="name">${chatName}</div>
                         ${latestMessage ? `<div class="latestMessage">${latestMessage}</div>` : ""}
                     </div>
-                    <div class="badge"></div>                
-                <div>
+                    <div class="badge ${messages?.length > 0 ? "visible" : ""}">${messages?.length ?? ""}</div>                
+                </div>
             `)
         }
     }
@@ -296,17 +320,23 @@ async function renderUserMessage(item, element = null) {
     // okayyyy lets go. decrypt message lol
     let decryptedMessageText;
     try {
-        decryptedMessageText = await Client().DecryptData(
-            encryptedMessage.method,
-            encryptedMessage.encKey,
-            encryptedMessage.iv,
-            encryptedMessage.tag,
-            encryptedMessage.ciphertext
-        );
+        decryptedMessageText = await decryptUserMessage(encryptedMessage)
     } catch (blyat) {
         console.error(blyat);
         return;
     }
+
+    let markdownResult = await ChatTools.Media.markdown({
+        htmlInput: decryptedMessageText,
+        identifier: item?.timestamp,
+        containerElement: getInnerChatContentElement(),
+    })
+
+    if(markdownResult?.isMarkdown === true){
+        decryptedMessageText = markdownResult.html;
+    }
+
+    console.log(markdownResult)
 
     let text = `
             <div class="user_message-container">
@@ -314,17 +344,6 @@ async function renderUserMessage(item, element = null) {
             </div>            
         `;
 
-    let markdownResult = await ChatTools.Media.markdown({
-        htmlInput: text,
-        identifier: item?.timestamp,
-        containerElement: getInnerChatContentElement(),
-    })
-
-    if(markdownResult?.isMarkdown === true){
-        text = markdownResult.html;
-    }
-
-    console.log(markdownResult)
 
     let renderElement = element ? element : getInnerChatContentElement();
     renderElement.insertAdjacentHTML("beforeend", await getMessageHTML({

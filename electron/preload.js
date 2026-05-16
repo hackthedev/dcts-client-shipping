@@ -20,6 +20,7 @@ function getSigner() {
     return signer
 }
 
+// fix for embeds etc
 if (globalThis.trustedTypes && !globalThis.trustedTypes.defaultPolicy) {
     globalThis.trustedTypes.createPolicy("default", {
         createHTML: value => value,

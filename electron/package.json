@@ -14,7 +14,9 @@
   },
   "dependencies": {
     "@hackthedev/dsync-sign": "^1.0.14",
-    "@hackthedev/frontend-libs": "^1.0.5"
+    "@hackthedev/frontend-libs": "^1.0.5",
+    "cors": "^2.8.6",
+    "express": "^5.2.1"
   },
   "devDependencies": {
     "electron": "^40.4.1",

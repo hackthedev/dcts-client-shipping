@@ -124,19 +124,27 @@ async function socketHello(socket, address){
 async function registerSocketListeners(socket){
     socket.on("/messenger/receive", async (message) => {
         let myMessage = message[await Client().GenerateGid(await Client().GetPublicKey())]
-        let decryptedMessageText = await Client().DecryptData(
-            myMessage.method,
-            myMessage.encKey,
-            myMessage.iv,
-            myMessage.tag,
-            myMessage.ciphertext
-        );
-
         message.messageId = message.timestamp;
         await Client().SaveChatMessage(message?.gid, message)
 
         if(message?.type === "user_message") await renderUserMessage(message, getInnerChatContentElement())
     })
+}
+
+async function decryptUserMessage(message){
+    if(!message) throw new Error("Message was not set");
+
+    let decryptedMessageText = await Client().DecryptData(
+        message.method,
+        message.encKey,
+        message.iv,
+        message.tag,
+        message.ciphertext
+    );
+
+    message.messageId = message.timestamp;
+
+    return decryptedMessageText;
 }
 
 async function sendMessage(text, targetPublicKey, host, test = false){

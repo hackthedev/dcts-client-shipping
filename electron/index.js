@@ -10,6 +10,10 @@ const {
     net,
 } = require("electron");
 
+
+const express = require("express")
+const cors = require("cors")
+
 const path = require("path");
 const fs = require("node:fs");
 const Settings = require("./modules/settings");
@@ -24,6 +28,28 @@ const profilePath = path.join(applicationDataDir, "profiles");
 
 if (!fs.existsSync(applicationDataDir)) fs.mkdirSync(applicationDataDir);
 if (!fs.existsSync(profilePath)) fs.mkdirSync(profilePath);
+
+
+let server = null
+
+function startLocalServer() {
+    return new Promise((resolve) => {
+        const web = express()
+        const publicDir = path.join(__dirname, "web")
+
+        web.use(cors({
+            origin: "*"
+        }))
+        web.use(express.static(publicDir))
+
+        server = web.listen(0, "127.0.0.1", () => {
+            const { port } = server.address()
+            resolve(`http://127.0.0.1:${port}`)
+        })
+    })
+}
+
+
 
 const windowKey = "window.bounds";
 
@@ -79,16 +105,38 @@ async function createWindow(width, height) {
             nodeIntegrationInSubFrames: true,
             sandbox: false,
             devTools: true,
+            webviewTag: true,
             additionalArguments: ["--appdata=" + applicationDataDir],
         },
     });
+
+    win.webContents.setUserAgent(
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    )
 
     win.setIcon(nativeImage.createFromPath(path.join(__dirname, "logo.ico")));
 
     await restoreWindowBounds(win, width, height);
     registerWindowBoundsPersistence(win);
 
-    win.loadFile(path.join(__dirname, "web/index.html"));
+    //remove X-Frame-Options headers on all incoming requests.
+    win.webContents.session.webRequest.onHeadersReceived(
+        { urls: ["*://*/*"] },
+        (details, callback) => {
+            if (details && details.responseHeaders) {
+                if (details.responseHeaders["X-Frame-Options"]) {
+                    delete details.responseHeaders["X-Frame-Options"]
+                } else if (details.responseHeaders["x-frame-options"]) {
+                    delete details.responseHeaders["x-frame-options"]
+                }
+            }
+            callback({ cancel: false, responseHeaders: details.responseHeaders })
+        }
+    )
+
+    let localUrl = await startLocalServer();
+    await win.loadURL(localUrl)
+    //win.loadFile(path.join(__dirname, "web/index.html"));
 }
 
 ipcMain.on("navigate", (e, url) => {
@@ -118,6 +166,16 @@ app.commandLine.appendSwitch(
 
 app.whenReady().then(async () => {
     Settings.initSettings(applicationDataDir);
+
+    // youtube embed fix — header spoofing
+    session.defaultSession.webRequest.onBeforeSendHeaders(
+        { urls: ['*://*.youtube.com/*', '*://*.googlevideo.com/*', '*://*.ytimg.com/*'] },
+        (details, callback) => {
+            details.requestHeaders['Referer'] = 'https://www.youtube.com'
+            details.requestHeaders['Origin'] = 'https://www.youtube.com'
+            callback({ requestHeaders: details.requestHeaders })
+        }
+    )
 
     const primaryDisplay = screen.getPrimaryDisplay();
     const {width, height} = primaryDisplay.workAreaSize;

@@ -243,7 +243,7 @@ class ChatTools {
                 return;
             }
 
-            let embed = "https://www.youtube.com/embed/" + code;
+            let embed = "https://www.youtube-nocookie.com/embed/" + code;
             if (t) embed += "?start=" + parseInt(t);
 
             return `
@@ -257,7 +257,7 @@ class ChatTools {
                         src="${embed}"
                         frameborder="0"
                         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                        allowfullscreen
+                        allowfullscreen>
                     </iframe>
         
                 </div>
@@ -319,7 +319,13 @@ class ChatTools {
 
                 // lets try to convert the url to html if it matches and
                 // skip execution if it did so.
-                let convertedHTML = this.convertUrlToHTML(url, media)
+                let convertedHTML = this.convertUrlToHTML({
+                    url,
+                    proxy,
+                    media,
+                    htmlInput
+                });
+
                 if(convertedHTML !== htmlInput) {
                     htmlInput = convertedHTML;
                     changed = true;

@@ -1,7 +1,7 @@
 let customPrompts = null;
 
 function isLocal(){
-    return window.location.origin.startsWith("file://");
+    return window.location.origin.startsWith("file://") || window.location.origin.startsWith("http://127.0.0.1");
 }
 
 async function getDiscoveredHosts(){
@@ -347,6 +347,7 @@ async function verifySessionId(host, sessionId){
 
     let request = await fetch(`${getProtocol(host)}://${host}/dSyncAuth/verify/session`, {
         method: "POST",
+        mode: 'cors',
         headers: {
             "content-type": "application/json"
         },
