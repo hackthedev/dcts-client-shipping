@@ -139,7 +139,7 @@ async function updateLocalServerInfo(address){
 
 async function renderServersList(container, servers) {
     const list = container;
-    if (!list) throw new Error("No list found to display items in");
+    if (!list) return console.warn("No list found to display items in");
 
     list.innerHTML = "";
 
@@ -211,6 +211,15 @@ async function deleteServer(ip) {
 
 document.addEventListener('DOMContentLoaded', async () => {
     customPrompts = new Prompt();
+    ChatTools.Media.mediaResolver = async () => {
+        return "";
+    }
+
+    ChatTools.Media.metaResolver = async () => {
+        return {
+
+        };
+    }
 
     // default server lol
     if(await Client().GetHomeServer()?.trim?.length === 0) await Client().SetHomeServer("chat.network-z.com");

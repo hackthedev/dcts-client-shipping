@@ -229,10 +229,10 @@ async function renderChat(chatId, customChatObject = null) {
         });
     }
 
-    await renderInboxElementsInChat(activeChat);
+    await renderInboxElementsInChat(activeChat, true);
 }
 
-async function renderInboxElementsInChat(chat) {
+async function renderInboxElementsInChat(chat, initial = false) {
     if (!chat) throw new Error("No chat for rendering inbox messages");
 
     let messages = chat?.messages ?? chat?.data?.messages ?? [];
@@ -256,11 +256,11 @@ async function renderInboxElementsInChat(chat) {
             <div class="system-message">
                 <span>
                     ${new Date(timestamp).toLocaleDateString("en-US", {
-                weekday: "long",
-                year: "numeric",
-                month: "long",
-                day: "numeric"
-            })}
+                        weekday: "long",
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric"
+                    })}
                 </span>
                 <hr>
             </div>
@@ -274,6 +274,11 @@ async function renderInboxElementsInChat(chat) {
         } else {
             console.warn("Didnt render chat because of unsupported type: ", item.type)
         }
+    }
+
+    // if we actually open a chat we will just scroll down
+    if(initial){
+        ChatTools.Scroll.scrollDown(getInnerChatContentElement())
     }
 }
 
@@ -308,6 +313,19 @@ async function renderUserMessage(item, element = null) {
                 ${decryptedMessageText ?? ""}
             </div>            
         `;
+
+    let markdownResult = await ChatTools.Media.markdown({
+        htmlInput: text,
+        identifier: item?.timestamp,
+        containerElement: getInnerChatContentElement(),
+    })
+
+    if(markdownResult?.isMarkdown === true){
+        text = markdownResult.html;
+    }
+
+    console.log(markdownResult)
+
     let renderElement = element ? element : getInnerChatContentElement();
     renderElement.insertAdjacentHTML("beforeend", await getMessageHTML({
         text,

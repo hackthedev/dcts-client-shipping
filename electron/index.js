@@ -54,6 +54,7 @@ async function createWindow(width, height) {
         { package: '@hackthedev/mobile-ui@latest', path: libDir },
         { package: '@hackthedev/prompts@latest', path: libDir },
         { package: '@hackthedev/rich-editor', path: libDir },
+        { package: '@hackthedev/chat-tools@1.0.0', path: libDir },
     ]);
 
     results.forEach((r) => {

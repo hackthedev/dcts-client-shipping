@@ -20,6 +20,14 @@ function getSigner() {
     return signer
 }
 
+if (globalThis.trustedTypes && !globalThis.trustedTypes.defaultPolicy) {
+    globalThis.trustedTypes.createPolicy("default", {
+        createHTML: value => value,
+        createScript: value => value,
+        createScriptURL: value => value
+    })
+}
+
 async function loadModules() {
     const files = await fs.readdir(bridgeDir)
     const entries = files.filter(f => f.endsWith(".mjs") && !f.includes("template.mjs"))
