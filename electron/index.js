@@ -139,6 +139,7 @@ async function createWindow(width, height) {
     //win.loadFile(path.join(__dirname, "web/index.html"));
 }
 
+
 ipcMain.on("navigate", (e, url) => {
     if (!/^https?:\/\//.test(url)) url = "https://" + url;
     win.loadURL(url);
@@ -165,7 +166,7 @@ app.commandLine.appendSwitch(
 );
 
 app.whenReady().then(async () => {
-    Settings.initSettings(applicationDataDir);
+    await Settings.initSettings(applicationDataDir);
 
     // youtube embed fix — header spoofing
     session.defaultSession.webRequest.onBeforeSendHeaders(
@@ -192,6 +193,15 @@ app.whenReady().then(async () => {
         1080,
         720
     );
+
+    app.on("will-quit", async (e) => {
+        e.preventDefault();
+
+        await Settings.Client.setLastOnline();
+        await Settings.saveSettings()
+
+        app.exit();
+    });
 });
 
 

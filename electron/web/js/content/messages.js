@@ -128,6 +128,51 @@ async function loadMessages() {
     }
 }
 
+async function fetchMessengerChats(timestamp = 0) {
+    return new Promise(async (resolve, reject) => {
+        let publicKey = await Client().GetPublicKey();
+        let homeSocket = getHomeSocket();
+
+        if (!homeSocket) return reject("Home socket not found");
+
+        homeSocket.emit("/messenger/fetch", {
+            sessionId: await getSessionIdFromHost(homeSocket.host),
+            publicKey,
+            timestamp
+        }, async (response) => {
+            if (response?.error) return reject(response.error);
+
+            let latestTimestamp = Number(timestamp ?? 0);
+
+            for (let item of response?.inbox ?? []) {
+                let message = item?.data?.message ?? item?.data ?? item;
+                if (!message?.publicKey) continue;
+
+                let senderGid = await Client().GenerateGid(message.publicKey);
+                if (!senderGid) continue;
+
+                message.gid = senderGid;
+                message.type = "user_message";
+                message.inboxId = item.id;
+                message.isRead = item.isRead;
+
+                await Client().SaveChatMessage(senderGid, message);
+
+                latestTimestamp = Math.max(
+                    latestTimestamp,
+                    Number(item?.createdAt ?? 0),
+                    Number(message?.timestamp ?? 0)
+                );
+            }
+
+            resolve({
+                ...response,
+                latestTimestamp
+            });
+        })
+    })
+}
+
 async function renderMessages() {
     getContentElement().innerHTML =
         `
@@ -159,7 +204,7 @@ async function renderMessages() {
         if (!element) throw new Error("Element not found for adding chat element");
 
         for (let chat of Object.values(uniqueChats.reverse())) {
-            let chatId = chat?.host ?? chat?.data?.host ?? chat?.data?.gid;
+            let chatId = chat?.data?.gid ?? chat?.host ?? chat?.data?.host;
             if (!chatId) {
                 console.warn("No chat id found for chat ", chat)
                 continue;
@@ -210,13 +255,7 @@ function getInnerChatContentElement() {
 
 async function renderChat(chatId, customChatObject = null) {
     let activeChat = customChatObject ?? await Client().GetChat(chatId);
-
-    if (activeChat?.data && !activeChat?.host) {
-        activeChat = {
-            ...activeChat.data,
-            messages: activeChat.messages ?? activeChat.data.messages ?? []
-        };
-    }
+    console.log(chatId, customChatObject, activeChat)
 
     if (!activeChat) throw new Error("Chat not found");
 
@@ -243,6 +282,9 @@ async function renderChat(chatId, customChatObject = null) {
 
             },
             onSend: async (html) => {
+                console.log(activeChat)
+                console.log(activeChat.data)
+
                 let messageResult = await sendMessage(html, activeChat.data.publicKey, chatHost);
                 if (messageResult?.error) {
                     return alert(`Error while sending message!\n\n${messageResult.error}`)
@@ -407,8 +449,8 @@ async function getMessageHTML({
 
 
 async function setChatHeader(chat) {
-    let chatTitle = chat?.title ?? chat?.protected?.name ?? "Unkown";
-    let chatIcon = chat?.icon ?? chat?.protected?.icon ?? "";
+    let chatTitle = chat?.data?.title ?? chat?.data?.name ?? "Unkown";
+    let chatIcon = chat?.data?.icon ?? "";
 
     getChatContentElement().innerHTML =
         `
@@ -489,19 +531,24 @@ async function startNewChat({
                 if (targetGid !== testMessage.target?.gid) throw new Error("Calculated GID and given GID doesnt match");
 
                 let existingChat = await Client().GetChat(targetGid);
-                if (existingChat?.data?.gid) {
-                    await renderChat(existingChat.data.gid)
+                if (existingChat?.data?.gid || existingChat?.gid) {
+                    await renderChat(targetGid);
                 } else {
-                    await Client().SaveChat(targetGid, {
+                    let homeServer = extractHost(testMessage.target?.home_server);
+
+                    let newChat = {
                         publicKey: testMessage.target?.publicKey,
                         gid: targetGid,
                         title: `New Chat`,
-                        home_server: testMessage.target?.home_server,
+                        host: homeServer,
+                        home_server: homeServer,
                         lastMessage: null,
                         icon: null,
-                    })
+                        messages: {}
+                    };
 
-                    await loadMessages();
+                    await Client().SaveChat(targetGid, newChat);
+                    await renderChat(null, newChat);
                 }
             }
 

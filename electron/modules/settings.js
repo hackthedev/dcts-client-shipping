@@ -7,6 +7,23 @@ class Settings {
     static _loaded = false
     static _writeQueue = Promise.resolve()
 
+    static Client = class {
+        static async setLastOnline(timestamp = new Date().getTime()) {
+            await Settings._ensureLoaded()
+
+            Settings.settings.client ??= {}
+            Settings.settings.client.lastOnline = timestamp
+
+            await Settings.saveSettings()
+        }
+
+        static async getLastOnline() {
+            await Settings._ensureLoaded()
+
+            return Settings.settings?.client?.lastOnline ?? 0
+        }
+    }
+
     static Session = class {
         static async saveSession(id, session) {
             if (!id) throw new Error("id is required")

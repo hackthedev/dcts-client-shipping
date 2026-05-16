@@ -27,23 +27,19 @@ async function waitForSocket(socket) {
 const sockets = new Map();
 
 function getChatSocket() {
-    // if we're not connected we can use this to get
-    // the second socket as it depends on if we're
-    // connected to the home server or nah.
-    //
-    // getChatSocket.host gives the address of the host.
-    // this is important for chat handling, message sending etc
     return sockets.get("remote")
         ?? [...sockets.values()][0]
+        ?? null;
+}
+
+function getHomeSocket() {
+    return [...sockets.values()].find(socket => socket?.isHomeServer === true)
         ?? null;
 }
 
 async function getSocket(host) {
     host = extractHost(host);
 
-    // ok so we want a persistent connection to our home server,
-    // and every other server is only going to be "temporary", as in
-    // "if we open another chat, kill the previous connection, but never home server connection".
     let homeServer = extractHost(await Client().GetHomeServer());
     let socketKey = host === homeServer ? host : "remote";
 
@@ -63,6 +59,8 @@ async function getSocket(host) {
     });
 
     socket.host = host;
+    socket.isHomeServer = host === homeServer;
+
     sockets.set(socketKey, socket);
 
     socket.on("connect", async () => {
