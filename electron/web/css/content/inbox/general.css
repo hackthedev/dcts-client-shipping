@@ -11,7 +11,6 @@
 }
 
 .layout > .content-container > .content > .message-page-container > .chat-content > .content > .message-container{
-    position: relative;
     display: flex;
     flex-direction: column;
 
@@ -22,11 +21,11 @@
 
     width: fit-content;
     height: fit-content;
+
+    max-width: 80%;
 }
 .layout > .content-container > .content > .message-page-container > .chat-content > .content > .message-container > .content {
     display: flex;
-    width: fit-content;
-    height: fit-content;
 
     padding: 0;
     max-height: 400px;
@@ -59,15 +58,38 @@
 }
 .layout > .content-container > .content > .message-page-container > .chat-content > .content iframe,
 .layout > .content-container > .content > .message-page-container > .chat-content > .content video {
-    width: 400px;
+    width: 450px;
 
-    max-height: 300px;
-    max-width: 400px;
+    max-height: 225px;
+    max-width: 450px;
 }
 .layout > .content-container > .content > .message-page-container > .chat-content > .content iframe,
 .layout > .content-container > .content > .message-page-container > .chat-content > .content img,
 .layout > .content-container > .content > .message-page-container > .chat-content > .content video {
+    position: relative;
     margin: 0.5rem 0;
     border-radius: 4px;
     height: auto;
+}
+.layout > .content-container > .content > .message-page-container > .chat-content > .content iframe{
+    aspect-ratio: 16/9;
+}
+
+@media screen and (max-width: 1050px) {
+    .layout > .content-container > .content > .message-page-container > .chat-content > .content img {
+        width: 300px;
+
+        max-height: 300px;
+        max-width: 100%;
+    }
+    .layout > .content-container > .content > .message-page-container > .chat-content > .content iframe,
+    .layout > .content-container > .content > .message-page-container > .chat-content > .content video {
+        width: 450px;
+
+        max-height: 225px;
+        max-width: 100%;
+    }
+    .layout > .content-container > .content > .message-page-container > .chat-content > .content iframe{
+        aspect-ratio: 16/9;
+    }
 }
