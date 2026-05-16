@@ -7,6 +7,7 @@
 
     width: fit-content;
     height: fit-content;
+    overflow: hidden;
 }
 .layout > .content-container > .content > .message-page-container > .chat-content > .content > .message-container > .content > .mention-embed > .icon {
     width: 34px;
