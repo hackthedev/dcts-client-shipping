@@ -177,7 +177,7 @@ async function renderMessages() {
             chat.messages = messages;
             chat.lastMessage = messages.at(-1) ?? null;
 
-            if(chat.lastMessage) {
+            if (chat.lastMessage) {
                 chat.lastMessage = chat.lastMessage[gid];
                 chat.lastMessage = await decryptUserMessage(chat.lastMessage)
             }
@@ -248,7 +248,7 @@ async function renderChat(chatId, customChatObject = null) {
                     return alert(`Error while sending message!\n\n${messageResult.error}`)
                 }
 
-                editor.quill.setContents([{ insert: "\n"}]);
+                editor.quill.setContents([{insert: "\n"}]);
             }
         });
     }
@@ -280,11 +280,11 @@ async function renderInboxElementsInChat(chat, initial = false) {
             <div class="system-message">
                 <span>
                     ${new Date(timestamp).toLocaleDateString("en-US", {
-                        weekday: "long",
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric"
-                    })}
+                weekday: "long",
+                year: "numeric",
+                month: "long",
+                day: "numeric"
+            })}
                 </span>
                 <hr>
             </div>
@@ -301,14 +301,14 @@ async function renderInboxElementsInChat(chat, initial = false) {
     }
 
     // if we actually open a chat we will just scroll down
-    if(initial){
+    if (initial) {
         ChatTools.Scroll.scrollDown(getInnerChatContentElement())
     }
 }
 
 async function renderUserMessage(item, element = null) {
     let message = item?.data?.message ?? item;
-    let author = message?.author;
+    let authorGid = message?.gid;
 
     // OUR gid comrade.
     let gid = await Client().GenerateGid(await Client().GetPublicKey());
@@ -326,17 +326,17 @@ async function renderUserMessage(item, element = null) {
         return;
     }
 
+    // handle markdown
     let markdownResult = await ChatTools.Media.markdown({
         htmlInput: decryptedMessageText,
         identifier: item?.timestamp,
         containerElement: getInnerChatContentElement(),
     })
 
-    if(markdownResult?.isMarkdown === true){
+    // if it was changed update the text
+    if (markdownResult?.isMarkdown === true) {
         decryptedMessageText = markdownResult.html;
     }
-
-    console.log(markdownResult)
 
     let text = `
             <div class="user_message-container">
@@ -345,11 +345,16 @@ async function renderUserMessage(item, element = null) {
         `;
 
 
+    let isScrolledDown = ChatTools.Scroll.isScrolledToBottom(getInnerChatContentElement(), 50);
+
     let renderElement = element ? element : getInnerChatContentElement();
     renderElement.insertAdjacentHTML("beforeend", await getMessageHTML({
         text,
-        timestamp: message?.timestamp
+        timestamp: message?.timestamp,
+        isMine: authorGid === gid,
     }))
+
+    if (isScrolledDown) ChatTools.Scroll.scrollDown(getInnerChatContentElement())
 }
 
 async function renderMention(item, element = null) {
@@ -379,12 +384,12 @@ async function renderMention(item, element = null) {
 async function getMessageHTML({
                                   text,
                                   timestamp,
+                                  isMine = false,
                               } = {}) {
     if (!text) throw new Error("No text for messages");
 
-
     return `
-            <div class="message-container">
+            <div class="message-container ${isMine ? "mine" : ""}">
                 <div class="content">
                     ${text}
                 </div>
