@@ -13,6 +13,7 @@ class Settings {
         static async getLastOnline() {
             await Settings._ensureLoaded()
 
+            Settings.settings.client ??= {}
             return Settings.settings?.client?.lastOnline ?? 0
         }
     }
@@ -68,6 +69,7 @@ class Settings {
                 await fs.writeFile(chatConfigPath, JSON.stringify(data, null, 4));
             }
 
+            Settings.settings.client ??= {}
             Settings.settings.client.lastOnline = new Date().getTime();
             await Settings.saveSettings()
         }
@@ -117,6 +119,7 @@ class Settings {
 
             fs.writeFile(path.join(messagesPath, `${messageId}.json`), JSON.stringify(data, null, 4));
 
+            Settings.settings.client ??= {}
             Settings.settings.client.lastOnline = new Date().getTime();
             await Settings.saveSettings()
         }

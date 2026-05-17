@@ -181,6 +181,17 @@ async function sendMessage(text, targetPublicKey, host, test = false){
 
     return await new Promise(async (resolve, reject) => {
         (await getChatSocket()).emit("/messenger/send", {message: payload.message, sessionId}, async function (response){
+
+            if(!response?.error){
+                let existingChat = await Client().GetChat(targetGid);
+                if(!existingChat) await startNewChat({
+                    identifier: `${targetGid}@${host}`,
+                    automate: true
+                })
+
+                await Client().SaveChatMessage(targetGid, payload.message)
+            }
+
             resolve(response)
         })
     })
