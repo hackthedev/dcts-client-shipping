@@ -45,7 +45,7 @@ async function fetchServerInbox(host) {
         message.icon = chatData.icon;
 
         mergedMessages[message.messageId] = {
-            data: message,
+            ...message,
             updatedAt: Date.now()
         };
 
@@ -204,7 +204,7 @@ async function renderMessages() {
         if (!element) throw new Error("Element not found for adding chat element");
 
         for (let chat of Object.values(uniqueChats.reverse())) {
-            let chatId = chat?.data?.gid ?? chat?.host ?? chat?.data?.host;
+            let chatId = chat?.gid ?? chat?.host
             if (!chatId) {
                 console.warn("No chat id found for chat ", chat)
                 continue;
@@ -228,7 +228,7 @@ async function renderMessages() {
             }
 
 
-            let chatName = chat?.title ?? chat?.data?.title ?? "Unkown"
+            let chatName = chat?.title ?? "Unkown"
             let latestMessage = chat.lastMessage ?? `@${chat?.host ?? chat?.data?.host ?? chat?.data?.home_server}`// will need to actually decrypt this
 
             element.insertAdjacentHTML("beforeend", `
@@ -255,7 +255,6 @@ function getInnerChatContentElement() {
 
 async function renderChat(chatId, customChatObject = null) {
     let activeChat = customChatObject ?? await Client().GetChat(chatId);
-    console.log(chatId, customChatObject, activeChat)
 
     if (!activeChat) throw new Error("Chat not found");
 
@@ -266,7 +265,7 @@ async function renderChat(chatId, customChatObject = null) {
         <div class="editor-container"></div>
     `;
 
-    let chatHost = activeChat?.data?.host ?? activeChat?.host ?? activeChat?.data?.home_server ?? null;
+    let chatHost = activeChat?.home_server ?? activeChat?.host ?? null;
     if (!chatHost) throw new Error("No chat host found!");
     await connectToSocketHost(chatHost);
 
@@ -283,9 +282,8 @@ async function renderChat(chatId, customChatObject = null) {
             },
             onSend: async (html) => {
                 console.log(activeChat)
-                console.log(activeChat.data)
 
-                let messageResult = await sendMessage(html, activeChat.data.publicKey, chatHost);
+                let messageResult = await sendMessage(html, activeChat.publicKey, chatHost);
                 if (messageResult?.error) {
                     return alert(`Error while sending message!\n\n${messageResult.error}`)
                 }
@@ -301,7 +299,8 @@ async function renderChat(chatId, customChatObject = null) {
 async function renderInboxElementsInChat(chat, initial = false) {
     if (!chat) throw new Error("No chat for rendering inbox messages");
 
-    let messages = chat?.messages ?? chat?.data?.messages ?? [];
+    let messages = await Client().GetChatMessages(chat.gid);
+    console.log(messages)
 
     if (!Array.isArray(messages)) {
         messages = Object.values(messages).map(item => item.data ?? item);
@@ -449,8 +448,8 @@ async function getMessageHTML({
 
 
 async function setChatHeader(chat) {
-    let chatTitle = chat?.data?.title ?? chat?.data?.name ?? "Unkown";
-    let chatIcon = chat?.data?.icon ?? "";
+    let chatTitle = chat?.title ?? chat?.name ?? "Unkown";
+    let chatIcon = chat?.icon ?? "";
 
     getChatContentElement().innerHTML =
         `
@@ -544,7 +543,6 @@ async function startNewChat({
                         home_server: homeServer,
                         lastMessage: null,
                         icon: null,
-                        messages: {}
                     };
 
                     await Client().SaveChat(targetGid, newChat);

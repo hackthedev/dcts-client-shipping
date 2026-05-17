@@ -193,15 +193,6 @@ app.whenReady().then(async () => {
         1080,
         720
     );
-
-    app.on("will-quit", async (e) => {
-        e.preventDefault();
-
-        await Settings.Client.setLastOnline();
-        await Settings.saveSettings()
-
-        app.exit();
-    });
 });
 
 
