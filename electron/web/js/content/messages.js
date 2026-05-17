@@ -273,7 +273,6 @@ function getInnerChatContentElement() {
 
 async function renderChat(chatId, customChatObject = null) {
     let activeChat = customChatObject ?? await Client().GetChat(chatId);
-
     if (!activeChat) throw new Error("Chat not found");
 
     await setChatHeader(activeChat);
@@ -285,6 +284,8 @@ async function renderChat(chatId, customChatObject = null) {
 
     let chatHost = activeChat?.home_server ?? activeChat?.host ?? null;
     if (!chatHost) throw new Error("No chat host found!");
+
+    await setChatSocket(chatHost);
     await connectToSocketHost(chatHost);
 
     if (!activeChat?.isServer) {
@@ -318,7 +319,6 @@ async function renderInboxElementsInChat(chat, initial = false) {
     if (!chat) throw new Error("No chat for rendering inbox messages");
 
     let messages = await Client().GetChatMessages(chat.gid);
-    console.log(messages)
 
     if (!Array.isArray(messages)) {
         messages = Object.values(messages).map(item => item.data ?? item);

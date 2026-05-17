@@ -20,7 +20,7 @@
   },
   "devDependencies": {
     "electron": "^40.4.1",
-    "electron-builder": "^26.0.12"
+    "electron-builder": "^26.8.1"
   },
   "build": {
     "appId": "com.dcts.client",

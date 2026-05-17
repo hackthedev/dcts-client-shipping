@@ -25,60 +25,67 @@ async function waitForSocket(socket) {
 }
 
 const sockets = new Map();
-
-function getChatSocket() {
-    return sockets.get("remote")
-        ?? [...sockets.values()][0]
-        ?? null;
-}
-
-function getHomeSocket() {
-    return [...sockets.values()].find(socket => socket?.isHomeServer === true)
-        ?? null;
-}
+let activeChatHost = null;
 
 async function getSocket(host) {
     host = extractHost(host);
+    if (!host) throw new Error("host is required");
 
-    let homeServer = extractHost(await Client().GetHomeServer());
-    let socketKey = host === homeServer ? host : "remote";
-
-    if (sockets.has(socketKey)) {
-        let existingSocket = sockets.get(socketKey);
-
-        if (socketKey === "remote" && existingSocket.host !== host) {
-            existingSocket.disconnect();
-            sockets.delete(socketKey);
-        } else {
-            return existingSocket;
-        }
-    }
+    if (sockets.has(host)) return sockets.get(host);
 
     let socket = io.connect(`${getProtocol(host)}://${host}`, {
         reconnection: true
     });
 
     socket.host = host;
-    socket.isHomeServer = host === homeServer;
-
-    sockets.set(socketKey, socket);
+    socket.isHomeServer = extractHost(await Client().GetHomeServer()) === host;
 
     socket.on("connect", async () => {
+        console.log(`connected to ${host}`);
         await socketHello(socket, host);
-        console.log(`Connected to host ${host} via socket`);
+
+        if (!socket.didRegisterSocketListeners) {
+            registerSocketListeners(socket);
+            socket.didRegisterSocketListeners = true;
+        }
     });
 
+    socket.on("disconnect", () => {
+        sockets.delete(host);
+        if (activeChatHost === host) activeChatHost = null;
+    });
+
+    sockets.set(host, socket);
     return socket;
 }
 
-function terminateSocket(address) {
-    address = extractHost(address);
+async function setChatSocket(host) {
+    host = extractHost(host);
+    let socket = await getSocket(host);
+    await waitForSocket(socket);
 
-    let socket = sockets.get(address);
+    activeChatHost = host;
+    return socket;
+}
+
+async function getChatSocket(host = null) {
+    if (host) return await getSocket(extractHost(host));
+    if (activeChatHost) return sockets.get(activeChatHost) ?? null;
+    return null;
+}
+
+function getHomeSocket() {
+    return [...sockets.values()].find(s => s?.isHomeServer === true) ?? null;
+}
+
+function terminateSocket(host) {
+    host = extractHost(host);
+    let socket = sockets.get(host);
     if (!socket) return false;
 
     socket.disconnect();
-    sockets.delete(address);
+    sockets.delete(host);
+    if (activeChatHost === host) activeChatHost = null;
 
     return true;
 }
@@ -180,18 +187,7 @@ async function sendMessage(text, targetPublicKey, host, test = false){
     payload.message = await Client().SignJson(payload.message)
 
     return await new Promise(async (resolve, reject) => {
-        (await getChatSocket()).emit("/messenger/send", {message: payload.message, sessionId}, async function (response){
-
-            if(!response?.error){
-                let existingChat = await Client().GetChat(targetGid);
-                if(!existingChat) await startNewChat({
-                    identifier: `${targetGid}@${host}`,
-                    automate: true
-                })
-
-                await Client().SaveChatMessage(targetGid, payload.message)
-            }
-
+        (await getChatSocket(host)).emit("/messenger/send", {message: payload.message, sessionId}, async function (response){
             resolve(response)
         })
     })

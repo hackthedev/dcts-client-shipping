@@ -90,7 +90,7 @@ class Settings {
             let chatsPath = path.join(Settings.appDataDir, "chats")
 
             // create it if it doesnt exist
-            if(!fsNormal.existsSync(chatsPath)) fsNormal.mkdirSync(chatsPath)
+            if(!fsNormal.existsSync(chatsPath)) fsNormal.mkdirSync(chatsPath, { recursive: true })
             let chatIds = await fs.readdir(chatsPath);
 
             let chats = {}
@@ -115,7 +115,7 @@ class Settings {
             if(!data) throw new Error("data is required")
 
             let messagesPath = path.join(Settings.appDataDir, "chats", chatId, "messages");
-            if(!fsNormal.existsSync(messagesPath)) fsNormal.mkdirSync(messagesPath);
+            if(!fsNormal.existsSync(messagesPath)) fsNormal.mkdirSync(messagesPath, { recursive: true });
 
             fs.writeFile(path.join(messagesPath, `${messageId}.json`), JSON.stringify(data, null, 4));
 
@@ -134,7 +134,7 @@ class Settings {
             let messagesPath = path.join(Settings.appDataDir, "chats", chatId, "messages")
 
             // create it if it doesnt exist
-            if(!fsNormal.existsSync(messagesPath)) fsNormal.mkdirSync(messagesPath)
+            if(!fsNormal.existsSync(messagesPath)) fsNormal.mkdirSync(messagesPath, { recursive: true })
             let messageIds = await fs.readdir(messagesPath);
             let messages = {}
 
