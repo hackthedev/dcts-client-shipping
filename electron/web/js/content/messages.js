@@ -145,8 +145,6 @@ async function fetchMessengerChats(timestamp = 0) {
             let latestTimestamp = Number(timestamp ?? 0);
 
             for (let item of response?.inbox ?? []) {
-                console.log(item)
-
                 let inboxType = item?.type ?? null;
 
                 if(inboxType === "messenger_user-message"){
@@ -154,7 +152,6 @@ async function fetchMessengerChats(timestamp = 0) {
                     let messageType = message?.type;
 
                     if(messageType === "user_message"){
-                        console.log(message)
                         let authorPublicKey = message?.author?.publicKey;
                         let authorGid = message?.author?.gid;
                         let authorHomeServer = message?.author?.home_server;
@@ -302,12 +299,12 @@ async function renderChat(chatId, customChatObject = null) {
 
             },
             onSend: async (html) => {
-                console.log(activeChat)
-
                 let messageResult = await sendMessage(html, activeChat.publicKey, chatHost);
                 if (messageResult?.error) {
                     return alert(`Error while sending message!\n\n${messageResult.error}`)
                 }
+
+                console.log(messageResult)
 
                 editor.quill.setContents([{insert: "\n"}]);
             }
