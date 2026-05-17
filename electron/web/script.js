@@ -230,7 +230,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     ensureDomPurify();
     buildNavHTML(true);
     getSavedServers(getContentElement())
-    loadMessages();
+    //loadMessages();
 });
 
 function truncateString(value, length) {

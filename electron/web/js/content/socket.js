@@ -123,7 +123,7 @@ async function registerSocketListeners(socket){
     socket.on("/messenger/receive", async (message) => {
         let myMessage = message[await Client().GenerateGid(await Client().GetPublicKey())]
         message.messageId = message.timestamp;
-        await Client().SaveChatMessage(message?.gid, message)
+        await Client().SaveChatMessage(message?.author?.gid, message)
 
         if(message?.type === "user_message") await renderUserMessage(message, getInnerChatContentElement())
     })
@@ -152,16 +152,21 @@ async function sendMessage(text, targetPublicKey, host, test = false){
 
     // prepair some shit
     let ownGid = await Client().GenerateGid(await Client().GetPublicKey())
-    let targetGid = await Client().GenerateGid(targetPublicKey) + "1";
+    let targetGid = await Client().GenerateGid(targetPublicKey);
     let sessionId = await getSessionIdFromHost(host);
 
     // this creates the message object. payload itself is just temporary
+    let timestamp = new Date().getTime();
     let payload = {
         message: {
-            gid: await Client().GenerateGid(await Client().GetPublicKey()),
-            publicKey: await Client().GetPublicKey(),
+            author: {
+                gid: await Client().GenerateGid(await Client().GetPublicKey()),
+                publicKey: await Client().GetPublicKey(),
+                home_server: await Client().GetHomeServer(),
+            },
             targetIdentifier: targetPublicKey,
-            timestamp: new Date().getTime(),
+            timestamp,
+            messageId: timestamp,
             type: "user_message",
             test,
         }

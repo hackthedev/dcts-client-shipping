@@ -114,8 +114,9 @@ function getFixedUrl(host, url) {
         : `${base}/${cleanUrl}`;
 }
 
-async function loadMessages() {
-    renderMessages();
+async function loadMessages(force = false) {
+    await fetchMessengerChats(force ? 0 : await Client().GetLastOnline())
+    await renderMessages();
 
     let clientServers = await Client().GetServers();
     if (clientServers) {
@@ -141,28 +142,46 @@ async function fetchMessengerChats(timestamp = 0) {
             timestamp
         }, async (response) => {
             if (response?.error) return reject(response.error);
-
             let latestTimestamp = Number(timestamp ?? 0);
 
             for (let item of response?.inbox ?? []) {
-                let message = item?.data?.message ?? item?.data ?? item;
-                if (!message?.publicKey) continue;
+                console.log(item)
 
-                let senderGid = await Client().GenerateGid(message.publicKey);
-                if (!senderGid) continue;
+                let inboxType = item?.type ?? null;
 
-                message.gid = senderGid;
-                message.type = "user_message";
-                message.inboxId = item.id;
-                message.isRead = item.isRead;
+                if(inboxType === "messenger_user-message"){
+                    let message = item.data;
+                    let messageType = message?.type;
 
-                await Client().SaveChatMessage(senderGid, message);
+                    if(messageType === "user_message"){
+                        console.log(message)
+                        let authorPublicKey = message?.author?.publicKey;
+                        let authorGid = message?.author?.gid;
+                        let authorHomeServer = message?.author?.home_server;
+                        let calcAuthorGid = await Client().GenerateGid(authorPublicKey);
 
-                latestTimestamp = Math.max(
-                    latestTimestamp,
-                    Number(item?.createdAt ?? 0),
-                    Number(message?.timestamp ?? 0)
-                );
+                        if(authorGid !== calcAuthorGid){
+                            return alert(`Author IDs do not match! Possibly Network Attack!\n\n
+                            
+                            Server: ${homeSocket.host}\n
+                            Author: ${authorGid} (${calcAuthorGid})\n
+                            `)
+                        }
+
+                        let existingChat = await Client().GetChat(authorGid)
+                        if(!existingChat) await startNewChat({
+                            identifier: `${authorGid}@${authorHomeServer}`,
+                            automate: true
+                        })
+                        await Client().SaveChatMessage(authorGid, message);
+                    }
+                    else{
+                        console.error("Unsupported message type!", messageType)
+                    }
+                }
+                else{
+                    console.error("unsupported inbox type!", inboxType)
+                }
             }
 
             resolve({
@@ -209,6 +228,8 @@ async function renderMessages() {
                 console.warn("No chat id found for chat ", chat)
                 continue;
             }
+
+            chat.messages = await Client().GetChatMessages(chatId) ?? {};
 
             let messages = Object.values(chat.messages)
                 .map(item => item.data ?? item)
@@ -349,7 +370,7 @@ async function renderInboxElementsInChat(chat, initial = false) {
 
 async function renderUserMessage(item, element = null) {
     let message = item?.data?.message ?? item;
-    let authorGid = message?.gid;
+    let authorGid = message?.author?.gid;
 
     // OUR gid comrade.
     let gid = await Client().GenerateGid(await Client().GetPublicKey());
@@ -462,7 +483,13 @@ async function setChatHeader(chat) {
 async function startNewChat({
                                 identifier = null,
                                 error = null,
+                                automate = false,
                             } = {}) {
+
+    if(automate){
+        return await startChat(identifier)
+    }
+
     prompts.showPrompt(
         "New Chat",
         `
@@ -490,87 +517,91 @@ async function startNewChat({
         </div>
     `,
         async ({address}) => {
-            address = address?.trim();
-            if (!address || !address?.includes("@")) {
-                await prompts.closePrompt();
-                return await startNewChat({error: "Invalid address!"});
-            }
-
-            let splitName = address.split("@");
-            let identifierName = splitName[0] ?? null;
-            let host = splitName[1] ?? null;
-
-            if (!identifierName || !host) {
-                return await reopenWithError("No identifier or host found")
-            }
-
-            // send a test message that wont store anything but still validate everything etc and reolve
-            // the user if it exists
-            let testMessage
-            try {
-                testMessage = await sendMessage("Test", identifierName, host, true);
-            } catch (sendingError) {
-                console.error(sendingError)
-                return await reopenWithError("Unable to check on user");
-            }
-
-            let extractedHost = extractHost(testMessage?.target?.home_server);
-            let fullIdentifier = `${identifierName}@${extractedHost}`;
-
-            // CHECK FOR ERRORS N SHIT
-            // if the host changed we will redirect it
-            await checkForErrors();
-
-            // ok lets assume there were no errors then
-            if (testMessage?.target?.publicKey) {
-                let targetGid = await Client().GenerateGid(testMessage.target.publicKey);
-
-                // some more tests
-                if (!targetGid) throw new Error("Couldnt generate target gid");
-                if (targetGid !== testMessage.target?.gid) throw new Error("Calculated GID and given GID doesnt match");
-
-                let existingChat = await Client().GetChat(targetGid);
-                if (existingChat?.data?.gid || existingChat?.gid) {
-                    await renderChat(targetGid);
-                } else {
-                    let homeServer = extractHost(testMessage.target?.home_server);
-
-                    let newChat = {
-                        publicKey: testMessage.target?.publicKey,
-                        gid: targetGid,
-                        title: `New Chat`,
-                        host: homeServer,
-                        home_server: homeServer,
-                        lastMessage: null,
-                        icon: null,
-                    };
-
-                    await Client().SaveChat(targetGid, newChat);
-                    await renderChat(null, newChat);
-                }
-            }
-
-
-            async function checkForErrors() {
-                if (extractedHost !== extractHost(host) && extractedHost) {
-                    return await reopenWithError("User moved to different home server", fullIdentifier)
-                }
-
-                if (!testMessage?.target?.gid) {
-                    return await reopenWithError("No user found :/")
-                }
-            }
-
-            async function reopenWithError(errorText, identifier) {
-                prompts.closePrompt();
-                return await startNewChat({
-                    identifier,
-                    error: errorText,
-                });
-            }
+            await startChat(address)
         },
         ["Check", "success"],
         false,
         350
     );
+
+    async function startChat(address){
+        address = address?.trim();
+        if (!address || !address?.includes("@")) {
+            await prompts.closePrompt();
+            return await startNewChat({error: "Invalid address!"});
+        }
+
+        let splitName = address.split("@");
+        let identifierName = splitName[0] ?? null;
+        let host = splitName[1] ?? null;
+
+        if (!identifierName || !host) {
+            return await reopenWithError("No identifier or host found")
+        }
+
+        // send a test message that wont store anything but still validate everything etc and reolve
+        // the user if it exists
+        let testMessage
+        try {
+            testMessage = await sendMessage("Test", identifierName, host, true);
+        } catch (sendingError) {
+            console.error(sendingError, address)
+            return await reopenWithError("Unable to check on user");
+        }
+
+        let extractedHost = extractHost(testMessage?.target?.home_server);
+        let fullIdentifier = `${identifierName}@${extractedHost}`;
+
+        // CHECK FOR ERRORS N SHIT
+        // if the host changed we will redirect it
+        await checkForErrors();
+
+        // ok lets assume there were no errors then
+        if (testMessage?.target?.publicKey) {
+            let targetGid = await Client().GenerateGid(testMessage.target.publicKey);
+
+            // some more tests
+            if (!targetGid) throw new Error("Couldnt generate target gid");
+            if (targetGid !== testMessage.target?.gid) throw new Error("Calculated GID and given GID doesnt match");
+
+            let existingChat = await Client().GetChat(targetGid);
+            if (existingChat?.data?.gid || existingChat?.gid) {
+                await renderChat(targetGid);
+            } else {
+                let homeServer = extractHost(testMessage.target?.home_server);
+
+                let newChat = {
+                    publicKey: testMessage.target?.publicKey,
+                    gid: targetGid,
+                    title: `New Chat`,
+                    host: homeServer,
+                    home_server: homeServer,
+                    lastMessage: null,
+                    icon: null,
+                };
+
+                await Client().SaveChat(targetGid, newChat);
+                await renderChat(null, newChat);
+            }
+        }
+
+
+        async function checkForErrors() {
+            if (extractedHost !== extractHost(host) && extractedHost) {
+                return await reopenWithError("User moved to different home server", fullIdentifier)
+            }
+
+            if (!testMessage?.target?.gid) {
+                return await reopenWithError("No user found :/")
+            }
+        }
+
+        async function reopenWithError(errorText, identifier) {
+            prompts.closePrompt();
+            return await startNewChat({
+                identifier,
+                error: errorText,
+            });
+        }
+    }
 }
