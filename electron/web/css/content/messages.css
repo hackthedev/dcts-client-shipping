@@ -112,6 +112,12 @@
     font-size: 14px;
     position: relative;
 }
+.layout > .content-container > .content > .message-page-container .chats .chat .latestMessage img,
+.layout > .content-container > .content > .message-page-container .chats .chat .latestMessage video,
+.layout > .content-container > .content > .message-page-container .chats .chat .latestMessage audio,
+.layout > .content-container > .content > .message-page-container .chats .chat .latestMessage iframe{
+    display: none;
+}
 .layout > .content-container > .content > .message-page-container .chats .chat .latestMessage p{
     position: relative;
     margin: 0;
