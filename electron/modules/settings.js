@@ -51,23 +51,20 @@ class Settings {
     static Message = class {
         static async saveChat(chatId, data = {}) {
             if (!chatId) throw new Error("chatId is required")
-            if(Object.keys(data || {}).length === 0) throw new Error("Data was empty")
+            if (Object.keys(data || {}).length === 0) throw new Error("data was empty")
 
-            let chatPath = path.join(Settings.appDataDir, "chats", chatId)
             let chatMessagesPath = path.join(Settings.appDataDir, "chats", chatId, "messages")
             let chatConfigPath = path.join(Settings.appDataDir, "chats", chatId, "config.json")
 
             // if the directory doesnt exist create it.
             // we use the chatMessagePath here because that will also create the chatPath path
             // as we use "recursive: true"
-            if(!fsNormal.existsSync(chatMessagesPath)){
-                fsNormal.mkdirSync(path.join(chatMessagesPath), { recursive: true });
+            if (!fsNormal.existsSync(chatMessagesPath)) {
+                fsNormal.mkdirSync(chatMessagesPath, { recursive: true });
             }
 
-            // also create the config file for the chat itself if it doesnt exist
-            if(!fsNormal.existsSync(chatConfigPath)){
-                await fs.writeFile(chatConfigPath, JSON.stringify(data, null, 4));
-            }
+            // always overwrite the config so it stays up to date
+            await fs.writeFile(chatConfigPath, JSON.stringify(data, null, 4));
 
             Settings.settings.client ??= {}
             Settings.settings.client.lastOnline = new Date().getTime();

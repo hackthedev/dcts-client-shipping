@@ -128,11 +128,41 @@ async function socketHello(socket, address){
 
 async function registerSocketListeners(socket){
     socket.on("/messenger/receive", async (message) => {
-        let myMessage = message[await Client().GenerateGid(await Client().GetPublicKey())]
         message.messageId = message.timestamp;
-        await Client().SaveChatMessage(message?.author?.gid, message)
 
-        if(message?.type === "user_message") await renderUserMessage(message, getInnerChatContentElement())
+        let authorGid = message?.author?.gid;
+        let authorPublicKey = message?.author?.publicKey;
+        let authorHomeServer = message?.author?.home_server;
+
+        let ownGid = await Client().GenerateGid(await Client().GetPublicKey());
+
+        // if we are the author, save under the target — otherwise save under the author
+        let targetGid = message?.targetIdentifier
+            ? await Client().GenerateGid(message.targetIdentifier)
+            : null;
+
+        let chatGid = authorGid === ownGid ? targetGid : authorGid;
+        if (!chatGid) return console.error("could not determine chat partner gid", message);
+
+        // make sure the chat exists before saving any message
+        let existingChat = await Client().GetChat(chatGid)
+        if (!existingChat) {
+            await Client().SaveChat(chatGid, {
+                publicKey: authorGid === ownGid ? message.targetIdentifier : authorPublicKey,
+                gid: chatGid,
+                title: `@${chatGid}`,
+                host: authorHomeServer,
+                home_server: authorHomeServer,
+                lastMessage: null,
+                icon: null,
+            });
+        }
+
+        // update the chat entry in the sidebar so the latest message and badge show up
+        await refreshChatEntry(chatGid);
+
+        await Client().SaveChatMessage(chatGid, message)
+        if(message?.type === "user_message" && getInnerChatContentElement()) await renderUserMessage(message, getInnerChatContentElement())
     })
 }
 

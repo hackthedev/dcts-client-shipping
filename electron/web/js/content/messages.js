@@ -81,7 +81,7 @@ async function fetchServerInbox(host) {
         let serverChatSelector = getContentElement().querySelector(`.chats .chat[data-gid="${chatId}"]`);
         if (serverChatSelector) serverChatSelector.remove();
 
-        getContentElement().querySelector(`.chats`).insertAdjacentHTML("beforeend", `
+        getContentElement().querySelector(`.chats .list`).insertAdjacentHTML("beforeend", `
             <div class="chat" data-gid="${chatId}" data-host="${chatId}" data-server="true">
                 <div class="icon" style="background-image: url('${iconUrl}')"></div>
                 <div class="middle-section">
@@ -165,11 +165,20 @@ async function fetchMessengerChats(timestamp = 0) {
                             `)
                         }
 
+                        // make sure the chat exists before saving any message
                         let existingChat = await Client().GetChat(authorGid)
-                        if(!existingChat) await startNewChat({
-                            identifier: `${authorGid}@${authorHomeServer}`,
-                            automate: true
-                        })
+                        if (!existingChat) {
+                            await Client().SaveChat(authorGid, {
+                                publicKey: authorPublicKey,
+                                gid: authorGid,
+                                title: `@${authorGid}`,
+                                host: authorHomeServer,
+                                home_server: authorHomeServer,
+                                lastMessage: null,
+                                icon: null,
+                            });
+                        }
+
                         await Client().SaveChatMessage(authorGid, message);
                     }
                     else{
@@ -189,6 +198,48 @@ async function fetchMessengerChats(timestamp = 0) {
     })
 }
 
+async function refreshChatEntry(chatGid) {
+    let chatsElement = getContentElement().querySelector(`.chats .list`);
+    if (!chatsElement) return;
+
+    let chat = await Client().GetChat(chatGid);
+    if (!chat) return;
+
+    let messages = Object.values(await Client().GetChatMessages(chatGid) ?? {})
+        .map(item => item.data ?? item)
+        .sort((a, b) => (a?.timestamp ?? 0) - (b?.timestamp ?? 0));
+
+    let gid = await Client().GenerateGid(await Client().GetPublicKey());
+    let lastMessage = messages.at(-1) ?? null;
+
+    let decryptedLastMessage = null;
+    if (lastMessage) {
+        try {
+            decryptedLastMessage = await decryptUserMessage(lastMessage[gid]);
+        } catch {
+            decryptedLastMessage = null;
+        }
+    }
+
+    let chatName = chat?.title ?? "Unknown";
+    let latestMessage = decryptedLastMessage ?? `@${chat?.host ?? chat?.home_server}`;
+
+    // remove old entry and re-insert at top so newest chat bubbles up
+    let existing = chatsElement.querySelector(`.chat[data-gid="${chatGid}"]`);
+    if (existing) existing.remove();
+
+    chatsElement.insertAdjacentHTML("afterbegin", `
+        <div class="chat" data-gid="${chatGid}" onclick="renderChat('${chatGid}')">
+            <div class="icon" style="background-image: url('${getFixedUrl(chat?.data?.host ?? chat?.host, chat?.data?.icon ?? chat?.icon)}')"></div>
+            <div class="middle-section">
+                <div class="name">${chatName}</div>
+                ${latestMessage ? `<div class="latestMessage">${latestMessage}</div>` : ""}
+            </div>
+            <div class="badge ${messages.length > 0 ? "visible" : ""}">${messages.length}</div>
+        </div>
+    `);
+}
+
 async function renderMessages() {
     getContentElement().innerHTML =
         `
@@ -201,6 +252,7 @@ async function renderMessages() {
                             ${Icon.display("message_add")}
                         </span>
                     </div>
+                    <div class="list"></div>
                 </div>
                 <div class="chat-content">
                 </div>
@@ -214,7 +266,7 @@ async function renderMessages() {
 
     let gid = await Client().GenerateGid(await Client().GetPublicKey());
 
-    addChatEntries(getContentElement().querySelector(`.chats`))
+    addChatEntries(getContentElement().querySelector(`.chats .list`))
 
     async function addChatEntries(element) {
         if (!element) throw new Error("Element not found for adding chat element");
@@ -244,7 +296,6 @@ async function renderMessages() {
                 chat.lastMessage = chat.lastMessage[gid];
                 chat.lastMessage = await decryptUserMessage(chat.lastMessage)
             }
-
 
             let chatName = chat?.title ?? "Unkown"
             let latestMessage = chat.lastMessage ?? `@${chat?.host ?? chat?.data?.host ?? chat?.data?.home_server}`// will need to actually decrypt this
@@ -360,7 +411,7 @@ async function renderInboxElementsInChat(chat, initial = false) {
     }
 
     // if we actually open a chat we will just scroll down
-    if (initial) {
+    if (initial && getInnerChatContentElement()) {
         ChatTools.Scroll.scrollDown(getInnerChatContentElement())
     }
 }
