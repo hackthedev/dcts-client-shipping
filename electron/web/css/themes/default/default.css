@@ -119,7 +119,10 @@ a {
 }
 
 .layout > .content-container > .content > .message-page-container > .chat-content > .content > .message-container {
-    background-color: hsl(from var(--accent) h s calc(l * 1));
+    background-color: hsl(from var(--accent) h calc(s * 0.5) calc(l * 0.5));
+}
+.layout > .content-container > .content > .message-page-container > .chat-content > .content > .message-container > .meta {
+    color: hsl(from var(--main) h s calc(l * 10) / 100%);
 }
 .layout > .content-container > .content > .message-page-container > .chat-content > .content > .message-container.mine{
     background-color: hsl(from var(--main) h s calc(l * 3));
@@ -131,7 +134,7 @@ a {
     background-color: hsl(from var(--main) h s calc(l * 8) / 10%);
 }
 
-.layout > .content-container > .content > .message-page-container > .chat-content > .content > .message-container > .meta {
+.layout > .content-container > .content > .message-page-container > .chat-content > .content > .message-container.mine > .meta {
     color: hsl(from var(--main) h s calc(l * 6) / 100%);
 }
 
