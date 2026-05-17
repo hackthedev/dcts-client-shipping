@@ -1,13 +1,13 @@
 {
-  "name": "@hackthedev/icons",
-  "version": "1.0.6",
+  "name": "@hackthedev/chat-tools",
+  "version": "1.0.0",
   "description": "",
   "keywords": [
     "frontend"
   ],
-  "license": "ISC",
+  "license": "UNLICENSED",
   "author": "",
-  "main": "Icons.js",
+  "main": "ChatTools.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   }

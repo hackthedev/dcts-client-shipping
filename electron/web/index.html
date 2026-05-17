@@ -11,11 +11,33 @@
     <link href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
 
 
+    <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.0/styles/default.min.css" rel="stylesheet">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.0/highlight.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.0/languages/javascript.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.0/languages/python.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.0/languages/ruby.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.0/languages/xml.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.0/languages/json.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.5.0/languages/css.min.js"></script>
+
+    <script
+            src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/3.1.1/socket.io.js"
+            integrity="sha512-oFOCo2/3DtjrJG4N27BjSLQWoiBv171sK6a+JiWjp/7agxC2nCUP358AqzxkBUb5jX8g6CYLPdSKQTbC0weCwA=="
+            crossorigin="anonymous"
+    ></script>
+
     <link rel="stylesheet" href="css/themes/default/default.css">
     <link rel="stylesheet" href="css/style.css">
     <link rel="stylesheet" href="css/header.css">
     <link rel="stylesheet" href="css/nav.css">
     <link rel="stylesheet" href="css/mobile.css">
+    <link rel="stylesheet" href="css/content/messages.css">
+    <link rel="stylesheet" href="css/content/inbox/general.css">
+    <link rel="stylesheet" href="css/content/inbox/mention-embed.css">
+    <link rel="stylesheet" href="css/content/inbox/user_message.css">
 
     <link rel="stylesheet" href="css/content/serverlist.css">
     <link rel="stylesheet" href="css/content.css">
@@ -23,16 +45,20 @@
     <script src="js/libs/icons/Icons.js"></script>
     <script src="js/libs/prompts/prompts.js"></script>
     <script src="js/libs/mobile-ui/MobileUI.js"></script>
-
-    <script src="js/content/serverlist.js"></script>
-    <script src="js/content/messages.js"></script>
-    <script src="js/content/account.js"></script>
-    <script src="js/content/settings.js"></script>
+    <script src="js/libs/rich-editor/RichEditor.js"></script>
+    <script src="js/libs/rich-editor/quill.js"></script>
+    <script src="js/libs/chat-tools/ChatTools.js"></script>
 
     <script src="js/content.js"></script>
     <script src="js/nav.js"></script>
     <script src="js/header.js"></script>
     <script src="js/general.js"></script>
+
+    <script src="js/content/serverlist.js"></script>
+    <script src="js/content/messages.js"></script>
+    <script src="js/content/account.js"></script>
+    <script src="js/content/settings.js"></script>
+    <script src="js/content/socket.js"></script>
 
     <script src="script.js"></script>
     <script src="purify.js"></script>
@@ -42,6 +68,14 @@
 </head>
 <body>
 
+<script>
+
+    let prompts = null;
+    document.addEventListener("DOMContentLoaded", function() {
+        prompts = new Prompt();
+    })
+
+</script>
 
 <div class="layout">
 

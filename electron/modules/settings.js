@@ -1,11 +1,164 @@
 const fs = require("fs/promises")
+const fsNormal = require("fs")
 const path = require("path")
 
 class Settings {
     static settingsPath = null
+    static appDataDir = null;
     static settings = {}
     static _loaded = false
     static _writeQueue = Promise.resolve()
+
+    static Client = class {
+        static async getLastOnline() {
+            await Settings._ensureLoaded()
+
+            return Settings.settings?.client?.lastOnline ?? 0
+        }
+    }
+
+    static Session = class {
+        static async saveSession(id, session) {
+            if (!id) throw new Error("id is required")
+            await Settings._ensureLoaded()
+
+            Settings.settings.sessions ??= {}
+            Settings.settings.sessions[id] = session
+
+            await Settings.saveSettings()
+        }
+
+        static async getSession(id) {
+            if (!id) return null
+            await Settings._ensureLoaded()
+            return Settings.settings.sessions?.[id] ?? null
+        }
+
+        static async getSessions() {
+            await Settings._ensureLoaded()
+            return Settings.settings.sessions ?? {}
+        }
+
+        static async deleteSession(id) {
+            await Settings._ensureLoaded()
+            if (!Settings.settings.sessions) return
+            delete Settings.settings.sessions[id]
+            await Settings.saveSettings()
+        }
+    }
+
+    static Message = class {
+        static async saveChat(chatId, data = {}) {
+            if (!chatId) throw new Error("chatId is required")
+            if(Object.keys(data || {}).length === 0) throw new Error("Data was empty")
+
+            let chatPath = path.join(Settings.appDataDir, "chats", chatId)
+            let chatMessagesPath = path.join(Settings.appDataDir, "chats", chatId, "messages")
+            let chatConfigPath = path.join(Settings.appDataDir, "chats", chatId, "config.json")
+
+            // if the directory doesnt exist create it.
+            // we use the chatMessagePath here because that will also create the chatPath path
+            // as we use "recursive: true"
+            if(!fsNormal.existsSync(chatMessagesPath)){
+                fsNormal.mkdirSync(path.join(chatMessagesPath), { recursive: true });
+            }
+
+            // also create the config file for the chat itself if it doesnt exist
+            if(!fsNormal.existsSync(chatConfigPath)){
+                await fs.writeFile(chatConfigPath, JSON.stringify(data, null, 4));
+            }
+
+            Settings.settings.client.lastOnline = new Date().getTime();
+            await Settings.saveSettings()
+        }
+
+        static async getChat(chatId) {
+            if (!chatId) return null
+            let chatConfigPath = path.join(Settings.appDataDir, "chats", chatId, "config.json")
+
+            if(fsNormal.existsSync(chatConfigPath)) {
+                return JSON.parse(await fs.readFile(chatConfigPath, "utf8") ?? {})
+            }
+            else{
+                return null
+            }
+        }
+
+        static async getChats() {
+            let chatsPath = path.join(Settings.appDataDir, "chats")
+
+            // create it if it doesnt exist
+            if(!fsNormal.existsSync(chatsPath)) fsNormal.mkdirSync(chatsPath)
+            let chatIds = await fs.readdir(chatsPath);
+
+            let chats = {}
+            if(chatIds?.length > 0){
+                for(let chatId of chatIds){
+                    let chatConfigPath = path.join(Settings.appDataDir, "chats", chatId, "config.json")
+                    let chatConfig = JSON.parse(await fs.readFile(chatConfigPath, "utf8") ?? {})
+
+                    chats[chatId] = chatConfig;
+                }
+
+                return chats;
+            }
+            else{
+                return {}
+            }
+        }
+
+        static async saveMessage(chatId, messageId, data = {}) {
+            if (!chatId) throw new Error("chatId is required")
+            if (!messageId) throw new Error("messageId is required")
+            if(!data) throw new Error("data is required")
+
+            let messagesPath = path.join(Settings.appDataDir, "chats", chatId, "messages");
+            if(!fsNormal.existsSync(messagesPath)) fsNormal.mkdirSync(messagesPath);
+
+            fs.writeFile(path.join(messagesPath, `${messageId}.json`), JSON.stringify(data, null, 4));
+
+            Settings.settings.client.lastOnline = new Date().getTime();
+            await Settings.saveSettings()
+        }
+
+        static async getMessage(chatId, messageId) {
+            if (!chatId || !messageId) return null
+        }
+
+        static async getMessages(chatId) {
+            if (!chatId) return {}
+
+            let messagesPath = path.join(Settings.appDataDir, "chats", chatId, "messages")
+
+            // create it if it doesnt exist
+            if(!fsNormal.existsSync(messagesPath)) fsNormal.mkdirSync(messagesPath)
+            let messageIds = await fs.readdir(messagesPath);
+            let messages = {}
+
+            if(messageIds?.length > 0){
+                for(let messageId of messageIds){
+                    let messageFile = path.join(messagesPath, `${messageId}`)
+
+                    let messageConfig = JSON.parse(await fs.readFile(messageFile, "utf8") ?? {})
+
+                    messages[messageId] = messageConfig;
+                }
+
+                return messages;
+            }
+            else{
+                return {}
+            }
+        }
+
+        static async deleteMessage(chatId, messageId) {
+            if (!chatId || !messageId) return
+        }
+
+        static async deleteChat(chatId) {
+            if (!chatId) return
+        }
+    }
 
     static Server = class {
         static async save(id, data = {}, isFav = null) {
@@ -27,6 +180,39 @@ class Settings {
             await Settings.saveSettings()
         }
 
+        static async setHomeServer(address) {
+            if (!address) throw new Error("address is required")
+
+            await Settings._ensureLoaded()
+
+            Settings.settings.homeServer = address
+
+            await Settings.saveSettings()
+        }
+
+        static async getHomeServer() {
+            await Settings._ensureLoaded()
+
+            const id = Settings.settings.homeServer
+            if (!id) return null
+
+            return id ?? null
+        }
+
+        static async getHomeServerId() {
+            await Settings._ensureLoaded()
+
+            return Settings.settings.homeServer ?? null
+        }
+
+        static async clearHomeServer() {
+            await Settings._ensureLoaded()
+
+            delete Settings.settings.homeServer
+
+            await Settings.saveSettings()
+        }
+
         static async getServer(id) {
             await Settings._ensureLoaded()
             return Settings.settings.servers?.[id] ?? null
@@ -40,13 +226,20 @@ class Settings {
         static async deleteServer(id) {
             await Settings._ensureLoaded()
             if (!Settings.settings.servers) return
+
             delete Settings.settings.servers[id]
+
+            if (Settings.settings.homeServer === id) {
+                delete Settings.settings.homeServer
+            }
+
             await Settings.saveSettings()
         }
     }
 
     static initSettings(appDataDir) {
         this.settingsPath = path.join(appDataDir, "settings.json")
+        this.appDataDir = appDataDir
     }
 
     static async _ensureLoaded() {

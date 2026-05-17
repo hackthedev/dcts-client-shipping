@@ -48,19 +48,28 @@ function setServerCardFeatures(serverCardElement, html){
 
 async function fetchServerInfo(address){
     try{
-        let res = await fetch(`https://${extractHost(address)}/discover`)
+        let res = await fetch(`${getProtocol(address)}://${extractHost(address)}/discover`, {
+            signal: AbortSignal.timeout(2000) // hehe
+        })
+
         if(res.status !== 200) return console.warn("Discovery check failed for host ", address);
-        return await res.json()
+
+        let jsonData = await res.json();
+        localStorage.setItem(`serverinfo_cache_${address}`, JSON.stringify(jsonData))
+
+        return jsonData?.serverinfo ?? jsonData?.error
     }
     catch(err){
         console.warn(err)
+        return await (await Client().GetChat(address))?.data ?? JSON.parse(localStorage.getItem(`serverinfo_cache_${address}`)) ?? null;
     }
 }
 
 function getServerCardFeaturesHTML(serverObj) {
     const versionText = encodePlainText(String(String(serverObj?.serverinfo?.version || "?").split("")).replaceAll(",", "."));
 
-    return ` ${serverObj?.serverinfo?.voip === true ? `<div id="turn-vc" class="feature" title="Voice chat suported">${Icon.display("mic")}</div>` : ""}
+    return `
+            ${serverObj?.serverinfo?.voip === true ? `<div id="turn-vc" class="feature" title="Voice chat suported">${Icon.display("mic")}</div>` : ""}
             ${serverObj?.serverinfo?.voip === true ? `<div id="turn-ss" class="feature" title="Screensharing supported">${Icon.display("screenshare")}</div>` : ""}
             <div class="feature" title="Version ${versionText}">${Icon.display("tag")}</div>`
 }

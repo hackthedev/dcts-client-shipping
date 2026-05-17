@@ -1,13 +1,13 @@
 {
-  "name": "@hackthedev/icons",
-  "version": "1.0.6",
+  "name": "@hackthedev/rich-editor",
+  "version": "1.0.1",
   "description": "",
   "keywords": [
     "frontend"
   ],
   "license": "ISC",
   "author": "",
-  "main": "Icons.js",
+  "main": "RichEditor.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   }

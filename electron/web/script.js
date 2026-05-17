@@ -1,16 +1,17 @@
 let customPrompts = null;
 
 function isLocal(){
-    return window.location.origin.startsWith("file://");
+    return window.location.origin.startsWith("file://") || window.location.origin.startsWith("http://127.0.0.1");
 }
 
 async function getDiscoveredHosts(){
     return new Promise(async (resolve, reject) => {
-        let servers = await fetch("/servers");
+        let servers = await fetch("/servers", {
+            signal: AbortSignal.timeout(2000)
+        });
         resolve(servers.json())
     })
 }
-
 
 async function getSavedServers(container) {
     if (!container) return console.warn("No container supplied!");
@@ -18,7 +19,7 @@ async function getSavedServers(container) {
     container.innerHTML = `<div class="serverList"></div>`;
 
     let servers = isLauncher() ? await Client().GetServers() : {};
-    if(typeof servers === "string" && servers === "{}") servers = {}; // android bridge fix
+    if(typeof servers === "string") servers = JSON.parse(servers || "{}"); // android bridge fix
 
     let remoteServers = [];
 
@@ -128,20 +129,28 @@ async function submitServer(host){
     }
 }
 
+async function updateLocalServerInfo(address){
+    let fetchedServerInfo = await fetchServerInfo(address);
+    if(fetchedServerInfo?.version){
+        await Client().SaveServer(address, fetchedServerInfo);
+        console.log("updated server lazily")
+    }
+}
+
 async function renderServersList(container, servers) {
     const list = container;
-    if (!list) throw new Error("No list found to display items in");
+    if (!list) return console.warn("No list found to display items in");
+
     list.innerHTML = "";
 
     for (let server in servers) {
-        let serverObj = servers[server];
-        serverObj.serverinfo = null;
-
         let address = server;
-        let isFav = serverObj?.fav;
+        let serverObj = servers[address];
 
-        let serverInfoRequest = null;
-        let serverInfoJson = null;
+        serverObj.serverinfo = await Client().GetServer(address)?.serverinfo ?? await fetchServerInfo(address);
+
+        // do not await this. its not needed here, just updating local version
+        updateLocalServerInfo(address)
 
         if (!serverObj || serverObj.length <= 0) {
             list.innerHTML = "<p>No servers found :(</p>"
@@ -149,7 +158,7 @@ async function renderServersList(container, servers) {
         }
 
         const idx = list.children.length;
-        if (serverObj?.serverinfo?.error && !showOwnerActions) continue;
+        if (serverObj?.serverinfo?.error) continue;
 
         const versionText = encodePlainText(String(String(serverObj?.serverinfo?.version || "?").split("")).replaceAll(",", "."));
         const card = document.createElement("div");
@@ -159,7 +168,7 @@ async function renderServersList(container, servers) {
         card.style.setProperty("--reveal-delay", `${idx * 200}ms`);
 
         card.innerHTML = `
-             <div class="banner" style="background-image:url('${serverObj?.serverinfo?.banner?.includes("://") ? serverObj.serverinfo.banner : `https://${address}${serverObj?.serverinfo?.banner}`}')">
+             <div class="banner" style="background-image:url('${getFixedUrl(address, serverObj?.serverinfo?.banner)}')">
                 <p class="name">${encodePlainText(truncateString(serverObj?.serverinfo?.name || address, 25))}</p>
                 
                  <div class="features">
@@ -202,10 +211,26 @@ async function deleteServer(ip) {
 
 document.addEventListener('DOMContentLoaded', async () => {
     customPrompts = new Prompt();
+    ChatTools.Media.mediaResolver = async () => {
+        return "";
+    }
+
+    ChatTools.Media.metaResolver = async () => {
+        return {
+
+        };
+    }
+
+    // default server lol
+    if(await Client().GetHomeServer()?.trim?.length === 0) await Client().SetHomeServer("chat.network-z.com");
+
+    // connect to it
+    connectToSocketHost(await Client().GetHomeServer());
 
     ensureDomPurify();
     buildNavHTML(true);
     getSavedServers(getContentElement())
+    //loadMessages();
 });
 
 function truncateString(value, length) {
@@ -232,4 +257,111 @@ function truncateString(value, length) {
     }
 
     return value;
+}
+
+async function getSessionIdFromHost(host){
+    if(!host) throw new Error("Cant get session from host")
+
+    // if session already exists, check if valid
+    let existingSession = await Client().GetSession(extractHost(host));
+    if(existingSession){
+        let existingSessionCheckRes = await verifySessionId(host, existingSession);
+
+        if(existingSessionCheckRes?.error === null && existingSessionCheckRes){
+            return await existingSession ?? null;
+        }
+
+        return await requestChallenge();
+    }
+    // if there is session saved or invalid just get a new one and save it
+    else{
+        return await requestChallenge();
+    }
+
+    async function requestChallenge(){
+        let requestedChallenge = await requestSessionChallenge(host);
+        if(!requestedChallenge) throw new Error("couldnt request challenge")
+
+        let solvedChallenge = await solveSessionChallenge(requestedChallenge, host);
+        if(!solvedChallenge) throw new Error("couldnt get solved challenge")
+
+        if(solvedChallenge?.error === null && solvedChallenge?.sessionId){
+            await Client().SaveSession(host, solvedChallenge.sessionId)
+            return solvedChallenge.sessionId;
+        }
+    }
+}
+
+async function requestSessionChallenge(host){
+    if(!host) throw new Error("Cant get session challenge from host");
+
+    let request = await fetch(`${getProtocol(host)}://${host}/dSyncAuth/login`, {
+        method: "POST",
+        headers: {
+            "content-type": "application/json"
+        },
+        signal: AbortSignal.timeout(2000),
+        body: JSON.stringify({
+            publicKey: await Client().GetPublicKey(),
+        })
+    })
+
+    if(request.status === 200){
+        return await request.json() ?? null;
+    }
+    else{
+        return null;
+    }
+}
+
+async function solveSessionChallenge(challengeData, host){
+    if(!challengeData) throw new Error("Challenge not supplied retard!")
+    if(!host) throw new Error("No host supplied either in solveSessionChallenge dumfak!")
+
+    let challenge = challengeData.challenge;
+    let solution = await Client().DecryptData(challenge.method, challenge.encKey, challenge.iv, challenge.tag, challenge.ciphertext);
+
+    if(solution){
+        let request = await fetch(`${getProtocol(host)}://${host}/dSyncAuth/verify`, {
+            method: "POST",
+            headers: {
+                "content-type": "application/json"
+            },
+            signal: AbortSignal.timeout(2000),
+            body: JSON.stringify({
+                identifier: challengeData.identifier,
+                solution,
+                publicKey: await Client().GetPublicKey(),
+            })
+        })
+
+        if(request.status === 200){
+            return await request.json() ?? null;
+        }
+    }
+}
+
+async function verifySessionId(host, sessionId){
+    if(!host) throw new Error("host not supplied retard!")
+    if(!sessionId) throw new Error("No sessionId supplied either in verifySessionId dumfak!")
+
+    let request = await fetch(`${getProtocol(host)}://${host}/dSyncAuth/verify/session`, {
+        method: "POST",
+        mode: 'cors',
+        headers: {
+            "content-type": "application/json"
+        },
+        signal: AbortSignal.timeout(2000),
+        body: JSON.stringify({
+            sessionId,
+            publicKey: await Client().GetPublicKey(),
+        })
+    })
+
+    if(request.status === 200){
+        return await request.json() ?? null;
+    }
+    else{
+        return null;
+    }
 }
