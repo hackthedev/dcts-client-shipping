@@ -73,7 +73,7 @@ async function fetchServerInbox(host) {
     async function addInboxEntry(item) {
         if (!item) throw new Error("item not found for adding inbox element");
 
-        let chatId = item.host;
+        let chatId = ChatTools.Sanitize.stripHTML(item.host);
         let chatName = item?.title ?? item?.host;
         let latestMessage = item?.lastMessage?.message ?? item?.lastMessage?.text ?? `@${chatId}`;
         let iconUrl = item?.icon ?? "";
@@ -83,10 +83,10 @@ async function fetchServerInbox(host) {
 
         getContentElement().querySelector(`.chats .list`).insertAdjacentHTML("beforeend", `
             <div class="chat" data-gid="${chatId}" data-host="${chatId}" data-server="true">
-                <div class="icon" style="background-image: url('${iconUrl}')"></div>
+                <div class="icon" style="background-image: url('${getFixedUrl(iconUrl)}')"></div>
                 <div class="middle-section">
-                    <div class="name">${chatName}</div>
-                    ${latestMessage ? `<div class="latestMessage">${latestMessage}</div>` : ""}
+                    <div class="name">${ChatTools.Sanitize.forRender(chatName)}</div>
+                    ${latestMessage ? `<div class="latestMessage">${ChatTools.Sanitize.forRender(latestMessage)}</div>` : ""}
                 </div>
                 <div class="badge ${messages?.length > 0 ? "visible" : ""}">${messages.length}</div>
             </div>
@@ -232,8 +232,8 @@ async function refreshChatEntry(chatGid) {
         <div class="chat" data-gid="${chatGid}" onclick="renderChat('${chatGid}')">
             <div class="icon" style="background-image: url('${getFixedUrl(chat?.data?.host ?? chat?.host, chat?.data?.icon ?? chat?.icon)}')"></div>
             <div class="middle-section">
-                <div class="name">${chatName}</div>
-                ${latestMessage ? `<div class="latestMessage">${latestMessage}</div>` : ""}
+                <div class="name">${ChatTools.Sanitize.forRender(chatName)}</div>
+                ${latestMessage ? `<div class="latestMessage">${ChatTools.Sanitize.forRender(latestMessage)}</div>` : ""}
             </div>
             <div class="badge ${messages.length > 0 ? "visible" : ""}">${messages.length}</div>
         </div>
@@ -277,6 +277,7 @@ async function renderMessages() {
                 console.warn("No chat id found for chat ", chat)
                 continue;
             }
+            chatId = ChatTools.Sanitize.stripHTML(chatId);
 
             chat.messages = await Client().GetChatMessages(chatId) ?? {};
 
@@ -298,14 +299,14 @@ async function renderMessages() {
             }
 
             let chatName = chat?.title ?? "Unkown"
-            let latestMessage = chat.lastMessage ?? `@${chat?.host ?? chat?.data?.host ?? chat?.data?.home_server}`// will need to actually decrypt this
+            let latestMessage = chat.lastMessage ?? `@${chat?.host ?? chat?.data?.host ?? chat?.home_server}`// will need to actually decrypt this
 
             element.insertAdjacentHTML("beforeend", `
                 <div class="chat" data-gid="${chatId}" onclick="renderChat('${chatId}')">
-                    <div class="icon" style="background-image: url('${getFixedUrl(chat?.data?.host, chat?.data?.icon)}')"></div>
+                    <div class="icon" style="background-image: url('${getFixedUrl(chat?.host, chat?.icon)}')"></div>
                     <div class="middle-section">
-                        <div class="name">${chatName}</div>
-                        ${latestMessage ? `<div class="latestMessage">${latestMessage}</div>` : ""}
+                        <div class="name">${ChatTools.Sanitize.forRender(chatName)}</div>
+                        ${latestMessage ? `<div class="latestMessage">${ChatTools.Sanitize.forRender(latestMessage)}</div>` : ""}
                     </div>
                     <div class="badge ${messages?.length > 0 ? "visible" : ""}">${messages?.length ?? ""}</div>                
                 </div>
@@ -347,8 +348,26 @@ async function renderChat(chatId, customChatObject = null) {
                 ["clean", "link", "image", "video"],
                 ["code", "code-block", "blockquote"]
             ],
-            onImg: async (src) => {
+            onImg: (src, { insert }) => {
 
+                if(src?.constructor?.name === "File"){
+                    return console.log("Detected file")
+                }
+                else if(src?.constructor?.name === "String"){
+                    console.log("Detected URL")
+                    console.log(src)
+
+                    if(src.startsWith("data:image")){
+                        insert("");
+                    }
+
+                    return
+                }
+
+                // remove base64 image
+                if(src.startsWith("data:image/")){
+                    insert("");
+                }
             },
             onSend: async (html) => {
                 let messageResult = await sendMessage(html, activeChat.publicKey, chatHost);
@@ -523,8 +542,8 @@ async function setChatHeader(chat) {
     getChatContentElement().innerHTML =
         `
         <div class="header">
-            <div class="icon" style="background-image: url('${chatIcon}')"></div>
-            <h1>${chatTitle}</h1>
+            <div class="icon" style="background-image: url('${ChatTools.Sanitize.stripHTML(chatIcon)}')"></div>
+            <h1>${ChatTools.Sanitize.forRender(chatTitle)}</h1>
         </div>`;
 }
 

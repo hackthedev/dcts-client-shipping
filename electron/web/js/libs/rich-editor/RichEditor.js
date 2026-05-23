@@ -57,6 +57,24 @@ class RichEditor {
                             if (!value) return this.quill.format("link", false);
                             const href = prompt("Enter the URL");
                             if (href) this.quill.format("link", href);
+                        },
+                        image: () => {
+                            const input = document.createElement("input");
+                            input.type = "file";
+                            input.accept = "image/*";
+
+                            input.onchange = () => {
+                                const file = input.files?.[0];
+                                if (!file) return;
+
+                                if (this.onImg) {
+                                    this.onImg(file, {
+                                        insert: url => this.insertImage(url)
+                                    });
+                                }
+                            };
+
+                            input.click();
                         }
                     }
                 },

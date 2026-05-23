@@ -48,6 +48,7 @@
     <script src="js/libs/rich-editor/RichEditor.js"></script>
     <script src="js/libs/rich-editor/quill.js"></script>
     <script src="js/libs/chat-tools/ChatTools.js"></script>
+    <script src="js/libs/chat-tools/quill.js"></script>
 
     <script src="js/content.js"></script>
     <script src="js/nav.js"></script>
@@ -73,6 +74,7 @@
     let prompts = null;
     document.addEventListener("DOMContentLoaded", function() {
         prompts = new Prompt();
+        ChatTools.Sanitize.installDomPurifyHooks();
     })
 
 </script>

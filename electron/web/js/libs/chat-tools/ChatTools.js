@@ -342,10 +342,10 @@ class ChatTools {
                                data-original-url="${ChatTools.Sanitize.stripHTML(url)}"
                                href="${ChatTools.Sanitize.stripHTML(url)}" ${url.startsWith(location.origin) ? "" : 'target="_blank"'}>
                                 <span class="meta-info title">
-                                    ${urlMeta?.meta?.title ? ChatTools.Sanitize.stripHTML(truncateText(urlMeta.meta.title, 75)) : ""}
+                                    ${urlMeta?.meta?.title ? ChatTools.Sanitize.stripHTML(ChatTools.Sanitize.truncateText(urlMeta.meta.title, 75)) : ""}
                                 </span>
                                 <span class="meta-info description">
-                                    ${urlMeta?.meta?.description ? ChatTools.Sanitize.stripHTML(truncateText(urlMeta.meta.description, 300)) : ""}
+                                    ${urlMeta?.meta?.description ? ChatTools.Sanitize.stripHTML(ChatTools.Sanitize.truncateText(urlMeta.meta.description, 300)) : ""}
                                 </span>
                             </a>
                         </div>`;
