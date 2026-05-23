@@ -388,7 +388,8 @@ async function renderChat(chatId, customChatObject = null) {
 async function renderInboxElementsInChat(chat, initial = false) {
     if (!chat) throw new Error("No chat for rendering inbox messages");
 
-    let messages = await Client().GetChatMessages(chat.gid);
+    let gid = chat?.isServer ? chat.host : chat?.gid;
+    let messages = await Client().GetChatMessages(gid);
 
     if (!Array.isArray(messages)) {
         messages = Object.values(messages).map(item => item.data ?? item);
