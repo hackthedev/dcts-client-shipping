@@ -360,7 +360,17 @@ async function renderChat(chatId, customChatObject = null) {
 
             let template = document.createElement("div");
 
+            let lastDate = null
             for(let message of sortedMessages) {
+
+                let timestamp = message?.timestamp;
+                let currentDate = new Date(timestamp).toDateString();
+
+                if (currentDate !== lastDate) {
+                    lastDate = currentDate;
+                    renderSystemDateInChat(timestamp, template, true)
+                }
+
                 await renderUserMessage({
                     item: message,
                     renderTop: false,
@@ -427,6 +437,36 @@ async function renderChat(chatId, customChatObject = null) {
     await renderInboxElementsInChat(activeChat, true);
 }
 
+function renderSystemDateInChat(timestamp, element = null, renderTop = false){
+    if(!timestamp) throw new Error("Cant show system date as timestamp is missing!")
+
+    let render = element ? element : getInnerChatContentElement();
+    let displayDate = new Date(timestamp).toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+    });
+
+    // if already exists, dont show again
+    let existingDateMessage = null;
+    if(renderTop){
+        existingDateMessage = getInnerChatContentElement().querySelector(`.system-message.date[data-display-date="${displayDate}"]`);
+        if(existingDateMessage) existingDateMessage.remove();
+    }
+    existingDateMessage = render?.querySelector(`.system-message.date[data-display-date="${displayDate}"]`);
+    if(existingDateMessage && !renderTop) return;
+
+    render.insertAdjacentHTML("beforeend", `
+        <div class="system-message date" data-timestamp="${timestamp}" data-display-date="${displayDate}">
+            <span>
+                ${displayDate}
+            </span>
+            <hr>
+        </div>
+    `);
+}
+
 async function renderInboxElementsInChat(chat, initial = false) {
     if (!chat) throw new Error("No chat for rendering inbox messages");
 
@@ -439,6 +479,8 @@ async function renderInboxElementsInChat(chat, initial = false) {
 
     let lastDate = null;
 
+    messages = sortMessagesByTimestamp(messages);
+
     for (let item of messages) {
         if (!item?.type) continue;
 
@@ -447,20 +489,7 @@ async function renderInboxElementsInChat(chat, initial = false) {
 
         if (currentDate !== lastDate) {
             lastDate = currentDate;
-
-            getInnerChatContentElement().insertAdjacentHTML("beforeend", `
-            <div class="system-message">
-                <span>
-                    ${new Date(timestamp).toLocaleDateString("en-US", {
-                        weekday: "long",
-                        year: "numeric",
-                        month: "long",
-                        day: "numeric"
-                    })}
-                </span>
-                <hr>
-            </div>
-        `);
+            renderSystemDateInChat(lastDate)
         }
 
         if (item.type === "mention") {
