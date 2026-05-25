@@ -86,7 +86,7 @@ async function fetchServerInbox(host) {
 
         getContentElement().querySelector(`.chats .list`).insertAdjacentHTML("beforeend", `
             <div class="chat" data-gid="${chatId}" data-host="${chatId}" data-server="true">
-                <div class="icon" style="background-image: url('${getFixedUrl(iconUrl)}')"></div>
+                <div class="icon" style="background-image: url('${getFixedUrl(item.host, iconUrl)}')"></div>
                 <div class="middle-section">
                     <div class="name">${ChatTools.Sanitize.forRender(chatName)}</div>
                     ${latestMessage ? `<div class="latestMessage">${ChatTools.Sanitize.forRender(latestMessage)}</div>` : ""}
@@ -274,7 +274,7 @@ async function renderMessages() {
     async function addChatEntries(element) {
         if (!element) throw new Error("Element not found for adding chat element");
 
-        for (let chat of Object.values(uniqueChats.reverse())) {
+        for (let chat of Object.values(uniqueChats)) {
             let chatId = chat?.gid ?? chat?.host
             if (!chatId) {
                 console.warn("No chat id found for chat ", chat)
@@ -296,17 +296,19 @@ async function renderMessages() {
             chat.messages = messages;
             chat.lastMessage = messages.at(-1) ?? null;
 
-            if (chat.lastMessage) {
+            if (chat.lastMessage && !chat?.isServer) {
                 chat.lastMessage = chat.lastMessage[gid];
                 chat.lastMessage = await decryptUserMessage(chat.lastMessage)
             }
 
             let chatName = chat?.title ?? "Unkown"
-            let latestMessage = chat.lastMessage ?? `@${chat?.host ?? chat?.data?.host ?? chat?.home_server}`// will need to actually decrypt this
+            let latestMessage = chat?.isServer ? chat.lastMessage?.message : chat.lastMessage ?? `@${chat?.host ?? chat?.data?.host ?? chat?.home_server}`// will need to actually decrypt this
 
+
+            let iconUrl = getFixedUrl(chat?.host, chat?.icon);
             element.insertAdjacentHTML("beforeend", `
                 <div class="chat" data-gid="${chatId}" onclick="renderChat('${chatId}')">
-                    <div class="icon" style="background-image: url('${getFixedUrl(chat?.host, chat?.icon)}')"></div>
+                    <div class="icon" style="background-image: url('${iconUrl}')"></div>
                     <div class="middle-section">
                         <div class="name">${ChatTools.Sanitize.forRender(chatName)}</div>
                         ${latestMessage ? `<div class="latestMessage">${ChatTools.Sanitize.forRender(latestMessage)}</div>` : ""}
@@ -485,6 +487,10 @@ async function renderInboxElementsInChat(chat, initial = false) {
 
     messages = sortMessagesByTimestamp(messages);
 
+    // update some stuff
+    chat.lastRead = new Date().getTime();
+    chat.lastMessage = messages.at(-1) ?? null;
+
     for (let item of messages) {
         if (!item?.type) continue;
 
@@ -511,6 +517,9 @@ async function renderInboxElementsInChat(chat, initial = false) {
     if (initial && getInnerChatContentElement()) {
         ChatTools.Scroll.scrollDown(getInnerChatContentElement())
     }
+
+    await Client().SaveChat(gid, chat);
+    console.log(chat)
 }
 
 async function renderUserMessage({
@@ -731,6 +740,7 @@ async function startNewChat({
                     host: homeServer,
                     home_server: homeServer,
                     lastMessage: null,
+                    lastRead: new Date().getTime(),
                     icon: null,
                 };
 
