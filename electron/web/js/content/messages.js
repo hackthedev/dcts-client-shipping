@@ -15,6 +15,8 @@ async function fetchServerInbox(host) {
     if (typeof Client().SaveChatMessage !== "function") throw new Error("Unsupported Client!")
     if (typeof Client().GetChat !== "function") throw new Error("Unsupported Client!")
     if (typeof Client().GetChatMessages !== "function") throw new Error("Unsupported Client!")
+    if (typeof Client().GetChatLastMessage !== "function") throw new Error("Unsupported Client!")
+
 
     let sessionId = await getSessionIdFromHost(host);
     if (!sessionId) return console.warn("Session id not found for host ", host)
@@ -31,11 +33,14 @@ async function fetchServerInbox(host) {
         : await fetchServerInfo(host) ?? null;
 
     let chatData = {
+        ...storedChat,
+        ...(storedChat?.data ?? {}),
         isServer: true,
         host,
-        title: serverInfo?.name ?? host,
-        serverinfo: serverInfo ?? {},
-        icon: serverInfo?.icon ? getFixedUrl(host, serverInfo.icon) : null
+        title: serverInfo?.name ?? storedChat?.title ?? host,
+        serverinfo: serverInfo ?? storedChat?.serverinfo ?? {},
+        icon: serverInfo?.icon ? getFixedUrl(host, serverInfo.icon) : storedChat?.icon ?? null,
+        lastRead: storedChat?.lastRead ?? storedChat?.data?.lastRead ?? 0
     };
 
     let mergedMessages = {...localMessages};
@@ -69,37 +74,7 @@ async function fetchServerInbox(host) {
     chatData.lastMessage = messages.at(-1) ?? null;
 
     await Client().SaveChat(host, chatData);
-    await addInboxEntry(chatData);
-
     return chatData;
-
-    async function addInboxEntry(item) {
-        if (!item) throw new Error("item not found for adding inbox element");
-
-        let chatId = ChatTools.Sanitize.stripHTML(item.host);
-        let chatName = item?.title ?? item?.host;
-        let latestMessage = item?.lastMessage?.message ?? item?.lastMessage?.text ?? `@${chatId}`;
-        let iconUrl = item?.icon ?? "";
-
-        let serverChatSelector = getContentElement().querySelector(`.chats .chat[data-gid="${chatId}"]`);
-        if (serverChatSelector) serverChatSelector.remove();
-
-        getContentElement().querySelector(`.chats .list`).insertAdjacentHTML("beforeend", `
-            <div class="chat" data-gid="${chatId}" data-host="${chatId}" data-server="true">
-                <div class="icon" style="background-image: url('${getFixedUrl(item.host, iconUrl)}')"></div>
-                <div class="middle-section">
-                    <div class="name">${ChatTools.Sanitize.forRender(chatName)}</div>
-                    ${latestMessage ? `<div class="latestMessage">${ChatTools.Sanitize.forRender(latestMessage)}</div>` : ""}
-                </div>
-                <div class="badge ${messages?.length > 0 ? "visible" : ""}">${messages.length}</div>
-            </div>
-        `)
-
-        serverChatSelector = getContentElement().querySelector(`.chats .chat[data-gid="${chatId}"]`);
-        serverChatSelector?.addEventListener("click", async () => {
-            renderChat(null, item)
-        })
-    }
 }
 
 function getFixedUrl(host, url) {
@@ -267,12 +242,12 @@ async function renderMessages() {
         (a, b) => (b?.lastMessage?.timestamp ?? 0) - (a?.lastMessage?.timestamp ?? 0)
     );
 
-    let gid = await Client().GenerateGid(await Client().GetPublicKey());
-
     addChatEntries(getContentElement().querySelector(`.chats .list`))
 
     async function addChatEntries(element) {
         if (!element) throw new Error("Element not found for adding chat element");
+        if(typeof Client().GetChatLastMessage !== "function") throw new Error("Unsupported Client: GetChatLastMessage")
+        if(typeof Client().GetChatMessages !== "function") throw new Error("Unsupported Client: GetChatMessages")
 
         for (let chat of Object.values(uniqueChats)) {
             let chatId = chat?.gid ?? chat?.host
@@ -283,27 +258,14 @@ async function renderMessages() {
             chatId = ChatTools.Sanitize.stripHTML(chatId);
 
             chat.messages = await Client().GetChatMessages(chatId, new Date().getTime(), true) ?? {};
+            chat.messages = sortMessagesByTimestamp(chat.messages);
+            chat.lastMessage = await getLastChatMessage(chatId);
 
-            let messages = Object.values(chat.messages)
-                .map(item => item.data ?? item)
-                .sort((a, b) => {
-                    const aTimestamp = a?.timestamp ?? 0;
-                    const bTimestamp = b?.timestamp ?? 0;
-
-                    return aTimestamp - bTimestamp;
-                });
-
-            chat.messages = messages;
-            chat.lastMessage = messages.at(-1) ?? null;
-
-            if (chat.lastMessage && !chat?.isServer) {
-                chat.lastMessage = chat.lastMessage[gid];
-                chat.lastMessage = await decryptUserMessage(chat.lastMessage)
-            }
+            let unreadMessages = chat.messages.filter(message => {
+                return (message?.timestamp ?? 0) > (chat?.lastRead ?? 0);
+            });
 
             let chatName = chat?.title ?? "Unkown"
-            let latestMessage = chat?.isServer ? chat.lastMessage?.message : chat.lastMessage ?? `@${chat?.host ?? chat?.data?.host ?? chat?.home_server}`// will need to actually decrypt this
-
 
             let iconUrl = getFixedUrl(chat?.host, chat?.icon);
             element.insertAdjacentHTML("beforeend", `
@@ -311,12 +273,33 @@ async function renderMessages() {
                     <div class="icon" style="background-image: url('${iconUrl}')"></div>
                     <div class="middle-section">
                         <div class="name">${ChatTools.Sanitize.forRender(chatName)}</div>
-                        ${latestMessage ? `<div class="latestMessage">${ChatTools.Sanitize.forRender(latestMessage)}</div>` : ""}
+                        ${chat.lastMessage?.message ? `<div class="latestMessage">${ChatTools.Sanitize.forRender(chat.lastMessage?.message)}</div>` : ""}
                     </div>
-                    <div class="badge ${messages?.length > 0 ? "visible" : ""}">${messages?.length ?? ""}</div>                
+                    <div class="badge ${unreadMessages?.length > 0 ? "visible" : ""}">${unreadMessages?.length ?? ""}</div>                
                 </div>
             `)
         }
+    }
+}
+
+async function getGid(){
+    return await Client().GenerateGid(await Client().GetPublicKey());
+}
+
+async function getLastChatMessage(chatId){
+    let message = await Client().GetChatLastMessage(chatId);
+
+    let text = null;
+    if(message?.isServer){
+        text = message.message;
+    }
+    else{
+        text = await decryptUserMessage(message[await getGid()])
+    }
+
+    return {
+        timestamp: message?.timestamp,
+        message: text
     }
 }
 
@@ -489,7 +472,7 @@ async function renderInboxElementsInChat(chat, initial = false) {
 
     // update some stuff
     chat.lastRead = new Date().getTime();
-    chat.lastMessage = messages.at(-1) ?? null;
+    chat.lastMessage = await getLastChatMessage(gid)
 
     for (let item of messages) {
         if (!item?.type) continue;

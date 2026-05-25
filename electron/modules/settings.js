@@ -125,6 +125,21 @@ class Settings {
             if (!chatId || !messageId) return null
         }
 
+        static async getChatLastMessage(chatId) {
+            if (!chatId) return null;
+
+            let messages = await this.getMessages(chatId, new Date().getTime(), true);
+            messages = Object.values(messages);
+
+            if(messages.length === 0) return null;
+
+            messages.sort((a, b) => {
+                return (b?.timestamp ?? 0) - (a?.timestamp ?? 0);
+            });
+
+            return messages[0] ?? null;
+        }
+
         static async getMessages(chatId, timestamp = new Date().getTime(), desc = true) {
             if (!chatId) return {}
             let limit = 50;
@@ -157,8 +172,6 @@ class Settings {
                 if(desc) return b.timestamp - a.timestamp
                 return a.timestamp - b.timestamp
             })
-
-            console.log(messages.length)
 
             messages = messages.slice(0, limit)
 
