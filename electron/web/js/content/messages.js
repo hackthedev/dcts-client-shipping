@@ -448,15 +448,19 @@ function renderSystemDateInChat(timestamp, element = null, renderTop = false){
         day: "numeric"
     });
 
-    // if already exists, dont show again
+    // this is mostly for checking on the system dates.
+    // IF we append, lets check the main container too so we can remove it if present.
+    // then we always check the render element too for the sake of it not being possibly
+    // doubled within the appending stuff
     let existingDateMessage = null;
     if(renderTop){
         existingDateMessage = getInnerChatContentElement().querySelector(`.system-message.date[data-display-date="${displayDate}"]`);
         if(existingDateMessage) existingDateMessage.remove();
     }
     existingDateMessage = render?.querySelector(`.system-message.date[data-display-date="${displayDate}"]`);
-    if(existingDateMessage && !renderTop) return;
+    if(existingDateMessage) return;
 
+    // then we obviously just render it. maybe its too much, idk, its 3am at the time of writing, gg.
     render.insertAdjacentHTML("beforeend", `
         <div class="system-message date" data-timestamp="${timestamp}" data-display-date="${displayDate}">
             <span>
