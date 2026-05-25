@@ -125,30 +125,50 @@ class Settings {
             if (!chatId || !messageId) return null
         }
 
-        static async getMessages(chatId) {
+        static async getMessages(chatId, timestamp = new Date().getTime(), desc = true) {
             if (!chatId) return {}
+            let limit = 50;
 
             let messagesPath = path.join(Settings.appDataDir, "chats", chatId, "messages")
 
-            // create it if it doesnt exist
             if(!fsNormal.existsSync(messagesPath)) fsNormal.mkdirSync(messagesPath, { recursive: true })
+
             let messageIds = await fs.readdir(messagesPath);
-            let messages = {}
+            let messages = []
 
-            if(messageIds?.length > 0){
-                for(let messageId of messageIds){
-                    let messageFile = path.join(messagesPath, `${messageId}`)
+            for(let messageId of messageIds){
+                let messageFile = path.join(messagesPath, messageId)
 
-                    let messageConfig = JSON.parse(await fs.readFile(messageFile, "utf8") ?? {})
+                let messageConfig = JSON.parse(await fs.readFile(messageFile, "utf8") ?? "{}")
 
-                    messages[messageId] = messageConfig;
-                }
+                let createdAt = messageConfig?.timestamp ?? 0
 
-                return messages;
+                if(desc && createdAt >= timestamp) continue
+                if(!desc && createdAt <= timestamp) continue
+
+                messages.push({
+                    id: messageId,
+                    timestamp: createdAt,
+                    data: messageConfig
+                })
             }
-            else{
-                return {}
+
+            messages.sort((a, b) => {
+                if(desc) return b.timestamp - a.timestamp
+                return a.timestamp - b.timestamp
+            })
+
+            console.log(messages.length)
+
+            messages = messages.slice(0, limit)
+
+            let result = {}
+
+            for(let message of messages){
+                result[message.id] = message.data
             }
+
+            return result
         }
 
         static async deleteMessage(chatId, messageId) {

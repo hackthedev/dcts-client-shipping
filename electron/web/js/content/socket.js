@@ -162,7 +162,10 @@ async function registerSocketListeners(socket){
         await refreshChatEntry(chatGid);
 
         await Client().SaveChatMessage(chatGid, message)
-        if(message?.type === "user_message" && getInnerChatContentElement()) await renderUserMessage(message, getInnerChatContentElement())
+        if(message?.type === "user_message" && getInnerChatContentElement()) await renderUserMessage({
+            message,
+            element: getInnerChatContentElement()
+        })
     })
 }
 

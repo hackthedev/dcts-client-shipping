@@ -1,5 +1,19 @@
 class ChatTools {
     static Scroll = class {
+        static async registerMessageInfiniteLoad(element, callback = null) {
+            if(!element) throw new Error("Element for infinite scroll not found");
+
+            if(!element.getAttribute("data-scroll-init")){
+                element.addEventListener("scroll", async function () {
+                    if (element.scrollTop === 0) {
+                        if(callback && typeof callback === "function") await callback(element);
+                    }
+                });
+
+                element.setAttribute("data-scroll-init", true)
+            }
+        }
+
         static scrollDown(containerElement, opts = {}) {
             const el = containerElement
             if (!el) return;

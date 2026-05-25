@@ -1,3 +1,13 @@
+function sortMessagesByTimestamp(messages){
+    return Object.values(messages)
+        .map(item => item.data ?? item)
+        .sort((a, b) => {
+            const aTimestamp = a?.timestamp ?? 0;
+            const bTimestamp = b?.timestamp ?? 0;
+
+            return aTimestamp - bTimestamp;
+        });
+}
 async function fetchServerInbox(host) {
     host = extractHost(host);
 
@@ -14,7 +24,7 @@ async function fetchServerInbox(host) {
 
     // get stored shit
     let storedChat = await Client().GetChat(host) ?? {};
-    let localMessages = await Client().GetChatMessages(host) ?? {};
+    let localMessages = await Client().GetChatMessages(host, new Date().getTime(), true) ?? {};
 
     let serverInfo = Object.keys(storedChat?.data?.serverinfo ?? {}).length > 0
         ? storedChat.data.serverinfo
@@ -53,14 +63,7 @@ async function fetchServerInbox(host) {
     }
 
     // sorting
-    let messages = Object.values(mergedMessages)
-        .map(item => item.data ?? item)
-        .sort((a, b) => {
-            const aTimestamp = a?.timestamp ?? 0;
-            const bTimestamp = b?.timestamp ?? 0;
-
-            return aTimestamp - bTimestamp;
-        });
+    let messages = sortMessagesByTimestamp(mergedMessages)
 
     chatData.messages = messages;
     chatData.lastMessage = messages.at(-1) ?? null;
@@ -205,7 +208,7 @@ async function refreshChatEntry(chatGid) {
     let chat = await Client().GetChat(chatGid);
     if (!chat) return;
 
-    let messages = Object.values(await Client().GetChatMessages(chatGid) ?? {})
+    let messages = Object.values(await Client().GetChatMessages(chatGid, new Date().getTime(), true) ?? {})
         .map(item => item.data ?? item)
         .sort((a, b) => (a?.timestamp ?? 0) - (b?.timestamp ?? 0));
 
@@ -279,7 +282,7 @@ async function renderMessages() {
             }
             chatId = ChatTools.Sanitize.stripHTML(chatId);
 
-            chat.messages = await Client().GetChatMessages(chatId) ?? {};
+            chat.messages = await Client().GetChatMessages(chatId, new Date().getTime(), true) ?? {};
 
             let messages = Object.values(chat.messages)
                 .map(item => item.data ?? item)
@@ -333,6 +336,45 @@ async function renderChat(chatId, customChatObject = null) {
         <div class="content"></div>
         <div class="editor-container"></div>
     `;
+
+    // infinite scroll shit
+    // lets see how much pain this will be
+    await ChatTools.Scroll.registerMessageInfiniteLoad(getInnerChatContentElement(), async () => {
+        let messages = getInnerChatContentElement()?.querySelectorAll(`.message-container`);
+        let topMessage = messages[0];
+        let timestamp = topMessage?.getAttribute("data-timestamp") ?? null;
+
+        if(!timestamp) throw new Error("Invalid timestamp or not found");
+
+        // get older messages and display them
+        let messageBatch = await Client().GetChatMessages(chatId, timestamp, true);
+        let sortedMessages = sortMessagesByTimestamp(messageBatch);
+
+        // dedup
+        sortedMessages = sortedMessages.filter(message => {
+            return !getInnerChatContentElement().querySelector(`.message-container[data-timestamp="${message?.timestamp}"]`);
+        });
+
+        if(sortedMessages.length > 0) {
+            ChatTools.Scroll.toggleSmoothScroll(getInnerChatContentElement(), false)
+
+            let template = document.createElement("div");
+
+            for(let message of sortedMessages) {
+                await renderUserMessage({
+                    item: message,
+                    renderTop: false,
+                    element: template
+                })
+            }
+
+            getInnerChatContentElement().prepend(...template.childNodes);
+            ChatTools.Scroll.toggleSmoothScroll(getInnerChatContentElement(), true)
+        }
+    })
+
+    ChatTools.Scroll.observeContainer(getInnerChatContentElement());
+
 
     let chatHost = activeChat?.home_server ?? activeChat?.host ?? null;
     if (!chatHost) throw new Error("No chat host found!");
@@ -389,7 +431,7 @@ async function renderInboxElementsInChat(chat, initial = false) {
     if (!chat) throw new Error("No chat for rendering inbox messages");
 
     let gid = chat?.isServer ? chat.host : chat?.gid;
-    let messages = await Client().GetChatMessages(gid);
+    let messages = await Client().GetChatMessages(gid, new Date().getTime(), true);
 
     if (!Array.isArray(messages)) {
         messages = Object.values(messages).map(item => item.data ?? item);
@@ -410,11 +452,11 @@ async function renderInboxElementsInChat(chat, initial = false) {
             <div class="system-message">
                 <span>
                     ${new Date(timestamp).toLocaleDateString("en-US", {
-                weekday: "long",
-                year: "numeric",
-                month: "long",
-                day: "numeric"
-            })}
+                        weekday: "long",
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric"
+                    })}
                 </span>
                 <hr>
             </div>
@@ -424,7 +466,9 @@ async function renderInboxElementsInChat(chat, initial = false) {
         if (item.type === "mention") {
             await renderMention(item);
         } else if (item.type === "user_message") {
-            await renderUserMessage(item);
+            await renderUserMessage({
+                item
+            });
         } else {
             console.warn("Didnt render chat because of unsupported type: ", item.type)
         }
@@ -436,7 +480,11 @@ async function renderInboxElementsInChat(chat, initial = false) {
     }
 }
 
-async function renderUserMessage(item, element = null) {
+async function renderUserMessage({
+                                     item,
+                                     element = null,
+                                     renderTop = false,
+                                 } = {}) {
     let message = item?.data?.message ?? item;
     let authorGid = message?.author?.gid;
 
@@ -456,11 +504,16 @@ async function renderUserMessage(item, element = null) {
         return;
     }
 
+    // dedup
+    if(getInnerChatContentElement().querySelector(`.message-container[data-timestamp="${message?.timestamp}"]`)){
+        return;
+    }
+
     // handle markdown
     let markdownResult = await ChatTools.Media.markdown({
         htmlInput: decryptedMessageText,
         identifier: item?.timestamp,
-        containerElement: getInnerChatContentElement(),
+        containerElement: element ? element : getInnerChatContentElement(),
     })
 
     // if it was changed update the text
@@ -478,13 +531,13 @@ async function renderUserMessage(item, element = null) {
     let isScrolledDown = ChatTools.Scroll.isScrolledToBottom(getInnerChatContentElement(), 50);
 
     let renderElement = element ? element : getInnerChatContentElement();
-    renderElement.insertAdjacentHTML("beforeend", await getMessageHTML({
+    renderElement.insertAdjacentHTML(renderTop ? "afterbegin" : "beforeend", await getMessageHTML({
         text,
         timestamp: message?.timestamp,
         isMine: authorGid === gid,
     }))
 
-    if (isScrolledDown) ChatTools.Scroll.scrollDown(getInnerChatContentElement())
+    if (isScrolledDown && !renderTop) ChatTools.Scroll.scrollDown(getInnerChatContentElement())
 }
 
 async function renderMention(item, element = null) {
@@ -507,7 +560,7 @@ async function renderMention(item, element = null) {
     let renderElement = element ? element : getInnerChatContentElement();
     renderElement.insertAdjacentHTML("beforeend", await getMessageHTML({
         text,
-        timestamp: message?.timestamp
+        timestamp: message?.timestamp,
     }))
 }
 
@@ -519,7 +572,7 @@ async function getMessageHTML({
     if (!text) throw new Error("No text for messages");
 
     return `
-            <div class="message-container ${isMine ? "mine" : ""}">
+            <div class="message-container ${isMine ? "mine" : ""}" data-timestamp="${timestamp}">
                 <div class="content">
                     ${text}
                 </div>
