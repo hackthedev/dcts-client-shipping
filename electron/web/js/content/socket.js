@@ -203,6 +203,8 @@ async function sendMessage(text, targetPublicKey, host, test = false){
                 gid: await Client().GenerateGid(await Client().GetPublicKey()),
                 publicKey: await Client().GetPublicKey(),
                 home_server: await Client().GetHomeServer(),
+                name: null,
+                icon: null,
             },
             targetIdentifier: targetPublicKey,
             timestamp,
