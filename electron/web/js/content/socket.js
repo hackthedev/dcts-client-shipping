@@ -91,14 +91,14 @@ function terminateSocket(host) {
 }
 
 async function connectToSocketHost(address) {
-    if(typeof Client().GetHomeServer !== "function") {
+    if (typeof Client().GetHomeServer !== "function") {
         throw new Error("Socket Connection canceled due to unsupported client");
     }
 
     let socket = await getSocket(address);
 
     socket.on("connect", async () => {
-        if(!socket.didRegisterSocketListeners) {
+        if (!socket.didRegisterSocketListeners) {
             registerSocketListeners(socket);
             socket.didRegisterSocketListeners = true;
         }
@@ -109,24 +109,30 @@ async function connectToSocketHost(address) {
     return socket;
 }
 
-async function socketHello(socket, address){
-    if(typeof Client().GetHomeServer !== "function") throw new Error("Socket Connection canceled due to unsupported client")
+async function socketHello(socket, address, options = {
+                               name = null,
+                               icon = null,
+                           } = {}
+) {
+    if (typeof Client().GetHomeServer !== "function") throw new Error("Socket Connection canceled due to unsupported client")
+    if (typeof Client().GetPublicKey !== "function") throw new Error("Socket Connection canceled due to unsupported client")
 
     return new Promise(async (resolve, reject) => {
         socket.emit("/messenger/hello",
             {
                 publicKey: await Client().GetPublicKey(),
                 sessionId: await getSessionIdFromHost(address),
-                home_server: await Client().GetHomeServer()
+                home_server: await Client().GetHomeServer(),
+                ...options,
             },
-            async function (response){
-                if(response?.error) console.error(response?.error);
+            async function (response) {
+                if (response?.error) console.error(response?.error);
                 resolve(true)
             })
     })
 }
 
-async function registerSocketListeners(socket){
+async function registerSocketListeners(socket) {
     socket.on("/messenger/receive", async (message) => {
         message.messageId = message.timestamp;
 
@@ -162,15 +168,15 @@ async function registerSocketListeners(socket){
         await refreshChatEntry(chatGid);
 
         await Client().SaveChatMessage(chatGid, message)
-        if(message?.type === "user_message" && getInnerChatContentElement()) await renderUserMessage({
+        if (message?.type === "user_message" && getInnerChatContentElement()) await renderUserMessage({
             message,
             element: getInnerChatContentElement()
         })
     })
 }
 
-async function decryptUserMessage(message){
-    if(!message) throw new Error("Message was not set");
+async function decryptUserMessage(message) {
+    if (!message) throw new Error("Message was not set");
 
     let decryptedMessageText = await Client().DecryptData(
         message.method,
@@ -185,10 +191,10 @@ async function decryptUserMessage(message){
     return decryptedMessageText;
 }
 
-async function sendMessage(text, targetPublicKey, host, test = false){
-    if(text?.trim()?.length === 0) throw new Error("no text found to send");
-    if(!targetPublicKey) throw new Error("target gid not found");
-    if(!host) throw new Error("host not found to send");
+async function sendMessage(text, targetPublicKey, host, test = false) {
+    if (text?.trim()?.length === 0) throw new Error("no text found to send");
+    if (!targetPublicKey) throw new Error("target gid not found");
+    if (!host) throw new Error("host not found to send");
 
     // prepair some shit
     let ownGid = await Client().GenerateGid(await Client().GetPublicKey())
@@ -203,8 +209,6 @@ async function sendMessage(text, targetPublicKey, host, test = false){
                 gid: await Client().GenerateGid(await Client().GetPublicKey()),
                 publicKey: await Client().GetPublicKey(),
                 home_server: await Client().GetHomeServer(),
-                name: null,
-                icon: null,
             },
             targetIdentifier: targetPublicKey,
             timestamp,
@@ -222,7 +226,10 @@ async function sendMessage(text, targetPublicKey, host, test = false){
     payload.message = await Client().SignJson(payload.message)
 
     return await new Promise(async (resolve, reject) => {
-        (await getChatSocket(host)).emit("/messenger/send", {message: payload.message, sessionId}, async function (response){
+        (await getChatSocket(host)).emit("/messenger/send", {
+            message: payload.message,
+            sessionId
+        }, async function (response) {
             resolve(response)
         })
     })

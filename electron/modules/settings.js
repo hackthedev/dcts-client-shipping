@@ -280,6 +280,7 @@ class Settings {
         try {
             const data = await fs.readFile(this.settingsPath, "utf8")
             this.settings = JSON.parse(data)
+            this.settings.user ??= {}
         } catch {
             this.settings = {}
         }

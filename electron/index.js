@@ -230,7 +230,7 @@ app.whenReady().then(async () => {
 
     // youtube embed fix — header spoofing
     session.defaultSession.webRequest.onBeforeSendHeaders(
-        { urls: ['*://*.youtube.com/*', '*://*.googlevideo.com/*', '*://*.ytimg.com/*'] },
+        { urls: ['*://*.youtube-nocookie.com/*', '*://*.youtube.com/*', '*://*.googlevideo.com/*', '*://*.ytimg.com/*'] },
         (details, callback) => {
             details.requestHeaders['Referer'] = 'https://www.youtube.com'
             details.requestHeaders['Origin'] = 'https://www.youtube.com'
