@@ -84,6 +84,7 @@ async function createWindow(width, height) {
         { package: '@hackthedev/mobile-ui@latest', path: libDir },
         { package: '@hackthedev/prompts@latest', path: libDir },
         { package: '@hackthedev/rich-editor', path: libDir },
+        { package: '@hackthedev/json-editor', path: libDir },
         { package: '@hackthedev/chat-tools@1.0.0', path: libDir },
     ]);
 
@@ -232,8 +233,8 @@ app.whenReady().then(async () => {
     session.defaultSession.webRequest.onBeforeSendHeaders(
         { urls: ['*://*.youtube-nocookie.com/*', '*://*.youtube.com/*', '*://*.googlevideo.com/*', '*://*.ytimg.com/*'] },
         (details, callback) => {
-            details.requestHeaders['Referer'] = 'https://www.youtube.com'
-            details.requestHeaders['Origin'] = 'https://www.youtube.com'
+            details.requestHeaders['Referer'] = 'https://www.youtube-nocookie.com'
+            details.requestHeaders['Origin'] = 'https://www.youtube-nocookie.com'
             callback({ requestHeaders: details.requestHeaders })
         }
     )

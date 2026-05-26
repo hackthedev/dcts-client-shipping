@@ -1,0 +1,14 @@
+{
+  "name": "@hackthedev/json-editor",
+  "version": "1.0.0",
+  "description": "",
+  "keywords": [
+    "frontend"
+  ],
+  "license": "ISC",
+  "author": "",
+  "main": "JsonEditor.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  }
+}

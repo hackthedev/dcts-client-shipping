@@ -1,17 +1,76 @@
+let originalUserData = {
+
+}
+
 async function loadAccount(){
     getContentElement().innerHTML =
     `    
-        <div class="message-container" style="display: flex; flex-direction: column; margin: auto; justify-content: center;">
-            <h1 style="margin-bottom: 0.5rem;">This feature isnt done yet!</h1>
-            <p>A lot of work is going into this feature! <a href="https://reddit.com/r/dcts" target="_blank">Checkout our subreddit to stay up to date!</a></p>
-            <br><br>
+        <div class="account-container">
+            <h1>${Icon.display("account")}Account Settings</h1>
+            <p class="hint">
+                If you leave these settings empty they will be automatically set by the server.
+            </p>
            
-            <h2>What is it going to be about?</h2>
-            <ul>
-                <li>You can locally edit your account in the desktop client, like profile picture, banner, status, ...</li>
-                <li>When you connect to a server it will automatically update all the infos on that server for your choosen account.</li>
-                <li>Its also planned to add an account manager.</li>
-            </ul>
+            <div class="settings">
+            
+            </div>
         </div>
     `
+
+    let nickname = await Client().GetNickname() ?? "";
+    let profileUrl = await Client().GetUserIcon() ?? "";
+    let consistent = false;
+    originalUserData.nickname = nickname;
+    originalUserData.icon = profileUrl;
+    originalUserData.consitent = consistent;
+
+    getAccountSettingsElement().insertAdjacentElement(
+        "beforeend",
+        JsonEditor.getSettingElement(nickname, "Display Name", "How others will see you", async (value) => {
+            if(originalUserData.nickname !== value){
+                JsonEditor.showSaveButton(() => {
+                    console.log("hi " , value)
+                    originalUserData.nickname = value
+                });
+            }
+            else{
+                JsonEditor.hideSaveButton();
+            }
+        }, /^[a-zA-Z0-9_.-]{1,30}$/)
+    )
+
+    getAccountSettingsElement().insertAdjacentElement(
+        "beforeend",
+        JsonEditor.getSettingElement(nickname, "Display Name", "How others will see you", async (value) => {
+            if(originalUserData.nickname !== value){
+                JsonEditor.showSaveButton(() => {
+                    console.log("hi " , value)
+                    originalUserData.nickname = value
+                });
+            }
+            else{
+                JsonEditor.hideSaveButton();
+            }
+        }, /^[a-zA-Z0-9_.-]{1,30}$/)
+    )
+
+    getAccountSettingsElement().insertAdjacentElement(
+        "beforeend",
+        JsonEditor.getSettingElement(consistent, "Consistent?", "Automatically update server profiles on connect with these settings.", async (value) => {
+            if(originalUserData.consistent !== value){
+                JsonEditor.showSaveButton(() => {
+                    console.log("hi " , value)
+                    originalUserData.consistent = value
+                });
+            }
+            else{
+                JsonEditor.hideSaveButton();
+            }
+        }, /^[a-zA-Z0-9_.-]{1,30}$/)
+    )
 }
+
+function getAccountSettingsElement(){
+    return getContentElement()?.querySelector(".account-container .settings");
+}
+
