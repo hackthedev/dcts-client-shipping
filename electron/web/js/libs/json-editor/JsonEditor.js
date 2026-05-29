@@ -1,21 +1,28 @@
-class JsonEditor{
-    static showSaveButton(callback) {
+class JsonEditor {
+    static showSaveButton(key, callback) {
         let existing = document.querySelector(".json-editor-save-bar");
+
         if (existing) {
-            existing._saveCallback = callback;
+            existing._saveCallbacks ??= new Map();
+            existing._saveCallbacks.set(key, callback);
             return;
         }
 
         const bar = document.createElement("div");
-            bar.classList.add("json-editor-save-bar");
-            bar._saveCallback = callback;
-            bar.innerHTML = `
+        bar.classList.add("json-editor-save-bar");
+        bar._saveCallbacks = new Map();
+        bar._saveCallbacks.set(key, callback);
+
+        bar.innerHTML = `
             <span>Unsaved changes</span>
             <button class="btn-save">Save Changes</button>
         `;
 
         bar.querySelector(".btn-save").addEventListener("click", async () => {
-            await bar._saveCallback?.();
+            for (const cb of bar._saveCallbacks.values()) {
+                await cb?.();
+            }
+
             JsonEditor.hideSaveButton();
         });
 
@@ -26,8 +33,14 @@ class JsonEditor{
         document.querySelector(".json-editor-save-bar")?.remove();
     }
 
-    static getSettingElement(jsonKey, displayName, description, onChange = null, regexMatcher = null, canBeNull = false){
-        if(jsonKey === undefined) throw new Error("No json key provided!");
+    static getSettingElement(jsonKey, displayName, description, onChange = null,
+                             {
+                                 regexMatcher = null,
+                                 canBeNull = false,
+                                 disabled = false,
+                             } = {}
+    ) {
+        if (jsonKey === undefined) throw new Error("No json key provided!");
 
         let element = document.createElement("div")
         element.style.display = "flex";
@@ -48,7 +61,7 @@ class JsonEditor{
                 </div>
                 
                 <div class="json-editor-inputs" style="margin-left: auto;">
-                    ${this.getInputHTMLBasedOnType(jsonKey)}
+                    ${this.getInputHTMLBasedOnType(jsonKey, disabled)}
                     <div class="json-editor-error" style="display:none;color:#ff5555;font-size:12px;margin-top:4px;"></div>
                 </div>
             </div>            
@@ -56,14 +69,14 @@ class JsonEditor{
 
         element.onclick = (e) => {
             let tagName = e.target.tagName.toLowerCase();
-            if(tagName === "button") return;
-            if(tagName === "input") return;
+            if (tagName === "button") return;
+            if (tagName === "input") return;
 
             let inputs = element.querySelectorAll("input");
-            if(inputs?.length === 1){
-                if(inputs[0].type === "checkbox"){
+            if (inputs?.length === 1) {
+                if (inputs[0].type === "checkbox") {
                     inputs[0].checked = !inputs[0].checked;
-                    inputs[0].dispatchEvent(new Event("input", { bubbles: true }));
+                    inputs[0].dispatchEvent(new Event("input", {bubbles: true}));
                     return;
                 }
 
@@ -72,23 +85,23 @@ class JsonEditor{
         }
 
         element.addEventListener("input", e => {
-            if(Array.isArray(jsonKey)){
+            if (Array.isArray(jsonKey)) {
                 const inputs = element.querySelectorAll(".json-editor-array-item input");
                 const values = [];
 
                 inputs.forEach(i => {
-                    if(i.type === "number"){
-                        if(i.value === "") return;
+                    if (i.type === "number") {
+                        if (i.value === "") return;
                         values.push(Number(i.value));
                         return;
                     }
 
-                    if(i.type === "checkbox"){
+                    if (i.type === "checkbox") {
                         values.push(i.checked);
                         return;
                     }
 
-                    if(i.value === "" || i.value === null) return;
+                    if (i.value === "" || i.value === null) return;
                     values.push(i.value);
                 });
 
@@ -103,12 +116,12 @@ class JsonEditor{
                     e.target.type === "checkbox" ? e.target.checked :
                         e.target.value;
 
-            if(canBeNull && e.target.type === "text" && value.trim() === ""){
+            if (canBeNull && e.target.type === "text" && value.trim() === "") {
                 const errorElement = element.querySelector(".json-editor-error");
 
                 e.target.classList.remove("json-editor-input-error");
 
-                if(errorElement){
+                if (errorElement) {
                     errorElement.textContent = "";
                     errorElement.style.display = "none";
                 }
@@ -117,14 +130,14 @@ class JsonEditor{
                 return;
             }
 
-            if(regexMatcher && (e.target.type === "text" || e.target.type === "number")){
+            if (regexMatcher && (e.target.type === "text" || e.target.type === "number")) {
                 const regex = regexMatcher instanceof RegExp ? regexMatcher : new RegExp(regexMatcher);
                 const errorElement = element.querySelector(".json-editor-error");
 
-                if(!regex.test(String(value))){
+                if (!regex.test(String(value))) {
                     e.target.classList.add("json-editor-input-error");
 
-                    if(errorElement){
+                    if (errorElement) {
                         errorElement.textContent = "Invalid value";
                         errorElement.style.display = "block";
                     }
@@ -134,7 +147,7 @@ class JsonEditor{
 
                 e.target.classList.remove("json-editor-input-error");
 
-                if(errorElement){
+                if (errorElement) {
                     errorElement.textContent = "";
                     errorElement.style.display = "none";
                 }
@@ -155,55 +168,55 @@ class JsonEditor{
             .replaceAll("'", '&#39;');
     }
 
-    static createInputElement(value){
+    static createInputElement(value, disabled = false) {
         let type = typeof value;
         if (type === "string" || value === null) type = "text";
         if (type === "number") type = "number";
         if (type === "boolean") type = "checkbox";
 
-        if(value === null) value = ""
+        if (value === null) value = ""
 
         if (type === "checkbox") {
-            return `<input type="checkbox"${value ? " checked" : ""}>`;
+            return `<input ${disabled ? "disabled" : ""} type="checkbox"${value ? " checked" : ""}>`;
         }
 
-        return `<input type="${type}" value="${this.encodePlainText(String(value))}">`;
+        return `<input type="${type}" ${disabled ? "disabled" : ""} value="${this.encodePlainText(String(value))}">`;
     }
 
 
-    static getInputHTMLBasedOnType(jsonKey){
-        if(typeof(jsonKey) === "string") return this.createInputElement(jsonKey);
-        if(typeof(jsonKey) === "number") return this.createInputElement(jsonKey);
-        if(typeof(jsonKey) === "boolean") return this.createInputElement(jsonKey);
-        if(jsonKey === null) return this.createInputElement(jsonKey);
+    static getInputHTMLBasedOnType(jsonKey, disabled = false) {
+        if (typeof (jsonKey) === "string") return this.createInputElement(jsonKey, disabled);
+        if (typeof (jsonKey) === "number") return this.createInputElement(jsonKey, disabled);
+        if (typeof (jsonKey) === "boolean") return this.createInputElement(jsonKey, disabled);
+        if (jsonKey === null) return this.createInputElement(jsonKey);
 
-        if(Array.isArray(jsonKey)){
+        if (Array.isArray(jsonKey)) {
             let html = `<div style='display: flex; flex-wrap: wrap;flex-direction: column;gap: 4px;'>
-                                <button onclick="JsonEditor.addArrayElement(this)">Add &#128935;</button>`;
+                                <button ${disabled ? "disabled" : `onclick="JsonEditor.addArrayElement(this)"`}>Add &#128935;</button>`;
 
-            for(let i = 0; i < jsonKey.length; i++){
-                html += this.getArrayItemHTML(jsonKey[i]);
+            for (let i = 0; i < jsonKey.length; i++) {
+                html += this.getArrayItemHTML(jsonKey[i], disabled);
             }
             return `${html}</div>`;
         }
     }
 
-    static getArrayItemHTML(jsonKey){
+    static getArrayItemHTML(jsonKey, disabled = false) {
         return `<div class="json-editor-array-item" >
                         ${this.getInputHTMLBasedOnType(jsonKey)}
-                        <button onclick="JsonEditor.removeArrayItem(this)">&#128942;</button>
+                        <button ${disabled ? "disabled" : `onclick="JsonEditor.removeArrayItem(this)"`}>&#128942;</button>
                     </div>`;
     }
 
-    static removeArrayItem(itemElement){
+    static removeArrayItem(itemElement) {
         let parent = itemElement.parentElement;
         let input = parent.querySelector("input");
-        if(input) input.value = "";
-        parent.closest(".json-editor-setting").dispatchEvent(new Event("input", { bubbles: true }))
+        if (input) input.value = "";
+        parent.closest(".json-editor-setting").dispatchEvent(new Event("input", {bubbles: true}))
         parent.remove();
     }
 
-    static addArrayElement(itemElement){
+    static addArrayElement(itemElement) {
         let parent = itemElement.parentElement;
         parent.insertAdjacentHTML("beforeend",
             `${this.getArrayItemHTML("")}

@@ -109,7 +109,7 @@ async function connectToSocketHost(address) {
     return socket;
 }
 
-async function socketHello(socket, address, options = {
+async function socketHello(socket, address, {
                                name = null,
                                icon = null,
                            } = {}
@@ -123,7 +123,8 @@ async function socketHello(socket, address, options = {
                 publicKey: await Client().GetPublicKey(),
                 sessionId: await getSessionIdFromHost(address),
                 home_server: await Client().GetHomeServer(),
-                ...options,
+                name,
+                icon,
             },
             async function (response) {
                 if (response?.error) console.error(response?.error);
