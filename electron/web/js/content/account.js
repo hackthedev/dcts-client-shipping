@@ -35,8 +35,9 @@ async function loadAccount(){
                 if(originalUserData.nickname !== value){
                     JsonEditor.showSaveButton("nickname", () => {
                         originalUserData.nickname = value
-                        Client().SetNickname(value);
-                        saveAccountChanges();
+                        saveAccountChanges({
+                            name: value
+                        });
                     });
                 }
                 else{
@@ -60,8 +61,9 @@ async function loadAccount(){
                 if (originalUserData.icon !== value) {
                     JsonEditor.showSaveButton("profile_url", () => {
                         originalUserData.icon = value
-                        Client().SetUserIcon(value);
-                        saveAccountChanges();
+                        saveAccountChanges({
+                            icon: value
+                        });
                     });
                 } else {
                     JsonEditor.hideSaveButton();
@@ -89,8 +91,9 @@ async function loadAccount(){
                 if(originalUserData.alias !== value && value?.trim()?.length > 0){
                     JsonEditor.showSaveButton("alias", () => {
                         originalUserData.alias = value
-                        Client().SetAlias(value);
-                        saveAccountChanges();
+                        saveAccountChanges({
+                            vanity: value
+                        });
                     });
                 }
                 else{
@@ -114,7 +117,6 @@ async function loadAccount(){
                     JsonEditor.showSaveButton("consistent", () => {
                         originalUserData.consistent = value
                         Client().SetUserConsistentSettings(!!value);
-                        saveAccountChanges();
                     });
                 }
                 else{
@@ -128,12 +130,30 @@ async function loadAccount(){
     }
 }
 
-async function saveAccountChanges(){
-    await socketHello(getHomeSocket(), getHomeSocket().host, {
-        name: await Client().GetNickname(),
-        icon: await Client().GetUserIcon(),
-        alias: await Client().GetAlias(),
-    })
+async function saveAccountChanges({
+    icon = undefined,
+    name = undefined,
+    vanity = undefined,
+                                  }){
+
+    let payload = {}
+    if(name !== undefined) payload.name = name;
+    if(icon !== undefined) payload.icon = icon;
+    if(vanity !== undefined) payload.vanity = vanity;
+    if(icon !== undefined) payload.icon = icon;
+
+    console.log({...payload})
+
+    let result = await socketHello(getHomeSocket(), getHomeSocket().host, {...payload})
+    console.log(result)
+    if(result?.error){
+        alert(result?.error);
+    }
+    else{
+        if(payload.vanity) Client().SetAlias(vanity);
+        if(payload.name) Client().SetNickname(name);
+        if(payload.icon) Client().SetUserIcon(icon);
+    }
 }
 
 function getAccountSettingsElement(){
