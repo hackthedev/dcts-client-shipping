@@ -142,10 +142,7 @@ async function saveAccountChanges({
     if(vanity !== undefined) payload.vanity = vanity;
     if(icon !== undefined) payload.icon = icon;
 
-    console.log({...payload})
-
     let result = await socketHello(getHomeSocket(), getHomeSocket().host, {...payload})
-    console.log(result)
     if(result?.error){
         alert(result?.error);
     }

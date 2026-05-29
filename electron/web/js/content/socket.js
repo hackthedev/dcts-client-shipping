@@ -149,7 +149,7 @@ async function registerSocketListeners(socket) {
         let authorPublicKey = message?.author?.publicKey;
         let authorHomeServer = message?.author?.home_server;
 
-        let ownGid = await Client().GenerateGid(await Client().GetPublicKey());
+        let ownGid = await getGid();
 
         // if we are the author, save under the target — otherwise save under the author
         let targetGid = message?.targetIdentifier
@@ -174,11 +174,11 @@ async function registerSocketListeners(socket) {
         }
 
         // update the chat entry in the sidebar so the latest message and badge show up
-        await refreshChatEntry(chatGid);
-
+        await refreshChatEntry(chatGid, message);
         await Client().SaveChatMessage(chatGid, message)
+
         if (message?.type === "user_message" && getInnerChatContentElement()) await renderUserMessage({
-            message,
+            item: message,
             element: getInnerChatContentElement()
         })
     })

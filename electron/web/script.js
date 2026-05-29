@@ -133,7 +133,6 @@ async function updateLocalServerInfo(address){
     let fetchedServerInfo = await fetchServerInfo(address);
     if(fetchedServerInfo?.version){
         await Client().SaveServer(address, fetchedServerInfo);
-        console.log("updated server lazily")
     }
 }
 

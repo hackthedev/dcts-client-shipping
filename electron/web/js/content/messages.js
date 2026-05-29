@@ -176,7 +176,7 @@ async function fetchMessengerChats(timestamp = 0) {
     })
 }
 
-async function refreshChatEntry(chatGid) {
+async function refreshChatEntry(chatGid, latestMessageObj = null) {
     let chatsElement = getContentElement().querySelector(`.chats .list`);
     if (!chatsElement) return;
 
@@ -187,8 +187,8 @@ async function refreshChatEntry(chatGid) {
         .map(item => item.data ?? item)
         .sort((a, b) => (a?.timestamp ?? 0) - (b?.timestamp ?? 0));
 
-    let gid = await Client().GenerateGid(await Client().GetPublicKey());
-    let lastMessage = messages.at(-1) ?? null;
+    let gid = await getGid();
+    let lastMessage = latestMessageObj ?? messages.at(-1) ?? null;
 
     let decryptedLastMessage = null;
     if (lastMessage) {
@@ -391,9 +391,6 @@ async function renderChat(chatId, customChatObject = null) {
                     return console.log("Detected file")
                 }
                 else if(src?.constructor?.name === "String"){
-                    console.log("Detected URL")
-                    console.log(src)
-
                     if(src.startsWith("data:image")){
                         insert("");
                     }
@@ -411,8 +408,19 @@ async function renderChat(chatId, customChatObject = null) {
                 if (messageResult?.error) {
                     return alert(`Error while sending message!\n\n${messageResult.error}`)
                 }
+                else{
+                    let targetData = messageResult?.target;
+                    let existingChat = await Client().GetChat(targetData.gid)
 
-                console.log(messageResult)
+                    if(targetData && existingChat){
+                        let icon = targetData?.icon;
+                        let name = targetData?.name;
+
+                        if(icon) existingChat.icon = icon;
+                        if(name) existingChat.title = name;
+                        await Client().SaveChat(targetData.gid, existingChat);
+                    }
+                }
 
                 editor.quill.setContents([{insert: "\n"}]);
             }
@@ -719,12 +727,12 @@ async function startNewChat({
                 let newChat = {
                     publicKey: testMessage.target?.publicKey,
                     gid: targetGid,
-                    title: `New Chat`,
+                    title: testMessage?.name ?? `New Chat`,
                     host: homeServer,
                     home_server: homeServer,
                     lastMessage: null,
                     lastRead: new Date().getTime(),
-                    icon: null,
+                    icon: testMessage?.icon ?? null,
                 };
 
                 await Client().SaveChat(targetGid, newChat);

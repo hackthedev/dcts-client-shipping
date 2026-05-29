@@ -8,6 +8,7 @@ class Settings {
     static settings = {}
     static _loaded = false
     static _writeQueue = Promise.resolve()
+    static runtimeData = {}
 
     static Client = class {
         static async getLastOnline() {
@@ -64,6 +65,8 @@ class Settings {
             }
 
             // always overwrite the config so it stays up to date
+            Settings.runtimeData.chats ??= {};
+            Settings.runtimeData.chats[chatId] = data;
             await fs.writeFile(chatConfigPath, JSON.stringify(data, null, 4));
 
             Settings.settings.client ??= {}
@@ -75,7 +78,9 @@ class Settings {
             if (!chatId) return null
             let chatConfigPath = path.join(Settings.appDataDir, "chats", chatId, "config.json")
 
+            Settings.runtimeData.chats ??= {};
             if(fsNormal.existsSync(chatConfigPath)) {
+                if(Settings.runtimeData.chats[chatId]) return Settings.runtimeData.chats[chatId];
                 return JSON.parse(await fs.readFile(chatConfigPath, "utf8") ?? {})
             }
             else{
@@ -91,8 +96,17 @@ class Settings {
             let chatIds = await fs.readdir(chatsPath);
 
             let chats = {}
+            Settings.runtimeData.chats ??= {};
+
             if(chatIds?.length > 0){
                 for(let chatId of chatIds){
+
+                    // if already in ram use that instead
+                    if(Settings.runtimeData.chats[chatId]){
+                        chats[chatId] = Settings.runtimeData.chats[chatId];
+                        continue;
+                    }
+
                     let chatConfigPath = path.join(Settings.appDataDir, "chats", chatId, "config.json")
                     let chatConfig = JSON.parse(await fs.readFile(chatConfigPath, "utf8") ?? {})
 
@@ -114,7 +128,7 @@ class Settings {
             let messagesPath = path.join(Settings.appDataDir, "chats", chatId, "messages");
             if(!fsNormal.existsSync(messagesPath)) fsNormal.mkdirSync(messagesPath, { recursive: true });
 
-            fs.writeFile(path.join(messagesPath, `${messageId}.json`), JSON.stringify(data, null, 4));
+            await fs.writeFile(path.join(messagesPath, `${messageId}.json`), JSON.stringify(data, null, 4));
 
             Settings.settings.client ??= {}
             Settings.settings.client.lastOnline = new Date().getTime();
@@ -153,7 +167,6 @@ class Settings {
 
             for(let messageId of messageIds){
                 let messageFile = path.join(messagesPath, messageId)
-
                 let messageConfig = JSON.parse(await fs.readFile(messageFile, "utf8") ?? "{}")
 
                 let createdAt = messageConfig?.timestamp ?? 0
