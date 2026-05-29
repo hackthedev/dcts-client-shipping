@@ -56,6 +56,10 @@
 .layout > .content-container > .content > .account-container > .settings > .json-editor-setting .json-editor-setting-headline{
     margin: 0 1rem 0.5rem 0;
 }
+.layout > .content-container > .content > .account-container > .settings > .json-editor-setting input[disabled]{
+    background-color: hsl(from var(--main) h s calc(l * 6));
+    cursor: not-allowed;
+}
 .layout > .content-container > .content > .account-container > .settings > .json-editor-setting input{
     outline: none;
     border: 1.5px solid var(--main);

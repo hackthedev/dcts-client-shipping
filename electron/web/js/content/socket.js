@@ -112,6 +112,7 @@ async function connectToSocketHost(address) {
 async function socketHello(socket, address, {
                                name = null,
                                icon = null,
+                               alias = null,
                            } = {}
 ) {
     if (typeof Client().GetHomeServer !== "function") throw new Error("Socket Connection canceled due to unsupported client")
@@ -125,6 +126,7 @@ async function socketHello(socket, address, {
                 home_server: await Client().GetHomeServer(),
                 name,
                 icon,
+                alias,
             },
             async function (response) {
                 if (response?.error) console.error(response?.error);

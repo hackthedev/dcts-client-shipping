@@ -18,11 +18,13 @@ async function loadAccount(){
     `
 
     let nickname = await Client().GetNickname() ?? "";
+    let alias = await Client().GetAlias() ?? "";
     let profileUrl = await Client().GetUserIcon() ?? "";
     let consistent = await Client().GetUserConsistentSettings() ?? true;
     let disableInputs = !!consistent === true;
 
     originalUserData.nickname = nickname;
+    originalUserData.alias = alias;
     originalUserData.icon = profileUrl;
     originalUserData.consistent = consistent;
 
@@ -75,6 +77,34 @@ async function loadAccount(){
         console.error("Setting 'Profile Picture' not shown because client doesnt support it")
     }
 
+    if(typeof Client().SetAlias === "function" ) {
+        getAccountSettingsElement().insertAdjacentElement(
+            "beforeend",
+            JsonEditor.getSettingElement(alias, "Messenger Alias",
+                `   
+                    How people can reach you<br>
+                    Current: ${originalUserData?.alias ? `${originalUserData?.alias}@${getHomeSocket().host}` : "none"}
+                `
+                , async (value) => {
+                if(originalUserData.alias !== value && value?.trim()?.length > 0){
+                    JsonEditor.showSaveButton("alias", () => {
+                        originalUserData.alias = value
+                        Client().SetAlias(value);
+                        saveAccountChanges();
+                    });
+                }
+                else{
+                    JsonEditor.hideSaveButton();
+                }
+            }, {
+                regexMatcher: /^[a-zA-Z0-9_.-]{1,30}$/,
+            })
+        )
+    }
+    else{
+        console.error("Setting 'Display Name' not shown because client doesnt support it")
+    }
+
     // check if this feature is supported in whatever client
     if(typeof Client().SetUserConsistentSettings === "function" ){
         getAccountSettingsElement().insertAdjacentElement(
@@ -102,6 +132,7 @@ async function saveAccountChanges(){
     await socketHello(getHomeSocket(), getHomeSocket().host, {
         name: await Client().GetNickname(),
         icon: await Client().GetUserIcon(),
+        alias: await Client().GetAlias(),
     })
 }
 
