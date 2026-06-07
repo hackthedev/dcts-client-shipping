@@ -183,6 +183,7 @@ async function refreshChatEntry(chatGid, latestMessageObj = null) {
     let chat = await Client().GetChat(chatGid);
     if (!chat) return;
 
+    // sort messages by timestamp
     let messages = Object.values(await Client().GetChatMessages(chatGid, new Date().getTime(), true) ?? {})
         .map(item => item.data ?? item)
         .sort((a, b) => (a?.timestamp ?? 0) - (b?.timestamp ?? 0));
@@ -190,6 +191,7 @@ async function refreshChatEntry(chatGid, latestMessageObj = null) {
     let gid = await getGid();
     let lastMessage = latestMessageObj ?? messages.at(-1) ?? null;
 
+    // decrypt this shit
     let decryptedLastMessage = null;
     if (lastMessage) {
         try {
