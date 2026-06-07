@@ -147,9 +147,9 @@ async function saveAccountChanges({
         alert(result?.error);
     }
     else{
-        if(payload.vanity) Client().SetAlias(vanity);
-        if(payload.name) Client().SetNickname(name);
-        if(payload.icon) Client().SetUserIcon(icon);
+        if(payload?.vanity) Client().SetAlias(vanity);
+        if(payload?.name) Client().SetNickname(name);
+        if(payload?.icon) Client().SetUserIcon(icon);
     }
 }
 
