@@ -1,5 +1,83 @@
 function Client() {
-    return window?.dcts;
+    const client = window?.dcts;
+    if (!client) return null;
+
+    if (typeof client.getPlatform === "function" && client.getPlatform() === "android") {
+        const wrapper = {};
+
+
+        for (const key in client) {
+            const value = client[key];
+
+            if (typeof value === "function") {
+                wrapper[key] = (...args) => {
+                    try {
+                        return client[key](...args);
+                    } catch (e) {
+                        console.error("ANDROID METHOD FAILED:", key);
+                        console.error("ARGS:", args);
+                        console.error("ERROR:", e);
+                        throw e;
+                    }
+                };
+            } else {
+                wrapper[key] = value;
+            }
+        }
+
+        wrapper.SignJson = async obj => {
+            const res = client.SignJson(JSON.stringify(obj));
+            return res ? JSON.parse(res) : null;
+        };
+
+        wrapper.VerifyJson = async (obj, publicKey) => {
+            const res = client.VerifyJson(JSON.stringify(obj), publicKey);
+            return res === "true" || res === true;
+        };
+
+        wrapper.SaveServer = async (address, isFav) => {
+            return client.SaveServer(String(address), Boolean(isFav));
+        };
+
+        wrapper.GetServer = async address => {
+            const res = client.GetServer(String(address));
+            return res ? JSON.parse(res) : null;
+        };
+
+        // Messenger functions
+        wrapper.GetChatMessages = async (chatId, timestamp, desc) => {
+            const res = client.GetChatMessages(
+                String(chatId),
+                timestamp == null ? "null" : String(timestamp),
+                desc == null ? "true" : String(desc)
+            );
+
+            return res ? JSON.parse(res) : null;
+        };
+
+        wrapper.GetChats = async () => {
+            const res = client.GetChats();
+            return res ? JSON.parse(res) : null;
+        };
+
+        wrapper.GetChat = async (chatId) => {
+            const res = client.GetChat(String(chatId));
+            return res ? JSON.parse(res) : null;
+        };
+
+        wrapper.GetChatLastMessage = async (chatId) => {
+            const res = client.GetChatLastMessage(String(chatId));
+            return res ? JSON.parse(res) : null;
+        };
+
+        wrapper.SaveChatMessage = async (chatId, messageObj) => {
+            return client.SaveChatMessage(String(chatId), JSON.stringify(messageObj));
+        };
+
+        return wrapper;
+    }
+
+    return client;
 }
 
 function isLauncher() {

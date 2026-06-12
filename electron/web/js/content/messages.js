@@ -263,6 +263,7 @@ async function renderMessages() {
             chat.messages = sortMessagesByTimestamp(chat.messages);
             chat.lastMessage = await getLastChatMessage(chatId);
 
+
             let unreadMessages = chat.messages.filter(message => {
                 return (message?.timestamp ?? 0) > (chat?.lastRead ?? 0);
             });
@@ -296,7 +297,13 @@ async function getLastChatMessage(chatId){
         text = message.message;
     }
     else{
-        text = await decryptUserMessage(message[await getGid()])
+        try{
+            text = await decryptUserMessage(message[await getGid()])
+        }
+        catch(lastChatMessageError){
+            console.error(lastChatMessageError);
+            text = null;
+        }
     }
 
     return {
@@ -512,7 +519,6 @@ async function renderInboxElementsInChat(chat, initial = false) {
     }
 
     await Client().SaveChat(gid, chat);
-    console.log(chat)
 }
 
 async function renderUserMessage({
@@ -524,8 +530,12 @@ async function renderUserMessage({
     let authorGid = message?.author?.gid;
 
     // OUR gid comrade.
-    let gid = await Client().GenerateGid(await Client().GetPublicKey());
+    let gid = await getGid();
     let encryptedMessage = message[gid];
+
+    // idk why this happens, lazy.
+    // seems to only happen on android
+    if(typeof encryptedMessage === "string" && encryptedMessage.startsWith("{")) encryptedMessage = JSON.parse(encryptedMessage ?? "{}");
 
     // skill issue
     if (!encryptedMessage?.method) throw new Error("Invalid message data", message);

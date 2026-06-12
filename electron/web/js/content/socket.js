@@ -186,6 +186,7 @@ async function registerSocketListeners(socket) {
 
 async function decryptUserMessage(message) {
     if (!message) throw new Error("Message was not set");
+    if (!message?.method) throw new Error("Message method not found");
 
     let decryptedMessageText = await Client().DecryptData(
         message.method,
