@@ -45,7 +45,6 @@ async function loadAccount(){
                 }
             }, {
                 regexMatcher: /^[a-zA-Z0-9_.-]{1,30}$/,
-                disabled: disableInputs,
                 canBeNull: true,
             })
         )
@@ -70,7 +69,6 @@ async function loadAccount(){
                 }
             }, {
                 regexMatcher: /^https?:\/\/[a-zA-Z0-9.-]+(?:\/[^\s]*)?$/,
-                disabled: disableInputs,
                 canBeNull: true,
             })
         )

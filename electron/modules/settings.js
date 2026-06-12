@@ -283,9 +283,10 @@ class Settings {
         }
     }
 
-    static initSettings(appDataDir) {
+    static async initSettings(appDataDir) {
         this.settingsPath = path.join(appDataDir, "settings.json")
         this.appDataDir = appDataDir
+        await this._ensureLoaded();
     }
 
     static async _ensureLoaded() {
