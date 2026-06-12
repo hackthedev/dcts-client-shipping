@@ -74,6 +74,10 @@ function Client() {
             return client.SaveChatMessage(String(chatId), JSON.stringify(messageObj));
         };
 
+        wrapper.GetUserConsistentSettings = async () => {
+            return client.GetUserConsistentSettings() === "true";
+        };
+
         return wrapper;
     }
 

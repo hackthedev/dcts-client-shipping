@@ -69,7 +69,7 @@ async function loadAccount(){
                     JsonEditor.hideSaveButton();
                 }
             }, {
-                regexMatcher: /^[a-zA-Z0-9_.-]{1,30}$/,
+                regexMatcher: /^https?:\/\/[a-zA-Z0-9.-]+(?:\/[^\s]*)?$/,
                 disabled: disableInputs,
                 canBeNull: true,
             })
