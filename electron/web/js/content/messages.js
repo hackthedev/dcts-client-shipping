@@ -220,8 +220,11 @@ async function refreshChatEntry(chatGid, latestMessageObj = null) {
     `);
 }
 
-async function renderMessages() {
-    getContentElement().innerHTML =
+async function renderMessages(customElement = undefined) {
+    let renderElement = customElement !== undefined ? customElement : getContentElement();
+    if(customElement === null) throw new Error("Custom Element was null!");
+
+    renderElement.innerHTML =
         `
             <div class="message-page-container">
             
@@ -234,7 +237,7 @@ async function renderMessages() {
                     </div>
                     <div class="list"></div>
                 </div>
-                <div class="chat-content">
+                <div class="chat-content ${MobilePanel.isMobile() ? "mobile" : ""}">
                 </div>
             </div>
         `;
@@ -244,7 +247,7 @@ async function renderMessages() {
         (a, b) => (b?.lastMessage?.timestamp ?? 0) - (a?.lastMessage?.timestamp ?? 0)
     );
 
-    addChatEntries(getContentElement().querySelector(`.chats .list`))
+    addChatEntries(renderElement.querySelector(`.chats .list`))
 
     async function addChatEntries(element) {
         if (!element) throw new Error("Element not found for adding chat element");
@@ -257,6 +260,7 @@ async function renderMessages() {
                 console.warn("No chat id found for chat ", chat)
                 continue;
             }
+
             chatId = ChatTools.Sanitize.stripHTML(chatId);
 
             chat.messages = await Client().GetChatMessages(chatId, new Date().getTime(), true) ?? {};
@@ -269,13 +273,24 @@ async function renderMessages() {
             });
 
             let chatName = chat?.title ?? "Unkown"
+            let displayDate = new Date(chat?.lastMessage?.timestamp).toLocaleDateString(undefined, {
+                //year: "numeric",
+                month: "numeric",
+                day: "numeric",
+                hour: "numeric",
+                minute: "numeric",
+            });
 
             let iconUrl = getFixedUrl(chat?.host, chat?.icon);
             element.insertAdjacentHTML("beforeend", `
                 <div class="chat" data-gid="${chatId}" onclick="renderChat('${chatId}')">
                     <div class="icon" style="background-image: url('${iconUrl}')"></div>
                     <div class="middle-section">
-                        <div class="name">${ChatTools.Sanitize.forRender(chatName)}</div>
+                        <div class="meta">
+                            <div class="name">${ChatTools.Sanitize.forRender(chatName)}</div>
+                            <span class="date">${chat?.lastMessage?.timestamp ? displayDate : ""}</span>
+                        </div>
+                        
                         ${chat.lastMessage?.message ? `<div class="latestMessage">${ChatTools.Sanitize.forRender(chat.lastMessage?.message)}</div>` : ""}
                     </div>
                     <div class="badge ${unreadMessages?.length > 0 ? "visible" : ""}">${unreadMessages?.length ?? ""}</div>                
@@ -319,6 +334,12 @@ function getChatContentElement() {
 function getInnerChatContentElement() {
     return getChatContentElement().querySelector(`.content`);
 }
+
+function getChatListElement() {
+    return getContentElement().querySelector(`.chats`);
+}
+
+
 
 async function renderChat(chatId, customChatObject = null) {
     let activeChat = customChatObject ?? await Client().GetChat(chatId);
@@ -437,6 +458,13 @@ async function renderChat(chatId, customChatObject = null) {
     }
 
     await renderInboxElementsInChat(activeChat, true);
+
+    // some ui tricks for mobile
+    if(getChatContentElement()?.classList?.contains("mobile") && MobilePanel.isMobile()){
+        getChatContentElement().classList.remove("mobile");
+        getChatListElement().classList.add("hide");
+        getNavElement().classList.add("hide");
+    }
 }
 
 function renderSystemDateInChat(timestamp, element = null, renderTop = false){
@@ -641,6 +669,7 @@ async function setChatHeader(chat) {
     getChatContentElement().innerHTML =
         `
         <div class="header">
+            <span class="back" onclick="loadMessages()">${Icon.display("back")}</span>
             <div class="icon" style="background-image: url('${ChatTools.Sanitize.stripHTML(chatIcon)}')"></div>
             <h1>${ChatTools.Sanitize.forRender(chatTitle)}</h1>
         </div>`;

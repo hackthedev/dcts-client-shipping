@@ -230,7 +230,40 @@ document.addEventListener('DOMContentLoaded', async () => {
     buildNavHTML(true);
     getSavedServers(getContentElement())
     //loadMessages();
+
+    registerSwipingHandles();
 });
+
+function registerSwipingHandles(){
+    if(MobilePanel.isMobile()){
+        MobilePanel.initSwipe();
+
+        // left swipe
+        MobilePanel.onSwipe("left", async () => {
+            onGeneralSwipe();
+
+            // chats
+            if(getSelectedNavEntry() === getNavEntryElement(0)) return getNavEntryElement(1).click();
+            // settings
+            if(getSelectedNavEntry() === getNavEntryElement(1)) return getNavEntryElement(2).click();
+        });
+
+        // right swipe lol
+        MobilePanel.onSwipe("right", () => {
+            onGeneralSwipe();
+
+            // chats
+            if(getSelectedNavEntry() === getNavEntryElement(2)) return getNavEntryElement(1).click();
+            // servers
+            if(getSelectedNavEntry() === getNavEntryElement(1)) return getNavEntryElement(0).click();
+        });
+
+        // general actions
+        function onGeneralSwipe(){
+            if(getNavElement()?.classList?.contains("hide")) getNavElement().classList.remove("hide");
+        }
+    }
+}
 
 function truncateString(value, length) {
     // should update it at some point to use .substring instead lol was easier when i think about it

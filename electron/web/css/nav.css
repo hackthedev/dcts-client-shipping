@@ -1,4 +1,8 @@
+.layout > .content-container > .navigation.hide {
+    display: none !important;
+}
 .layout > .content-container > .navigation {
+    box-sizing: border-box;
     display: flex;
     flex-direction: column;
 
@@ -9,7 +13,7 @@
 }
 .layout > .content-container > .navigation > .entry{
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
     align-items: center;
 
     gap: 0.5rem;
@@ -17,6 +21,9 @@
 
     border-radius: 6px;
     cursor: pointer;
+}
+.layout > .content-container > .navigation > .entry span{
+    font-size: 12px;
 }
 .layout > .content-container > .navigation > .entry svg{
     width: 20px;

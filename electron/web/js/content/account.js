@@ -112,7 +112,7 @@ async function loadAccount(){
     if(typeof Client().SetUserConsistentSettings === "function" ){
         getAccountSettingsElement().insertAdjacentElement(
             "beforeend",
-            JsonEditor.getSettingElement(consistent, "Consistent?", "Automatically update server profiles on connect with these settings.", async (value) => {
+            JsonEditor.getSettingElement(consistent, "Sync with servers?", "Automatically update server profiles on connection.", async (value) => {
                 if(originalUserData.consistent !== value){
                     JsonEditor.showSaveButton("consistent", () => {
                         originalUserData.consistent = value
