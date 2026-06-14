@@ -93,7 +93,14 @@ function getFixedUrl(host, url) {
 }
 
 async function loadMessages(force = false) {
-    await fetchMessengerChats(force ? 0 : await Client().GetLastOnline())
+    try{
+        await fetchMessengerChats(force ? 0 : await Client().GetLastOnline())
+    }
+    catch(messengerChatsError){
+        console.error("Unable to get messenger chats")
+        console.error(messengerChatsError);
+    }
+
     await renderMessages();
 
     let clientServers = await Client().GetServers();

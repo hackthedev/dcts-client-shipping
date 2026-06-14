@@ -65,6 +65,13 @@ function Client() {
             return res ? JSON.parse(res) : null;
         };
 
+        wrapper.SaveChat = async (chatId, chatObj) => {
+            return client.SaveChat(
+                String(chatId),
+                typeof chatObj === "string" ? chatObj : JSON.stringify(chatObj)
+            );
+        };
+
         wrapper.GetChatLastMessage = async (chatId) => {
             const res = client.GetChatLastMessage(String(chatId));
             return res ? JSON.parse(res) : null;

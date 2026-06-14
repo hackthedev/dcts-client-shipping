@@ -174,8 +174,8 @@ async function registerSocketListeners(socket) {
         }
 
         // update the chat entry in the sidebar so the latest message and badge show up
-        await refreshChatEntry(chatGid, message);
         await Client().SaveChatMessage(chatGid, message)
+        await refreshChatEntry(chatGid, message);
 
         if (message?.type === "user_message" && getInnerChatContentElement()) await renderUserMessage({
             item: message,
@@ -207,7 +207,7 @@ async function sendMessage(text, targetPublicKey, host, test = false) {
     if (!host) throw new Error("host not found to send");
 
     // prepair some shit
-    let ownGid = await Client().GenerateGid(await Client().GetPublicKey())
+    let ownGid = await getGid();
     let targetGid = await Client().GenerateGid(targetPublicKey);
     let sessionId = await getSessionIdFromHost(host);
 
