@@ -8,6 +8,7 @@ class Settings {
     static settings = {}
     static _loaded = false
     static _writeQueue = Promise.resolve()
+    static runtimeData = {}
 
     static Client = class {
         static async getLastOnline() {
@@ -51,23 +52,22 @@ class Settings {
     static Message = class {
         static async saveChat(chatId, data = {}) {
             if (!chatId) throw new Error("chatId is required")
-            if(Object.keys(data || {}).length === 0) throw new Error("Data was empty")
+            if (Object.keys(data || {}).length === 0) throw new Error("data was empty")
 
-            let chatPath = path.join(Settings.appDataDir, "chats", chatId)
             let chatMessagesPath = path.join(Settings.appDataDir, "chats", chatId, "messages")
             let chatConfigPath = path.join(Settings.appDataDir, "chats", chatId, "config.json")
 
             // if the directory doesnt exist create it.
             // we use the chatMessagePath here because that will also create the chatPath path
             // as we use "recursive: true"
-            if(!fsNormal.existsSync(chatMessagesPath)){
-                fsNormal.mkdirSync(path.join(chatMessagesPath), { recursive: true });
+            if (!fsNormal.existsSync(chatMessagesPath)) {
+                fsNormal.mkdirSync(chatMessagesPath, { recursive: true });
             }
 
-            // also create the config file for the chat itself if it doesnt exist
-            if(!fsNormal.existsSync(chatConfigPath)){
-                await fs.writeFile(chatConfigPath, JSON.stringify(data, null, 4));
-            }
+            // always overwrite the config so it stays up to date
+            Settings.runtimeData.chats ??= {};
+            Settings.runtimeData.chats[chatId] = data;
+            await fs.writeFile(chatConfigPath, JSON.stringify(data, null, 4));
 
             Settings.settings.client ??= {}
             Settings.settings.client.lastOnline = new Date().getTime();
@@ -78,7 +78,9 @@ class Settings {
             if (!chatId) return null
             let chatConfigPath = path.join(Settings.appDataDir, "chats", chatId, "config.json")
 
+            Settings.runtimeData.chats ??= {};
             if(fsNormal.existsSync(chatConfigPath)) {
+                if(Settings.runtimeData.chats[chatId]) return Settings.runtimeData.chats[chatId];
                 return JSON.parse(await fs.readFile(chatConfigPath, "utf8") ?? {})
             }
             else{
@@ -90,12 +92,21 @@ class Settings {
             let chatsPath = path.join(Settings.appDataDir, "chats")
 
             // create it if it doesnt exist
-            if(!fsNormal.existsSync(chatsPath)) fsNormal.mkdirSync(chatsPath)
+            if(!fsNormal.existsSync(chatsPath)) fsNormal.mkdirSync(chatsPath, { recursive: true })
             let chatIds = await fs.readdir(chatsPath);
 
             let chats = {}
+            Settings.runtimeData.chats ??= {};
+
             if(chatIds?.length > 0){
                 for(let chatId of chatIds){
+
+                    // if already in ram use that instead
+                    if(Settings.runtimeData.chats[chatId]){
+                        chats[chatId] = Settings.runtimeData.chats[chatId];
+                        continue;
+                    }
+
                     let chatConfigPath = path.join(Settings.appDataDir, "chats", chatId, "config.json")
                     let chatConfig = JSON.parse(await fs.readFile(chatConfigPath, "utf8") ?? {})
 
@@ -115,9 +126,9 @@ class Settings {
             if(!data) throw new Error("data is required")
 
             let messagesPath = path.join(Settings.appDataDir, "chats", chatId, "messages");
-            if(!fsNormal.existsSync(messagesPath)) fsNormal.mkdirSync(messagesPath);
+            if(!fsNormal.existsSync(messagesPath)) fsNormal.mkdirSync(messagesPath, { recursive: true });
 
-            fs.writeFile(path.join(messagesPath, `${messageId}.json`), JSON.stringify(data, null, 4));
+            await fs.writeFile(path.join(messagesPath, `${messageId}.json`), JSON.stringify(data, null, 4));
 
             Settings.settings.client ??= {}
             Settings.settings.client.lastOnline = new Date().getTime();
@@ -128,30 +139,62 @@ class Settings {
             if (!chatId || !messageId) return null
         }
 
-        static async getMessages(chatId) {
+        static async getChatLastMessage(chatId) {
+            if (!chatId) return null;
+
+            let messages = await this.getMessages(chatId, new Date().getTime(), true);
+            messages = Object.values(messages);
+
+            if(messages.length === 0) return null;
+
+            messages.sort((a, b) => {
+                return (b?.timestamp ?? 0) - (a?.timestamp ?? 0);
+            });
+
+            return messages[0] ?? null;
+        }
+
+        static async getMessages(chatId, timestamp = new Date().getTime(), desc = true) {
             if (!chatId) return {}
+            let limit = 50;
 
             let messagesPath = path.join(Settings.appDataDir, "chats", chatId, "messages")
 
-            // create it if it doesnt exist
-            if(!fsNormal.existsSync(messagesPath)) fsNormal.mkdirSync(messagesPath)
+            if(!fsNormal.existsSync(messagesPath)) fsNormal.mkdirSync(messagesPath, { recursive: true })
+
             let messageIds = await fs.readdir(messagesPath);
-            let messages = {}
+            let messages = []
 
-            if(messageIds?.length > 0){
-                for(let messageId of messageIds){
-                    let messageFile = path.join(messagesPath, `${messageId}`)
+            for(let messageId of messageIds){
+                let messageFile = path.join(messagesPath, messageId)
+                let messageConfig = JSON.parse(await fs.readFile(messageFile, "utf8") ?? "{}")
 
-                    let messageConfig = JSON.parse(await fs.readFile(messageFile, "utf8") ?? {})
+                let createdAt = messageConfig?.timestamp ?? 0
 
-                    messages[messageId] = messageConfig;
-                }
+                if(desc && createdAt >= timestamp) continue
+                if(!desc && createdAt <= timestamp) continue
 
-                return messages;
+                messages.push({
+                    id: messageId,
+                    timestamp: createdAt,
+                    data: messageConfig
+                })
             }
-            else{
-                return {}
+
+            messages.sort((a, b) => {
+                if(desc) return b.timestamp - a.timestamp
+                return a.timestamp - b.timestamp
+            })
+
+            messages = messages.slice(0, limit)
+
+            let result = {}
+
+            for(let message of messages){
+                result[message.id] = message.data
             }
+
+            return result
         }
 
         static async deleteMessage(chatId, messageId) {
@@ -240,9 +283,10 @@ class Settings {
         }
     }
 
-    static initSettings(appDataDir) {
+    static async initSettings(appDataDir) {
         this.settingsPath = path.join(appDataDir, "settings.json")
         this.appDataDir = appDataDir
+        await this._ensureLoaded();
     }
 
     static async _ensureLoaded() {
@@ -250,6 +294,7 @@ class Settings {
         try {
             const data = await fs.readFile(this.settingsPath, "utf8")
             this.settings = JSON.parse(data)
+            this.settings.user ??= {}
         } catch {
             this.settings = {}
         }

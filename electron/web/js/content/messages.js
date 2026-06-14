@@ -1,3 +1,13 @@
+function sortMessagesByTimestamp(messages){
+    return Object.values(messages)
+        .map(item => item.data ?? item)
+        .sort((a, b) => {
+            const aTimestamp = a?.timestamp ?? 0;
+            const bTimestamp = b?.timestamp ?? 0;
+
+            return aTimestamp - bTimestamp;
+        });
+}
 async function fetchServerInbox(host) {
     host = extractHost(host);
 
@@ -5,6 +15,8 @@ async function fetchServerInbox(host) {
     if (typeof Client().SaveChatMessage !== "function") throw new Error("Unsupported Client!")
     if (typeof Client().GetChat !== "function") throw new Error("Unsupported Client!")
     if (typeof Client().GetChatMessages !== "function") throw new Error("Unsupported Client!")
+    if (typeof Client().GetChatLastMessage !== "function") throw new Error("Unsupported Client!")
+
 
     let sessionId = await getSessionIdFromHost(host);
     if (!sessionId) return console.warn("Session id not found for host ", host)
@@ -14,18 +26,21 @@ async function fetchServerInbox(host) {
 
     // get stored shit
     let storedChat = await Client().GetChat(host) ?? {};
-    let localMessages = await Client().GetChatMessages(host) ?? {};
+    let localMessages = await Client().GetChatMessages(host, new Date().getTime(), true) ?? {};
 
     let serverInfo = Object.keys(storedChat?.data?.serverinfo ?? {}).length > 0
         ? storedChat.data.serverinfo
         : await fetchServerInfo(host) ?? null;
 
     let chatData = {
+        ...storedChat,
+        ...(storedChat?.data ?? {}),
         isServer: true,
         host,
-        title: serverInfo?.name ?? host,
-        serverinfo: serverInfo ?? {},
-        icon: serverInfo?.icon ? getFixedUrl(host, serverInfo.icon) : null
+        title: serverInfo?.name ?? storedChat?.title ?? host,
+        serverinfo: serverInfo ?? storedChat?.serverinfo ?? {},
+        icon: serverInfo?.icon ? getFixedUrl(host, serverInfo.icon) : storedChat?.icon ?? null,
+        lastRead: storedChat?.lastRead ?? storedChat?.data?.lastRead ?? 0
     };
 
     let mergedMessages = {...localMessages};
@@ -53,50 +68,13 @@ async function fetchServerInbox(host) {
     }
 
     // sorting
-    let messages = Object.values(mergedMessages)
-        .map(item => item.data ?? item)
-        .sort((a, b) => {
-            const aTimestamp = a?.timestamp ?? 0;
-            const bTimestamp = b?.timestamp ?? 0;
-
-            return aTimestamp - bTimestamp;
-        });
+    let messages = sortMessagesByTimestamp(mergedMessages)
 
     chatData.messages = messages;
     chatData.lastMessage = messages.at(-1) ?? null;
 
     await Client().SaveChat(host, chatData);
-    await addInboxEntry(chatData);
-
     return chatData;
-
-    async function addInboxEntry(item) {
-        if (!item) throw new Error("item not found for adding inbox element");
-
-        let chatId = item.host;
-        let chatName = item?.title ?? item?.host;
-        let latestMessage = item?.lastMessage?.message ?? item?.lastMessage?.text ?? `@${chatId}`;
-        let iconUrl = item?.icon ?? "";
-
-        let serverChatSelector = getContentElement().querySelector(`.chats .chat[data-gid="${chatId}"]`);
-        if (serverChatSelector) serverChatSelector.remove();
-
-        getContentElement().querySelector(`.chats`).insertAdjacentHTML("beforeend", `
-            <div class="chat" data-gid="${chatId}" data-host="${chatId}" data-server="true">
-                <div class="icon" style="background-image: url('${iconUrl}')"></div>
-                <div class="middle-section">
-                    <div class="name">${chatName}</div>
-                    ${latestMessage ? `<div class="latestMessage">${latestMessage}</div>` : ""}
-                </div>
-                <div class="badge ${messages?.length > 0 ? "visible" : ""}">${messages.length}</div>
-            </div>
-        `)
-
-        serverChatSelector = getContentElement().querySelector(`.chats .chat[data-gid="${chatId}"]`);
-        serverChatSelector?.addEventListener("click", async () => {
-            renderChat(null, item)
-        })
-    }
 }
 
 function getFixedUrl(host, url) {
@@ -165,11 +143,20 @@ async function fetchMessengerChats(timestamp = 0) {
                             `)
                         }
 
+                        // make sure the chat exists before saving any message
                         let existingChat = await Client().GetChat(authorGid)
-                        if(!existingChat) await startNewChat({
-                            identifier: `${authorGid}@${authorHomeServer}`,
-                            automate: true
-                        })
+                        if (!existingChat) {
+                            await Client().SaveChat(authorGid, {
+                                publicKey: authorPublicKey,
+                                gid: authorGid,
+                                title: `@${authorGid}`,
+                                host: authorHomeServer,
+                                home_server: authorHomeServer,
+                                lastMessage: null,
+                                icon: null,
+                            });
+                        }
+
                         await Client().SaveChatMessage(authorGid, message);
                     }
                     else{
@@ -189,8 +176,55 @@ async function fetchMessengerChats(timestamp = 0) {
     })
 }
 
-async function renderMessages() {
-    getContentElement().innerHTML =
+async function refreshChatEntry(chatGid, latestMessageObj = null) {
+    let chatsElement = getContentElement().querySelector(`.chats .list`);
+    if (!chatsElement) return;
+
+    let chat = await Client().GetChat(chatGid);
+    if (!chat) return;
+
+    // sort messages by timestamp
+    let messages = Object.values(await Client().GetChatMessages(chatGid, new Date().getTime(), true) ?? {})
+        .map(item => item.data ?? item)
+        .sort((a, b) => (a?.timestamp ?? 0) - (b?.timestamp ?? 0));
+
+    let gid = await getGid();
+    let lastMessage = latestMessageObj ?? messages.at(-1) ?? null;
+
+    // decrypt this shit
+    let decryptedLastMessage = null;
+    if (lastMessage) {
+        try {
+            decryptedLastMessage = await decryptUserMessage(lastMessage[gid]);
+        } catch {
+            decryptedLastMessage = null;
+        }
+    }
+
+    let chatName = chat?.title ?? "Unknown";
+    let latestMessage = decryptedLastMessage ?? `@${chat?.host ?? chat?.home_server}`;
+
+    // remove old entry and re-insert at top so newest chat bubbles up
+    let existing = chatsElement.querySelector(`.chat[data-gid="${chatGid}"]`);
+    if (existing) existing.remove();
+
+    chatsElement.insertAdjacentHTML("afterbegin", `
+        <div class="chat" data-gid="${chatGid}" onclick="renderChat('${chatGid}')">
+            <div class="icon" style="background-image: url('${getFixedUrl(chat?.data?.host ?? chat?.host, chat?.data?.icon ?? chat?.icon)}')"></div>
+            <div class="middle-section">
+                <div class="name">${ChatTools.Sanitize.forRender(chatName)}</div>
+                ${latestMessage ? `<div class="latestMessage">${ChatTools.Sanitize.forRender(latestMessage)}</div>` : ""}
+            </div>
+            <div class="badge ${messages.length > 0 ? "visible" : ""}">${messages.length}</div>
+        </div>
+    `);
+}
+
+async function renderMessages(customElement = undefined) {
+    let renderElement = customElement !== undefined ? customElement : getContentElement();
+    if(customElement === null) throw new Error("Custom Element was null!");
+
+    renderElement.innerHTML =
         `
             <div class="message-page-container">
             
@@ -201,8 +235,9 @@ async function renderMessages() {
                             ${Icon.display("message_add")}
                         </span>
                     </div>
+                    <div class="list"></div>
                 </div>
-                <div class="chat-content">
+                <div class="chat-content ${MobilePanel.isMobile() ? "mobile" : ""}">
                 </div>
             </div>
         `;
@@ -212,54 +247,83 @@ async function renderMessages() {
         (a, b) => (b?.lastMessage?.timestamp ?? 0) - (a?.lastMessage?.timestamp ?? 0)
     );
 
-    let gid = await Client().GenerateGid(await Client().GetPublicKey());
-
-    addChatEntries(getContentElement().querySelector(`.chats`))
+    addChatEntries(renderElement.querySelector(`.chats .list`))
 
     async function addChatEntries(element) {
         if (!element) throw new Error("Element not found for adding chat element");
+        if(typeof Client().GetChatLastMessage !== "function") throw new Error("Unsupported Client: GetChatLastMessage")
+        if(typeof Client().GetChatMessages !== "function") throw new Error("Unsupported Client: GetChatMessages")
 
-        for (let chat of Object.values(uniqueChats.reverse())) {
+        for (let chat of Object.values(uniqueChats)) {
             let chatId = chat?.gid ?? chat?.host
             if (!chatId) {
                 console.warn("No chat id found for chat ", chat)
                 continue;
             }
 
-            chat.messages = await Client().GetChatMessages(chatId) ?? {};
+            chatId = ChatTools.Sanitize.stripHTML(chatId);
 
-            let messages = Object.values(chat.messages)
-                .map(item => item.data ?? item)
-                .sort((a, b) => {
-                    const aTimestamp = a?.timestamp ?? 0;
-                    const bTimestamp = b?.timestamp ?? 0;
+            chat.messages = await Client().GetChatMessages(chatId, new Date().getTime(), true) ?? {};
+            chat.messages = sortMessagesByTimestamp(chat.messages);
+            chat.lastMessage = await getLastChatMessage(chatId);
 
-                    return aTimestamp - bTimestamp;
-                });
 
-            chat.messages = messages;
-            chat.lastMessage = messages.at(-1) ?? null;
-
-            if (chat.lastMessage) {
-                chat.lastMessage = chat.lastMessage[gid];
-                chat.lastMessage = await decryptUserMessage(chat.lastMessage)
-            }
-
+            let unreadMessages = chat.messages.filter(message => {
+                return (message?.timestamp ?? 0) > (chat?.lastRead ?? 0);
+            });
 
             let chatName = chat?.title ?? "Unkown"
-            let latestMessage = chat.lastMessage ?? `@${chat?.host ?? chat?.data?.host ?? chat?.data?.home_server}`// will need to actually decrypt this
+            let displayDate = new Date(chat?.lastMessage?.timestamp).toLocaleDateString(undefined, {
+                //year: "numeric",
+                month: "numeric",
+                day: "numeric",
+                hour: "numeric",
+                minute: "numeric",
+            });
 
+            let iconUrl = getFixedUrl(chat?.host, chat?.icon);
             element.insertAdjacentHTML("beforeend", `
                 <div class="chat" data-gid="${chatId}" onclick="renderChat('${chatId}')">
-                    <div class="icon" style="background-image: url('${getFixedUrl(chat?.data?.host, chat?.data?.icon)}')"></div>
+                    <div class="icon" style="background-image: url('${iconUrl}')"></div>
                     <div class="middle-section">
-                        <div class="name">${chatName}</div>
-                        ${latestMessage ? `<div class="latestMessage">${latestMessage}</div>` : ""}
+                        <div class="meta">
+                            <div class="name">${ChatTools.Sanitize.forRender(chatName)}</div>
+                            <span class="date">${chat?.lastMessage?.timestamp ? displayDate : ""}</span>
+                        </div>
+                        
+                        ${chat.lastMessage?.message ? `<div class="latestMessage">${ChatTools.Sanitize.forRender(chat.lastMessage?.message)}</div>` : ""}
                     </div>
-                    <div class="badge ${messages?.length > 0 ? "visible" : ""}">${messages?.length ?? ""}</div>                
+                    <div class="badge ${unreadMessages?.length > 0 ? "visible" : ""}">${unreadMessages?.length ?? ""}</div>                
                 </div>
             `)
         }
+    }
+}
+
+async function getGid(){
+    return await Client().GenerateGid(await Client().GetPublicKey());
+}
+
+async function getLastChatMessage(chatId){
+    let message = await Client().GetChatLastMessage(chatId);
+
+    let text = null;
+    if(message?.isServer){
+        text = message.message;
+    }
+    else{
+        try{
+            text = await decryptUserMessage(message[await getGid()])
+        }
+        catch(lastChatMessageError){
+            console.error(lastChatMessageError);
+            text = null;
+        }
+    }
+
+    return {
+        timestamp: message?.timestamp,
+        message: text
     }
 }
 
@@ -271,9 +335,14 @@ function getInnerChatContentElement() {
     return getChatContentElement().querySelector(`.content`);
 }
 
+function getChatListElement() {
+    return getContentElement().querySelector(`.chats`);
+}
+
+
+
 async function renderChat(chatId, customChatObject = null) {
     let activeChat = customChatObject ?? await Client().GetChat(chatId);
-
     if (!activeChat) throw new Error("Chat not found");
 
     await setChatHeader(activeChat);
@@ -283,8 +352,59 @@ async function renderChat(chatId, customChatObject = null) {
         <div class="editor-container"></div>
     `;
 
+    // infinite scroll shit
+    // lets see how much pain this will be
+    await ChatTools.Scroll.registerMessageInfiniteLoad(getInnerChatContentElement(), async () => {
+        let messages = getInnerChatContentElement()?.querySelectorAll(`.message-container`);
+        let topMessage = messages[0];
+        let timestamp = topMessage?.getAttribute("data-timestamp") ?? null;
+
+        if(!timestamp) throw new Error("Invalid timestamp or not found");
+
+        // get older messages and display them
+        let messageBatch = await Client().GetChatMessages(chatId, timestamp, true);
+        let sortedMessages = sortMessagesByTimestamp(messageBatch);
+
+        // dedup
+        sortedMessages = sortedMessages.filter(message => {
+            return !getInnerChatContentElement().querySelector(`.message-container[data-timestamp="${message?.timestamp}"]`);
+        });
+
+        if(sortedMessages.length > 0) {
+            ChatTools.Scroll.toggleSmoothScroll(getInnerChatContentElement(), false)
+
+            let template = document.createElement("div");
+
+            let lastDate = null
+            for(let message of sortedMessages) {
+
+                let timestamp = message?.timestamp;
+                let currentDate = new Date(timestamp).toDateString();
+
+                if (currentDate !== lastDate) {
+                    lastDate = currentDate;
+                    renderSystemDateInChat(timestamp, template, true)
+                }
+
+                await renderUserMessage({
+                    item: message,
+                    renderTop: false,
+                    element: template
+                })
+            }
+
+            getInnerChatContentElement().prepend(...template.childNodes);
+            ChatTools.Scroll.toggleSmoothScroll(getInnerChatContentElement(), true)
+        }
+    })
+
+    ChatTools.Scroll.observeContainer(getInnerChatContentElement());
+
+
     let chatHost = activeChat?.home_server ?? activeChat?.host ?? null;
     if (!chatHost) throw new Error("No chat host found!");
+
+    await setChatSocket(chatHost);
     await connectToSocketHost(chatHost);
 
     if (!activeChat?.isServer) {
@@ -295,16 +415,42 @@ async function renderChat(chatId, customChatObject = null) {
                 ["clean", "link", "image", "video"],
                 ["code", "code-block", "blockquote"]
             ],
-            onImg: async (src) => {
+            onImg: (src, { insert }) => {
 
+                if(src?.constructor?.name === "File"){
+                    return console.log("Detected file")
+                }
+                else if(src?.constructor?.name === "String"){
+                    if(src.startsWith("data:image")){
+                        insert("");
+                    }
+
+                    return
+                }
+
+                // remove base64 image
+                if(src.startsWith("data:image/")){
+                    insert("");
+                }
             },
             onSend: async (html) => {
                 let messageResult = await sendMessage(html, activeChat.publicKey, chatHost);
                 if (messageResult?.error) {
                     return alert(`Error while sending message!\n\n${messageResult.error}`)
                 }
+                else{
+                    let targetData = messageResult?.target;
+                    let existingChat = await Client().GetChat(targetData.gid)
 
-                console.log(messageResult)
+                    if(targetData && existingChat){
+                        let icon = targetData?.icon;
+                        let name = targetData?.name;
+
+                        if(icon) existingChat.icon = icon;
+                        if(name) existingChat.title = name;
+                        await Client().SaveChat(targetData.gid, existingChat);
+                    }
+                }
 
                 editor.quill.setContents([{insert: "\n"}]);
             }
@@ -312,19 +458,66 @@ async function renderChat(chatId, customChatObject = null) {
     }
 
     await renderInboxElementsInChat(activeChat, true);
+
+    // some ui tricks for mobile
+    if(getChatContentElement()?.classList?.contains("mobile") && MobilePanel.isMobile()){
+        getChatContentElement().classList.remove("mobile");
+        getChatListElement().classList.add("hide");
+        getNavElement().classList.add("hide");
+    }
+}
+
+function renderSystemDateInChat(timestamp, element = null, renderTop = false){
+    if(!timestamp) throw new Error("Cant show system date as timestamp is missing!")
+
+    let render = element ? element : getInnerChatContentElement();
+    let displayDate = new Date(timestamp).toLocaleDateString("en-US", {
+        weekday: "long",
+        year: "numeric",
+        month: "long",
+        day: "numeric"
+    });
+
+    // this is mostly for checking on the system dates.
+    // IF we append, lets check the main container too so we can remove it if present.
+    // then we always check the render element too for the sake of it not being possibly
+    // doubled within the appending stuff
+    let existingDateMessage = null;
+    if(renderTop){
+        existingDateMessage = getInnerChatContentElement().querySelector(`.system-message.date[data-display-date="${displayDate}"]`);
+        if(existingDateMessage) existingDateMessage.remove();
+    }
+    existingDateMessage = render?.querySelector(`.system-message.date[data-display-date="${displayDate}"]`);
+    if(existingDateMessage) return;
+
+    // then we obviously just render it. maybe its too much, idk, its 3am at the time of writing, gg.
+    render.insertAdjacentHTML("beforeend", `
+        <div class="system-message date" data-timestamp="${timestamp}" data-display-date="${displayDate}">
+            <span>
+                ${displayDate}
+            </span>
+            <hr>
+        </div>
+    `);
 }
 
 async function renderInboxElementsInChat(chat, initial = false) {
     if (!chat) throw new Error("No chat for rendering inbox messages");
 
-    let messages = await Client().GetChatMessages(chat.gid);
-    console.log(messages)
+    let gid = chat?.isServer ? chat.host : chat?.gid;
+    let messages = await Client().GetChatMessages(gid, new Date().getTime(), true);
 
     if (!Array.isArray(messages)) {
         messages = Object.values(messages).map(item => item.data ?? item);
     }
 
     let lastDate = null;
+
+    messages = sortMessagesByTimestamp(messages);
+
+    // update some stuff
+    chat.lastRead = new Date().getTime();
+    chat.lastMessage = await getLastChatMessage(gid)
 
     for (let item of messages) {
         if (!item?.type) continue;
@@ -334,44 +527,43 @@ async function renderInboxElementsInChat(chat, initial = false) {
 
         if (currentDate !== lastDate) {
             lastDate = currentDate;
-
-            getInnerChatContentElement().insertAdjacentHTML("beforeend", `
-            <div class="system-message">
-                <span>
-                    ${new Date(timestamp).toLocaleDateString("en-US", {
-                weekday: "long",
-                year: "numeric",
-                month: "long",
-                day: "numeric"
-            })}
-                </span>
-                <hr>
-            </div>
-        `);
+            renderSystemDateInChat(lastDate)
         }
 
         if (item.type === "mention") {
             await renderMention(item);
         } else if (item.type === "user_message") {
-            await renderUserMessage(item);
+            await renderUserMessage({
+                item
+            });
         } else {
             console.warn("Didnt render chat because of unsupported type: ", item.type)
         }
     }
 
     // if we actually open a chat we will just scroll down
-    if (initial) {
+    if (initial && getInnerChatContentElement()) {
         ChatTools.Scroll.scrollDown(getInnerChatContentElement())
     }
+
+    await Client().SaveChat(gid, chat);
 }
 
-async function renderUserMessage(item, element = null) {
+async function renderUserMessage({
+                                     item,
+                                     element = null,
+                                     renderTop = false,
+                                 } = {}) {
     let message = item?.data?.message ?? item;
     let authorGid = message?.author?.gid;
 
     // OUR gid comrade.
-    let gid = await Client().GenerateGid(await Client().GetPublicKey());
+    let gid = await getGid();
     let encryptedMessage = message[gid];
+
+    // idk why this happens, lazy.
+    // seems to only happen on android
+    if(typeof encryptedMessage === "string" && encryptedMessage.startsWith("{")) encryptedMessage = JSON.parse(encryptedMessage ?? "{}");
 
     // skill issue
     if (!encryptedMessage?.method) throw new Error("Invalid message data", message);
@@ -385,11 +577,16 @@ async function renderUserMessage(item, element = null) {
         return;
     }
 
+    // dedup
+    if(getInnerChatContentElement().querySelector(`.message-container[data-timestamp="${message?.timestamp}"]`)){
+        return;
+    }
+
     // handle markdown
     let markdownResult = await ChatTools.Media.markdown({
         htmlInput: decryptedMessageText,
         identifier: item?.timestamp,
-        containerElement: getInnerChatContentElement(),
+        containerElement: element ? element : getInnerChatContentElement(),
     })
 
     // if it was changed update the text
@@ -407,13 +604,13 @@ async function renderUserMessage(item, element = null) {
     let isScrolledDown = ChatTools.Scroll.isScrolledToBottom(getInnerChatContentElement(), 50);
 
     let renderElement = element ? element : getInnerChatContentElement();
-    renderElement.insertAdjacentHTML("beforeend", await getMessageHTML({
+    renderElement.insertAdjacentHTML(renderTop ? "afterbegin" : "beforeend", await getMessageHTML({
         text,
         timestamp: message?.timestamp,
         isMine: authorGid === gid,
     }))
 
-    if (isScrolledDown) ChatTools.Scroll.scrollDown(getInnerChatContentElement())
+    if (isScrolledDown && !renderTop) ChatTools.Scroll.scrollDown(getInnerChatContentElement())
 }
 
 async function renderMention(item, element = null) {
@@ -436,7 +633,7 @@ async function renderMention(item, element = null) {
     let renderElement = element ? element : getInnerChatContentElement();
     renderElement.insertAdjacentHTML("beforeend", await getMessageHTML({
         text,
-        timestamp: message?.timestamp
+        timestamp: message?.timestamp,
     }))
 }
 
@@ -448,7 +645,7 @@ async function getMessageHTML({
     if (!text) throw new Error("No text for messages");
 
     return `
-            <div class="message-container ${isMine ? "mine" : ""}">
+            <div class="message-container ${isMine ? "mine" : ""}" data-timestamp="${timestamp}">
                 <div class="content">
                     ${text}
                 </div>
@@ -472,8 +669,9 @@ async function setChatHeader(chat) {
     getChatContentElement().innerHTML =
         `
         <div class="header">
-            <div class="icon" style="background-image: url('${chatIcon}')"></div>
-            <h1>${chatTitle}</h1>
+            <span class="back" onclick="loadMessages()">${Icon.display("back")}</span>
+            <div class="icon" style="background-image: url('${ChatTools.Sanitize.stripHTML(chatIcon)}')"></div>
+            <h1>${ChatTools.Sanitize.forRender(chatTitle)}</h1>
         </div>`;
 }
 
@@ -570,11 +768,12 @@ async function startNewChat({
                 let newChat = {
                     publicKey: testMessage.target?.publicKey,
                     gid: targetGid,
-                    title: `New Chat`,
+                    title: testMessage?.name ?? `New Chat`,
                     host: homeServer,
                     home_server: homeServer,
                     lastMessage: null,
-                    icon: null,
+                    lastRead: new Date().getTime(),
+                    icon: testMessage?.icon ?? null,
                 };
 
                 await Client().SaveChat(targetGid, newChat);

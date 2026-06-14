@@ -1,9 +1,9 @@
 {
   "name": "DCTS",
   "productName": "DCTS",
-  "version": "1.0.0",
+  "version": "1.0.3",
   "description": "",
-  "license": "ISC",
+  "license": "UNLICENSED",
   "author": "",
   "type": "commonjs",
   "main": "index.js",
@@ -13,6 +13,7 @@
     "build": "electron-builder"
   },
   "dependencies": {
+    "@hackthedev/app-updater": "^1.0.1",
     "@hackthedev/dsync-sign": "^1.0.14",
     "@hackthedev/frontend-libs": "^1.0.5",
     "cors": "^2.8.6",
@@ -20,7 +21,7 @@
   },
   "devDependencies": {
     "electron": "^40.4.1",
-    "electron-builder": "^26.0.12"
+    "electron-builder": "^26.8.1"
   },
   "build": {
     "appId": "com.dcts.client",

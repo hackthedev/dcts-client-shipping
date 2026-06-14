@@ -1,5 +1,19 @@
 class ChatTools {
     static Scroll = class {
+        static async registerMessageInfiniteLoad(element, callback = null) {
+            if(!element) throw new Error("Element for infinite scroll not found");
+
+            if(!element.getAttribute("data-scroll-init")){
+                element.addEventListener("scroll", async function () {
+                    if (element.scrollTop === 0) {
+                        if(callback && typeof callback === "function") await callback(element);
+                    }
+                });
+
+                element.setAttribute("data-scroll-init", true)
+            }
+        }
+
         static scrollDown(containerElement, opts = {}) {
             const el = containerElement
             if (!el) return;
@@ -247,11 +261,11 @@ class ChatTools {
             if (t) embed += "?start=" + parseInt(t);
 
             return `
-                <div data-identifier="${identifier}" class="iframe-container" id="${identifier}">
-                    <a href="${url}" target="_blank">${url}</a><br>
+                <div data-identifier="${ChatTools.Sanitize.stripHTML(identifier)}" class="iframe-container" id="${identifier}">
+                    <a href="${url}" target="_blank">${ChatTools.Sanitize.forRender(url)}</a><br>
                     <iframe
-                        data-original-url="${url}"
-                        data-identifier="${identifier}"
+                        data-original-url="${ChatTools.Sanitize.stripHTML(url)}"
+                        data-identifier="${ChatTools.Sanitize.stripHTML(identifier)}"
                         data-media-type="youtube"
                         style="border:none"
                         src="${embed}"
@@ -339,13 +353,13 @@ class ChatTools {
                         <div class="markdown-urlEmbed-container">
                             <a class="markdown-urlEmbed"
                                data-media-type="link"
-                               data-original-url="${url}"
-                               href="${url}" ${url.startsWith(location.origin) ? "" : 'target="_blank"'}>
+                               data-original-url="${ChatTools.Sanitize.stripHTML(url)}"
+                               href="${ChatTools.Sanitize.stripHTML(url)}" ${url.startsWith(location.origin) ? "" : 'target="_blank"'}>
                                 <span class="meta-info title">
-                                    ${urlMeta?.meta?.title ? stripHTML(truncateText(urlMeta.meta.title, 75)) : ""}
+                                    ${urlMeta?.meta?.title ? ChatTools.Sanitize.stripHTML(ChatTools.Sanitize.truncateText(urlMeta.meta.title, 75)) : ""}
                                 </span>
                                 <span class="meta-info description">
-                                    ${urlMeta?.meta?.description ? stripHTML(truncateText(urlMeta.meta.description, 300)) : ""}
+                                    ${urlMeta?.meta?.description ? ChatTools.Sanitize.stripHTML(ChatTools.Sanitize.truncateText(urlMeta.meta.description, 300)) : ""}
                                 </span>
                             </a>
                         </div>`;
@@ -357,7 +371,7 @@ class ChatTools {
 
                 // fallback to make it a clickable link
                 htmlInput = htmlInput.replace(url,
-                    `<a draggable="false" data-media-type="link" data-message-id="${identifier}" href="${url}" ${url.startsWith(location.origin) ? "" : "target=\"_blank\""}> ${unescapeHtmlEntities(sanitizeHtmlForRender(url))} </a>`
+                    `<a draggable="false" data-media-type="link" data-message-id="${ChatTools.Sanitize.stripHTML(identifier)}" href="${ChatTools.Sanitize.stripHTML(url)}" ${url.startsWith(location.origin) ? "" : "target=\"_blank\""}> ${ChatTools.Sanitize.unescapeHtmlEntities(ChatTools.Sanitize.forRender(url))} </a>`
                 );
                 changed = true;
             }
@@ -375,8 +389,8 @@ class ChatTools {
                 htmlInput = htmlInput.replace(
                     url,
                     ` <img decoding="async" loading="lazy" draggable="false" class="image-embed"
-                         src="${proxy}"
-                         data-original-url="${url}"
+                         src="${ChatTools.Sanitize.stripHTML(proxy)}"
+                         data-original-url="${ChatTools.Sanitize.stripHTML(url)}"
                          data-media-type="image">`
                 );
 
@@ -392,8 +406,8 @@ class ChatTools {
                 htmlInput = htmlInput.replace(
                     url,
                     `<video class="video-embed" controls preload="auto"
-                        src="${proxy}"
-                        data-original-url="${url}"
+                        src="${ChatTools.Sanitize.stripHTML(proxy)}"
+                        data-original-url="${ChatTools.Sanitize.stripHTML(url)}"
                         data-media-type="video"></video>`
                 );
 
@@ -408,14 +422,168 @@ class ChatTools {
             const filename = src.split('/').pop().split("_").splice(2).join('_');
             return `
                 <div class="audio-player">
-                    <p>${filename}</p>
+                    <p>${ChatTools.Sanitize.stripHTML(filename)}</p>
                     <audio
                         controls
                         preload="metadata"
-                        src="${src}">
+                        src="${ChatTools.Sanitize.stripHTML(src)}">
                     </audio>
                 </div>
             `;
+        }
+    }
+
+    static Sanitize = class {
+        static _hooksInstalled = false;
+        static SANITIZE_OPTIONS = {
+            ALLOWED_TAGS: [
+                'div',
+                'source',
+                'video',
+                'audio',
+                'span',
+                'p',
+                'br',
+                'b',
+                'i',
+                'u',
+                's',
+                'a',
+                'ul',
+                'ol',
+                'li',
+                'h1',
+                'h2',
+                'h3',
+                'pre',
+                'code',
+                "label",
+                'blockquote',
+                'strong',
+                "details",
+                "summary",
+                'em',
+                'img',
+                'mark',
+                "button",
+                "iframe" // needed for embeds
+            ]
+            ,
+
+            ALLOWED_ATTR: [
+                'href',
+                'target',
+                'rel',
+                'src',
+                'alt',
+                'class',
+                //'style', // needs to be removed but with testing
+                'data-id',
+                'controls',
+                'title',
+                'data-member-id',
+                'data-message-id'
+            ],
+
+            //ALLOWED_URI_REGEXP: /^(?:(?:https?|mailto):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+            //ALLOW_DATA_ATTR: false,
+            //FORBID_ATTR: ['style', 'onerror', 'onclick', 'onload', 'onmouseover', 'onfocus', 'onblur'],
+        };
+
+        static stripHTML(html) {
+            if(typeof html === "object") return;
+            if(Array.isArray(html)) return;
+            if (html == null) return '';
+            return DOMPurify.sanitize(String(html), { ALLOWED_TAGS: [], ALLOWED_ATTR: [] });
+        }
+        static forRender(html, wrapParagraphs = false) {
+            if (html == null) return '';
+
+            this.installDomPurifyHooks();
+            let clean = DOMPurify.sanitize(String(html), this.SANITIZE_OPTIONS);
+
+            if (wrapParagraphs) {
+                clean = `<p>${clean}</p>`;
+            }
+
+            return clean.trim();
+        }
+
+        static encodePlainText(s) {
+            return String(s || '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#39;');
+        }
+
+        static unescapeHtmlEntities(str, raw = false) {
+            if (str == null) return '';
+
+            if(raw === true){
+                const txt = document.createElement('textarea');
+                txt.innerHTML = DOMPurify.sanitize(String(str), this.SANITIZE_OPTIONS);
+                return txt.value;
+            }
+
+            const txt = document.createElement('label');
+            txt.innerHTML = DOMPurify.sanitize(String(str), this.SANITIZE_OPTIONS);
+            let unescaped = txt.textContent;
+
+            const div = document.createElement('div');
+            div.innerHTML = DOMPurify.sanitize(unescaped, this.SANITIZE_OPTIONS);
+            return div.textContent || "";
+        }
+
+        static installDomPurifyHooks() {
+            if (this._hooksInstalled || !window.DOMPurify) return;
+            this._hooksInstalled = true;
+
+            DOMPurify.addHook('afterSanitizeAttributes', (node) => {
+                if (node.tagName === 'A') {
+                    node.setAttribute('target', '_blank');
+                    node.setAttribute('rel', 'noopener noreferrer nofollow');
+
+                    const href = (node.getAttribute('href') || '').toLowerCase().trim();
+                    if (href.startsWith('javascript:') || href.startsWith('data:') || href.startsWith('vbscript:')) {
+                        node.removeAttribute('href');
+                    }
+                }
+
+                if (node.tagName === 'IMG') {
+                    const src = (node.getAttribute('src') || '').toLowerCase().trim();
+                    if (src.startsWith('javascript:') || src.startsWith('data:') || src.startsWith('vbscript:')) {
+                        node.remove();
+                    }
+                }
+            });
+        }
+
+        static normalizeVar(v) {
+            if (v === null || v === undefined) return null;
+
+            if (typeof v === "string") {
+                const val = v.trim().toLowerCase();
+
+                if (val === "true") return true;
+                if (val === "false") return false;
+                if (val === "null" || val === "undefined" || val === "") return null;
+
+                if (/^-?\d+(\.\d+)?$/.test(val)) {
+                    if (val.length < 10) {
+                        return Number(val);
+                    }
+                }
+            }
+
+            return String(v);
+        }
+
+        static truncateText(text, length) {
+            text = String(text || "");
+            if (text.length <= length) return text;
+            return text.substr(0, length) + "\u2026";
         }
     }
 }

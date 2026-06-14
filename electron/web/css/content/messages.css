@@ -6,6 +6,9 @@
     margin: -1rem;
     overflow: hidden;
 }
+.layout > .content-container > .content > .message-page-container .chats.hide{
+    display: none !important;
+}
 .layout > .content-container > .content > .message-page-container .chats{
     display: flex;
     flex-direction: column;
@@ -16,6 +19,9 @@
     width: 400px;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+.layout > .content-container > .content > .message-page-container .chat-content.mobile{
+    display: none !important;
 }
 .layout > .content-container > .content > .message-page-container .chat-content{
     display: flex;
@@ -58,7 +64,7 @@
     box-sizing: border-box;
 }
 .layout > .content-container > .content > .message-page-container .chats > .header h1{
-    font-size: 22px;
+    font-size: 18px;
 }
 .layout > .content-container > .content > .message-page-container .chats > .header span{
     display: flex;
@@ -106,11 +112,29 @@
     width: fit-content;
     overflow: hidden;
 }
+
+.layout > .content-container > .content > .message-page-container .chats .chat .middle-section .meta{
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+}
+.layout > .content-container > .content > .message-page-container .chats .chat .middle-section .meta .date{
+    display: flex;
+    justify-content: end;
+    margin-left: auto;
+    font-size: 12px;
+}
 .layout > .content-container > .content > .message-page-container .chats .chat .latestMessage {
     display: flex;
     flex-direction: row;
     font-size: 14px;
     position: relative;
+}
+.layout > .content-container > .content > .message-page-container .chats .chat .latestMessage img,
+.layout > .content-container > .content > .message-page-container .chats .chat .latestMessage video,
+.layout > .content-container > .content > .message-page-container .chats .chat .latestMessage audio,
+.layout > .content-container > .content > .message-page-container .chats .chat .latestMessage iframe{
+    display: none;
 }
 .layout > .content-container > .content > .message-page-container .chats .chat .latestMessage p{
     position: relative;
@@ -154,6 +178,9 @@
     align-items: center;
     gap: 1rem;
     padding: 0.5rem 1rem;
+}
+.layout > .content-container > .content > .message-page-container .chat-content .header .back{
+    display: flex;
 }
 .layout > .content-container > .content > .message-page-container .chat-content .header h1{
     font-size: 16px;

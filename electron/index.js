@@ -6,6 +6,7 @@ const {
     nativeImage,
     session,
     desktopCapturer,
+    dialog,
     Notification,
     net,
 } = require("electron");
@@ -20,6 +21,9 @@ const Settings = require("./modules/settings");
 
 const FrontendLibs = require("@hackthedev/frontend-libs").default;
 let libDir = path.join(path.resolve(), "web", "js", "libs");
+
+const AppUpdater = require("@hackthedev/app-updater").default;
+//const AppUpdater = require("E:\\network-z-dev\\app-updater\\index.mjs").default;
 
 
 let win = null;
@@ -76,10 +80,11 @@ function registerWindowBoundsPersistence(win) {
 async function createWindow(width, height) {
     // installing multiple packages
     const results = await FrontendLibs.installMultiple([
-        { package: '@hackthedev/icons@1.0.6', path: libDir },
+        { package: '@hackthedev/icons@latest', path: libDir },
         { package: '@hackthedev/mobile-ui@latest', path: libDir },
         { package: '@hackthedev/prompts@latest', path: libDir },
         { package: '@hackthedev/rich-editor', path: libDir },
+        { package: '@hackthedev/json-editor', path: libDir },
         { package: '@hackthedev/chat-tools@1.0.0', path: libDir },
     ]);
 
@@ -166,14 +171,70 @@ app.commandLine.appendSwitch(
 );
 
 app.whenReady().then(async () => {
+    // Check for fucking update
+    let updateCheck = await AppUpdater.check("https://dcts.community/app/electron", {
+        includeOsUrl: true,
+        version: app.getVersion()
+    })
+
+
+    // if available show prompt
+    if(updateCheck?.available){
+        let result = await dialog.showMessageBox({
+            type: "question",
+            buttons: ["Update", "Not now"],
+            defaultId: 0,
+            cancelId: 1,
+            title: "DCTS Client Update available",
+            message: "It seems that a new version of the DCTS Client is available. Do you wanna download it?",
+            detail: `Current Version: ${updateCheck?.current}\nAvailable Version: ${updateCheck?.remote}`
+        });
+
+        if(result.response === 0){
+            let progressWindow = new BrowserWindow({
+                width: 400,
+                height: 160,
+                resizable: false,
+                minimizable: false,
+                maximizable: false,
+                autoHideMenuBar: true
+            });
+
+            await progressWindow.loadURL(`data:text/html,
+                <body style="font-family:sans-serif;padding:20px;">
+                    <h3>DCTS Update</h3>
+                    <div id="status">Starting download...</div>
+                </body>
+            `);
+
+            if(updateCheck?.downloadUrl){
+                let file = await AppUpdater.downloadFile(
+                    updateCheck.downloadUrl,
+                    (data) => {
+                        progressWindow.webContents.executeJavaScript(`
+                            document.getElementById("status").innerText =
+                                "Downloading... ${data.progress}%";
+                        `);
+                    }
+                );
+
+                progressWindow.webContents.executeJavaScript(`
+                    document.getElementById("status").innerText =
+                        "Finished: ${file.replaceAll("\\", "\\\\")}";
+                `);
+            }
+        }
+    }
+
+
     await Settings.initSettings(applicationDataDir);
 
     // youtube embed fix — header spoofing
     session.defaultSession.webRequest.onBeforeSendHeaders(
-        { urls: ['*://*.youtube.com/*', '*://*.googlevideo.com/*', '*://*.ytimg.com/*'] },
+        { urls: ['*://*.youtube-nocookie.com/*', '*://*.youtube.com/*', '*://*.googlevideo.com/*', '*://*.ytimg.com/*'] },
         (details, callback) => {
-            details.requestHeaders['Referer'] = 'https://www.youtube.com'
-            details.requestHeaders['Origin'] = 'https://www.youtube.com'
+            details.requestHeaders['Referer'] = 'https://www.youtube-nocookie.com'
+            details.requestHeaders['Origin'] = 'https://www.youtube-nocookie.com'
             callback({ requestHeaders: details.requestHeaders })
         }
     )
