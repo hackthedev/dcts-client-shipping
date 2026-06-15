@@ -172,6 +172,8 @@ app.commandLine.appendSwitch(
 
 app.whenReady().then(async () => {
     // Check for fucking update
+
+    /* Commented out for now as it needs a bit more work to work fine with linux too etc
     let updateCheck = await AppUpdater.check("https://dcts.community/app/electron", {
         includeOsUrl: true,
         version: app.getVersion()
@@ -225,6 +227,8 @@ app.whenReady().then(async () => {
             }
         }
     }
+
+     */
 
 
     await Settings.initSettings(applicationDataDir);
