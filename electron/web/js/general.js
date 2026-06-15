@@ -109,6 +109,10 @@ function getProtocol(host) {
     return "https";
 }
 
+function isActive(){
+    return document.visibilityState === "visible"
+}
+
 function extractHost(url) {
     if (!url) return null;
     const s = String(url).trim();

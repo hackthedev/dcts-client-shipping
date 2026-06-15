@@ -308,15 +308,26 @@ class Settings {
     }
 
     static async saveSettings() {
-        const disk = JSON.parse(
-            await fs.readFile(this.settingsPath, "utf8").catch(() => "{}")
-        )
+        const snapshot = structuredClone(this.settings)
 
-        this.settings = { ...disk, ...this.settings }
+        this._writeQueue = this._writeQueue
+            .catch(() => {})
+            .then(async () => {
+                const disk = JSON.parse(
+                    await fs.readFile(this.settingsPath, "utf8").catch(() => "{}")
+                )
 
-        const tmp = this.settingsPath + ".tmp"
-        await fs.writeFile(tmp, JSON.stringify(this.settings, null, 2))
-        await fs.rename(tmp, this.settingsPath)
+                const settings = { ...disk, ...snapshot }
+                const tmp = `${this.settingsPath}.${process.pid}.tmp`
+
+                await fs.mkdir(path.dirname(this.settingsPath), { recursive: true })
+                await fs.writeFile(tmp, JSON.stringify(settings, null, 2), "utf8")
+                await fs.rename(tmp, this.settingsPath)
+
+                this.settings = { ...settings, ...this.settings }
+            })
+
+        return this._writeQueue
     }
 
 
