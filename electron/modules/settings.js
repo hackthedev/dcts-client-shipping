@@ -267,7 +267,9 @@ class Settings {
         static async getServers() {
             await Settings._ensureLoaded()
 
-            // if no server was found return the official one so that there is a default server
+            // if no server was found return the official one so that there is a default server.
+            // the client will automatically fetch the latest info since its not provided in the
+            // object below
             return Settings.settings.servers ?? {
                 "chat.network-z.com": { }
             }
