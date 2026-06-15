@@ -9,6 +9,9 @@
 .layout > .content-container > .content > .message-page-container .chats.hide{
     display: none !important;
 }
+.layout > .content-container > .content > .message-page-container .chats .list{
+    overflow-y: auto;
+}
 .layout > .content-container > .content > .message-page-container .chats{
     display: flex;
     flex-direction: column;
