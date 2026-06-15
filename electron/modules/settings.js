@@ -266,7 +266,11 @@ class Settings {
 
         static async getServers() {
             await Settings._ensureLoaded()
-            return Settings.settings.servers ?? {}
+
+            // if no server was found return the official one so that there is a default server
+            return Settings.settings.servers ?? {
+                "chat.network-z.com": { }
+            }
         }
 
         static async deleteServer(id) {
