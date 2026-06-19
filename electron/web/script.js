@@ -229,7 +229,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     ensureDomPurify();
     buildNavHTML(true);
     getSavedServers(getContentElement())
-    setUnreadChatsInNav();
+
+    // only if local for now.
+    if(isLocal()){
+        setUnreadChatsInNav();
+    }
 
     registerSwipingHandles();
 });

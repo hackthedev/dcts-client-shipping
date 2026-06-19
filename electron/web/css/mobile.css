@@ -48,4 +48,8 @@
     .ql-editor {
         border-radius: 2rem !important;
     }
+
+    .server-card .about {
+        overflow: hidden !important;
+    }
 }

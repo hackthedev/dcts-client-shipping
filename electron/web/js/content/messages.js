@@ -268,7 +268,7 @@ async function getChatEntryHTML(chat, latestMessageObj = null){
 
     // return finished html structure
     return `
-         <div class="chat" data-gid="${chat?.gid}" onclick="renderChat('${chatId}')">
+         <div class="chat" data-gid="${chatId}" onclick="renderChat('${chatId}')">
             <div class="icon" style="background-image: url('${iconUrl}')"></div>
             <div class="middle-section">
                 <div class="meta">
