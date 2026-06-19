@@ -198,11 +198,39 @@ class Settings {
         }
 
         static async deleteMessage(chatId, messageId) {
+            // this _may_ needs to be implemented.
+            // it doesnt really make sense per se-
+            // at least in terms of "clients can modify the client to never delete"
             if (!chatId || !messageId) return
         }
 
         static async deleteChat(chatId) {
+            // 100% needs to be implemented and should be added to the server too
             if (!chatId) return
+        }
+
+        static async getChatsUnread() {
+            let chats = await this.getChats();
+            let unreadChats = {};
+
+            for (let chatId of Object.keys(chats)) {
+                let chat = chats[chatId];
+                let lastMessage = await this.getChatLastMessage(chatId);
+
+                if (!lastMessage) continue;
+
+                let lastRead = chat?.lastRead ?? 0;
+                let lastMessageTimestamp = lastMessage?.timestamp ?? lastMessage?.createdAt ?? 0;
+
+                if (lastMessageTimestamp > lastRead) {
+                    unreadChats[chatId] = {
+                        ...chat,
+                        lastMessage
+                    };
+                }
+            }
+
+            return unreadChats;
         }
     }
 

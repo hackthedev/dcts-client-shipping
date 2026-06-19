@@ -15,11 +15,11 @@
 .layout > .content-container > .content > .message-page-container .chats{
     display: flex;
     flex-direction: column;
+    flex: 1 1 auto;
 
     height: 100%;
-
-    max-width: 400px;
-    width: 400px;
+    min-width: 350px;
+    max-width: 350px;
     overflow: hidden;
     text-overflow: ellipsis;
 }
@@ -114,6 +114,16 @@
     flex: 1 1 auto;
     width: fit-content;
     overflow: hidden;
+}
+
+.layout > .content-container > .content > .message-page-container .chats .chat .middle-section .name{
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.layout > .content-container > .content > .message-page-container .chats .chat .middle-section .name.unread{
+    color: var(--accent);
+    font-weight: bold;
 }
 
 .layout > .content-container > .content > .message-page-container .chats .chat .middle-section .meta{
