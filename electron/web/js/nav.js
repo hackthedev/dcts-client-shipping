@@ -11,9 +11,10 @@ async function buildNavHTML(initial = false){
         </div>
         
         ${isLocal() ? `
-            <div class="entry" onclick="selectNavEntry(this);loadMessages()">
+            <div class="entry chats" onclick="selectNavEntry(this);loadMessages()">
                 ${Icon.display("message")}
                 <span>Chats</span>
+                <span class="badge">0</span>
             </div>
             
             <div class="entry" onclick="selectNavEntry(this);loadAccount()">

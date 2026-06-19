@@ -231,6 +231,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     getSavedServers(getContentElement())
     //loadMessages();
 
+    // show some indicator that you have new messages
+    let inboxResult = await fetchMessengerChats(await Client().GetLastOnline());
+    if(inboxResult?.inbox > 0){
+        setChatNavBadgeCount(inboxResult?.inbox)
+    }
+
     registerSwipingHandles();
 });
 

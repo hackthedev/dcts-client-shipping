@@ -114,6 +114,24 @@ async function loadMessages(force = false) {
     }
 }
 
+function getChatNavBadgeCount(){
+    let badgeElement = getNavEntryElement(1)?.querySelector("span.badge");
+    if(!badgeElement) throw new Error("No badge element found?");
+
+    return Number(badgeElement?.textContent ?? 0);
+}
+
+function setChatNavBadgeCount(count = 0){
+    let badgeElement = getNavEntryElement(1)?.querySelector("span.badge");
+    if(!badgeElement) throw new Error("No badge element found?");
+
+    if(count === 0) return badgeElement.style.display = "none";
+    if(count > 99) count = "99+"
+
+    badgeElement.textContent = ChatTools.Sanitize.stripHTML(count);
+    badgeElement.style.display = "flex";
+}
+
 async function fetchMessengerChats(timestamp = 0) {
     return new Promise(async (resolve, reject) => {
         let publicKey = await Client().GetPublicKey();
@@ -313,6 +331,8 @@ async function getGid(){
 
 async function getLastChatMessage(chatId){
     let message = await Client().GetChatLastMessage(chatId);
+    console.log(message);
+    console.log(message[await getGid()]);
 
     let text = null;
     if(message?.isServer){
@@ -338,8 +358,8 @@ function getChatContentElement() {
     return document.querySelector(`.message-page-container .chat-content`);
 }
 
-function getInnerChatContentElement() {
-    return getChatContentElement().querySelector(`.content`);
+function getInnerChatContentElement(chatId) {
+    return getChatContentElement()?.querySelector(`.content[data-chatId="${chatId}"]`);
 }
 
 function getChatListElement() {
@@ -355,14 +375,14 @@ async function renderChat(chatId, customChatObject = null) {
     await setChatHeader(activeChat);
 
     getChatContentElement().innerHTML += `
-        <div class="content"></div>
+        <div class="content" data-chatId="${chatId}"></div>
         <div class="editor-container"></div>
     `;
 
     // infinite scroll shit
     // lets see how much pain this will be
-    await ChatTools.Scroll.registerMessageInfiniteLoad(getInnerChatContentElement(), async () => {
-        let messages = getInnerChatContentElement()?.querySelectorAll(`.message-container`);
+    await ChatTools.Scroll.registerMessageInfiniteLoad(getInnerChatContentElement(chatId), async () => {
+        let messages = getInnerChatContentElement(chatId)?.querySelectorAll(`.message-container`);
         let topMessage = messages[0];
         let timestamp = topMessage?.getAttribute("data-timestamp") ?? null;
 
@@ -374,11 +394,11 @@ async function renderChat(chatId, customChatObject = null) {
 
         // dedup
         sortedMessages = sortedMessages.filter(message => {
-            return !getInnerChatContentElement().querySelector(`.message-container[data-timestamp="${message?.timestamp}"]`);
+            return !getInnerChatContentElement(chatId).querySelector(`.message-container[data-timestamp="${message?.timestamp}"]`);
         });
 
         if(sortedMessages.length > 0) {
-            ChatTools.Scroll.toggleSmoothScroll(getInnerChatContentElement(), false)
+            ChatTools.Scroll.toggleSmoothScroll(getInnerChatContentElement(chatId), false)
 
             let template = document.createElement("div");
 
@@ -390,22 +410,23 @@ async function renderChat(chatId, customChatObject = null) {
 
                 if (currentDate !== lastDate) {
                     lastDate = currentDate;
-                    renderSystemDateInChat(timestamp, template, true)
+                    renderSystemDateInChat(chatId, timestamp, template, true)
                 }
 
                 await renderUserMessage({
+                    chatId,
                     item: message,
                     renderTop: false,
                     element: template
                 })
             }
 
-            getInnerChatContentElement().prepend(...template.childNodes);
-            ChatTools.Scroll.toggleSmoothScroll(getInnerChatContentElement(), true)
+            getInnerChatContentElement(chatId).prepend(...template.childNodes);
+            ChatTools.Scroll.toggleSmoothScroll(getInnerChatContentElement(chatId), true)
         }
     })
 
-    ChatTools.Scroll.observeContainer(getInnerChatContentElement());
+    ChatTools.Scroll.observeContainer(getInnerChatContentElement(chatId));
 
 
     let chatHost = activeChat?.home_server ?? activeChat?.host ?? null;
@@ -474,10 +495,11 @@ async function renderChat(chatId, customChatObject = null) {
     }
 }
 
-function renderSystemDateInChat(timestamp, element = null, renderTop = false){
+function renderSystemDateInChat(chatId, timestamp, element = null, renderTop = false){
+    if(!chatId) throw new Error("Cant show system date as chatid is missing!")
     if(!timestamp) throw new Error("Cant show system date as timestamp is missing!")
 
-    let render = element ? element : getInnerChatContentElement();
+    let render = element ? element : getInnerChatContentElement(chatId);
     let displayDate = new Date(timestamp).toLocaleDateString("en-US", {
         weekday: "long",
         year: "numeric",
@@ -491,7 +513,7 @@ function renderSystemDateInChat(timestamp, element = null, renderTop = false){
     // doubled within the appending stuff
     let existingDateMessage = null;
     if(renderTop){
-        existingDateMessage = getInnerChatContentElement().querySelector(`.system-message.date[data-display-date="${displayDate}"]`);
+        existingDateMessage = getInnerChatContentElement(chatId).querySelector(`.system-message.date[data-display-date="${displayDate}"]`);
         if(existingDateMessage) existingDateMessage.remove();
     }
     existingDateMessage = render?.querySelector(`.system-message.date[data-display-date="${displayDate}"]`);
@@ -534,13 +556,14 @@ async function renderInboxElementsInChat(chat, initial = false) {
 
         if (currentDate !== lastDate) {
             lastDate = currentDate;
-            renderSystemDateInChat(lastDate)
+            renderSystemDateInChat(gid, lastDate)
         }
 
         if (item.type === "mention") {
-            await renderMention(item);
+            await renderMention(gid, item);
         } else if (item.type === "user_message") {
             await renderUserMessage({
+                chatId: gid,
                 item
             });
         } else {
@@ -549,18 +572,34 @@ async function renderInboxElementsInChat(chat, initial = false) {
     }
 
     // if we actually open a chat we will just scroll down
-    if (initial && getInnerChatContentElement()) {
-        ChatTools.Scroll.scrollDown(getInnerChatContentElement())
+    if (initial && getInnerChatContentElement(gid)) {
+        ChatTools.Scroll.scrollDown(getInnerChatContentElement(gid))
     }
 
     await Client().SaveChat(gid, chat);
 }
 
+async function gidToAuthor(gid){
+    let chat = await Client().GetChat(gid);
+    if(!chat) return null;
+
+    return {
+        name: chat?.title ?? null,
+        icon: chat?.icon ?? null,
+        publicKey: chat?.publicKey ?? null,
+        home_server: chat?.home_server ?? null,
+    }
+}
+
 async function renderUserMessage({
                                      item,
+                                     chatId = null,
                                      element = null,
                                      renderTop = false,
+                                     notify = false,
                                  } = {}) {
+    if(!chatId) throw new Error("Missing chatid!");
+
     let message = item?.data?.message ?? item;
     let authorGid = message?.author?.gid;
 
@@ -584,16 +623,40 @@ async function renderUserMessage({
         return;
     }
 
+    // notification handling etc
+    // if not active, show notification,
+    // if active but not focused in the chat section, show badge
+    // if we didnt send the message ourselves
+    let isInactive = !isActive();
+    let isActiveButIsntChatting = isActive() && getSelectedNavEntry() !== getNavEntryElement(1);
+    let isAuthor = authorGid === await getGid();
+
+    if((isInactive || isActiveButIsntChatting) && notify === true && !isAuthor){
+        let authorInfo = await gidToAuthor(chatId)
+        let title = authorInfo?.name ? ChatTools.Sanitize.truncateText(authorInfo.name, 25) : "New Message!";
+
+        await Client().ShowNotification({
+            title,
+            text: ChatTools.Sanitize.stripHTML(decryptedMessageText ?? ""),
+            icon: ChatTools.Sanitize.stripHTML(authorInfo?.icon ?? null),
+        })
+
+        setChatNavBadgeCount(getChatNavBadgeCount() + 1)
+    }
+
     // dedup
-    if(getInnerChatContentElement().querySelector(`.message-container[data-timestamp="${message?.timestamp}"]`)){
+    if(getInnerChatContentElement(chatId)?.querySelector(`.message-container[data-timestamp="${message?.timestamp}"]`)){
         return;
     }
+
+    let renderElement = element ? element : getInnerChatContentElement(chatId);
+    if(!renderElement) return console.warn("Skipped rendering as element wasnt found")
 
     // handle markdown
     let markdownResult = await ChatTools.Media.markdown({
         htmlInput: decryptedMessageText,
         identifier: item?.timestamp,
-        containerElement: element ? element : getInnerChatContentElement(),
+        containerElement: element ? element : getInnerChatContentElement(chatId),
     })
 
     // if it was changed update the text
@@ -607,20 +670,18 @@ async function renderUserMessage({
             </div>            
         `;
 
+    let isScrolledDown = ChatTools.Scroll.isScrolledToBottom(getInnerChatContentElement(chatId), 50);
 
-    let isScrolledDown = ChatTools.Scroll.isScrolledToBottom(getInnerChatContentElement(), 50);
-
-    let renderElement = element ? element : getInnerChatContentElement();
     renderElement.insertAdjacentHTML(renderTop ? "afterbegin" : "beforeend", await getMessageHTML({
         text,
         timestamp: message?.timestamp,
         isMine: authorGid === gid,
     }))
 
-    if (isScrolledDown && !renderTop) ChatTools.Scroll.scrollDown(getInnerChatContentElement())
+    if (isScrolledDown && !renderTop) ChatTools.Scroll.scrollDown(getInnerChatContentElement(chatId))
 }
 
-async function renderMention(item, element = null) {
+async function renderMention(gid, item, element = null) {
     let message = item?.data?.message ?? item;
     let author = message?.author;
 
@@ -637,7 +698,7 @@ async function renderMention(item, element = null) {
             </div>            
         `;
 
-    let renderElement = element ? element : getInnerChatContentElement();
+    let renderElement = element ? element : getInnerChatContentElement(gid);
     renderElement.insertAdjacentHTML("beforeend", await getMessageHTML({
         text,
         timestamp: message?.timestamp,

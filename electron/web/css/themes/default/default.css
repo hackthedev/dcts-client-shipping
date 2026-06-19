@@ -78,6 +78,7 @@ a {
     color: hsl(from var(--main) h s calc(l * 6));
 }
 
+.layout > .content-container > .navigation > .entry.chats span.badge,
 .layout > .content-container > .content > .message-page-container .chats .chat .badge {
     background-color: hsl(from var(--main) h s calc(l * 10));
     color: hsl(from var(--main) h s calc(l * 1));

@@ -177,15 +177,19 @@ async function registerSocketListeners(socket) {
         await Client().SaveChatMessage(chatGid, message)
         await refreshChatEntry(chatGid, message);
 
-        if (message?.type === "user_message" && getInnerChatContentElement()) await renderUserMessage({
+        if (message?.type === "user_message") await renderUserMessage({
             item: message,
-            element: getInnerChatContentElement()
+            element: getInnerChatContentElement(chatGid),
+            chatId: chatGid,
+            notify: true,
         })
     })
 }
 
 async function decryptUserMessage(message) {
     if (!message) throw new Error("Message was not set");
+    if(typeof message === "string" && message.startsWith("{")) message = JSON.parse(message);
+
     if (!message?.method) throw new Error("Message method not found");
 
     let decryptedMessageText = await Client().DecryptData(
