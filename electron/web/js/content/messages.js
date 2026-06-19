@@ -645,8 +645,9 @@ async function renderUserMessage({
     let isInactive = !isActive();
     let isActiveButIsntChatting = isActive() && getSelectedNavEntry() !== getNavEntryElement(1);
     let isAuthor = authorGid === await getGid();
+    let validSig = await checkMessageSignature(message);
 
-    if((isInactive || isActiveButIsntChatting) && notify === true && !isAuthor){
+    if((isInactive || isActiveButIsntChatting) && notify === true && !isAuthor && validSig){
         let authorInfo = await gidToAuthor(chatId)
         let title = authorInfo?.name ? ChatTools.Sanitize.truncateText(authorInfo.name, 25) : "New Message!";
 
@@ -679,8 +680,22 @@ async function renderUserMessage({
         decryptedMessageText = markdownResult.html;
     }
 
+    // even tho we checked the signature above, this is where we mark the message
+    let sigError = "";
+    if(!validSig){
+        sigError = `<details class="error">
+            <summary>Message possibly manipulated!</summary>
+            <p>
+                The message signature check failed, indicating possible manipulation!<br>
+                The message may have been altered or someone is listening to your conversation!
+            </p>
+        </details>`;
+    }
+
+    // the finished html
     let text = `
             <div class="user_message-container">
+                ${sigError}
                 ${decryptedMessageText ?? ""}
             </div>            
         `;
@@ -694,6 +709,21 @@ async function renderUserMessage({
     }))
 
     if (isScrolledDown && !renderTop) ChatTools.Scroll.scrollDown(getInnerChatContentElement(chatId))
+
+
+    async function checkMessageSignature(message){
+        if(!await isLauncher()) throw new Error("Can verify message signature because not using client");
+        if(!message) throw new Error("No Message Object passed");
+        if(!message?.sig) throw new Error("No Message Signature Object passed");
+
+        try{
+            return await Client().VerifyJson(message, message?.author?.publicKey);
+        }
+        catch(error){
+            console.error(error);
+            return false;
+        }
+    }
 }
 
 async function renderMention(gid, item, element = null) {

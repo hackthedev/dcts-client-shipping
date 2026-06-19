@@ -181,3 +181,9 @@ span.mention {
 .layout > .content-container > .content > .message-page-container .chats > .header {
     border-bottom: 1.5px solid var(--border-color);
 }
+
+details.error{
+    color: indianred;
+    background-color: rgba(205, 92, 92, 0.2);
+    border: 1px solid indianred;
+}

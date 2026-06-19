@@ -200,8 +200,6 @@ async function decryptUserMessage(message) {
         message.ciphertext
     );
 
-    message.messageId = message.timestamp;
-
     return decryptedMessageText;
 }
 
