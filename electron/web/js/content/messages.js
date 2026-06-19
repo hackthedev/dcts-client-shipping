@@ -317,6 +317,11 @@ async function renderMessages(customElement = undefined) {
         if(typeof Client().GetChatLastMessage !== "function") throw new Error("Unsupported Client: GetChatLastMessage")
         if(typeof Client().GetChatMessages !== "function") throw new Error("Unsupported Client: GetChatMessages")
 
+        // used for quicker loading
+        let frag = document.createDocumentFragment();
+        let div = document.createElement("div");
+        frag.appendChild(div);
+
         for (let chat of Object.values(uniqueChats)) {
             let chatId = chat?.gid ?? chat?.host
             if (!chatId) {
@@ -330,8 +335,10 @@ async function renderMessages(customElement = undefined) {
             chat.messages = sortMessagesByTimestamp(chat.messages);
             chat.lastMessage = await getLastChatMessage(chatId);
 
-            element.insertAdjacentHTML("beforeend", await getChatEntryHTML(chat, chat?.lastMessage ?? null))
+            div.insertAdjacentHTML("beforeend", await getChatEntryHTML(chat, chat?.lastMessage ?? null))
         }
+
+        element.appendChild(frag);
     }
 }
 
@@ -563,6 +570,8 @@ async function renderInboxElementsInChat(chat, initial = false) {
     chat.lastRead = new Date().getTime();
     chat.lastMessage = await getLastChatMessage(gid)
 
+    let template = document.createElement("div");
+
     for (let item of messages) {
         if (!item?.type) continue;
 
@@ -571,7 +580,7 @@ async function renderInboxElementsInChat(chat, initial = false) {
 
         if (currentDate !== lastDate) {
             lastDate = currentDate;
-            renderSystemDateInChat(gid, lastDate)
+            renderSystemDateInChat(gid, lastDate, template)
         }
 
         if (item.type === "mention") {
@@ -579,12 +588,15 @@ async function renderInboxElementsInChat(chat, initial = false) {
         } else if (item.type === "user_message") {
             await renderUserMessage({
                 chatId: gid,
-                item
+                item,
+                element: template,
             });
         } else {
             console.warn("Didnt render chat because of unsupported type: ", item.type)
         }
     }
+
+    getInnerChatContentElement(gid).prepend(...template.childNodes);
 
     // if we actually open a chat we will just scroll down
     if (initial && getInnerChatContentElement(gid)) {
