@@ -19,10 +19,10 @@ async function fetchServerInbox(host) {
 
 
     let sessionId = await getSessionIdFromHost(host);
-    if (!sessionId) return console.warn("Session id not found for host ", host)
+    if (!sessionId) console.warn("Session id not found for host ", host)
 
     let hostInbox = await Client().FetchInbox(host)
-    if (!hostInbox?.inbox) return console.warn("Host inbox not found for host ", host)
+    if (!hostInbox?.inbox) console.warn("Host inbox not found for host ", host)
 
     // get stored shit
     let storedChat = await Client().GetChat(host) ?? {};
@@ -92,7 +92,10 @@ function getFixedUrl(host, url) {
         : `${base}/${cleanUrl}`;
 }
 
-async function loadMessages(force = false) {
+async function loadMessages({
+                                force = false,
+                                render = true,
+                            } = {}) {
     try{
         await fetchMessengerChats(force ? 0 : await Client().GetLastOnline())
     }
@@ -101,7 +104,7 @@ async function loadMessages(force = false) {
         console.error(messengerChatsError);
     }
 
-    await renderMessages();
+    if(render) await renderMessages();
 
     let clientServers = await Client().GetServers();
     if (clientServers) {
@@ -130,6 +133,23 @@ function setChatNavBadgeCount(count = 0){
 
     badgeElement.textContent = ChatTools.Sanitize.stripHTML(count);
     badgeElement.style.display = "flex";
+}
+
+function setChatEntryBadgeCount(chatId, count = 0){
+    let badgeElement = getChatListElement()?.querySelector(`.chat[data-gid="${chatId}"] .badge`);
+    if(!badgeElement) throw new Error("No badge element found?");
+
+    if(count === 0) return badgeElement.style.display = "none";
+    if(count > 99) count = "99+"
+
+    badgeElement.textContent = ChatTools.Sanitize.stripHTML(count);
+    badgeElement.style.display = "flex";
+}
+
+async function getUnreadChats(){
+    await loadMessages({render: false});
+    if(!await isLauncher()) return null;
+    return await Client().GetUnreadChats() ?? null;
 }
 
 async function fetchMessengerChats(timestamp = 0) {
@@ -208,41 +228,59 @@ async function refreshChatEntry(chatGid, latestMessageObj = null) {
     let chat = await Client().GetChat(chatGid);
     if (!chat) return;
 
-    // sort messages by timestamp
-    let messages = Object.values(await Client().GetChatMessages(chatGid, new Date().getTime(), true) ?? {})
-        .map(item => item.data ?? item)
-        .sort((a, b) => (a?.timestamp ?? 0) - (b?.timestamp ?? 0));
-
-    let gid = await getGid();
-    let lastMessage = latestMessageObj ?? messages.at(-1) ?? null;
-
-    // decrypt this shit
-    let decryptedLastMessage = null;
-    if (lastMessage) {
-        try {
-            decryptedLastMessage = await decryptUserMessage(lastMessage[gid]);
-        } catch {
-            decryptedLastMessage = null;
-        }
-    }
-
-    let chatName = chat?.title ?? "Unknown";
-    let latestMessage = decryptedLastMessage ?? `@${chat?.host ?? chat?.home_server}`;
-
     // remove old entry and re-insert at top so newest chat bubbles up
     let existing = chatsElement.querySelector(`.chat[data-gid="${chatGid}"]`);
     if (existing) existing.remove();
 
-    chatsElement.insertAdjacentHTML("afterbegin", `
-        <div class="chat" data-gid="${chatGid}" onclick="renderChat('${chatGid}')">
-            <div class="icon" style="background-image: url('${getFixedUrl(chat?.data?.host ?? chat?.host, chat?.data?.icon ?? chat?.icon)}')"></div>
+    chatsElement.insertAdjacentHTML("afterbegin", await getChatEntryHTML(chat, latestMessageObj));
+}
+
+async function getChatEntryHTML(chat, latestMessageObj = null){
+    if(!chat) throw new Error("No Chat Object Found!");
+    if(!chat?.gid && !chat?.host) throw new Error("No Chat GID found! (chat.gid)");
+
+    let chatId = chat?.gid ?? chat?.host
+    if (!chatId) {
+        console.warn("No chat id found for chat ", chat)
+        return;
+    }
+
+    // sort messages by timestamp
+    let messages = Object.values(await Client().GetChatMessages(chatId, new Date().getTime(), true) ?? {})
+        .map(item => item.data ?? item)
+        .sort((a, b) => (a?.timestamp ?? 0) - (b?.timestamp ?? 0));
+
+    let unreadMessages = messages.filter(message => {
+        return (message?.timestamp ?? 0) > (chat?.lastRead ?? 0);
+    });
+
+    let chatName = chat?.title ?? "Unknown";
+    let hasNewMessages = unreadMessages?.length > 0;
+    let iconUrl = getFixedUrl(chat?.host, chat?.icon);
+
+    let displayDate = new Date(chat?.lastMessage?.timestamp).toLocaleDateString(undefined, {
+        //year: "numeric",
+        month: "numeric",
+        day: "numeric",
+        hour: "numeric",
+        minute: "numeric",
+    });
+
+    // return finished html structure
+    return `
+         <div class="chat" data-gid="${chat?.gid}" onclick="renderChat('${chatId}')">
+            <div class="icon" style="background-image: url('${iconUrl}')"></div>
             <div class="middle-section">
-                <div class="name">${ChatTools.Sanitize.forRender(chatName)}</div>
-                ${latestMessage ? `<div class="latestMessage">${ChatTools.Sanitize.forRender(latestMessage)}</div>` : ""}
+                <div class="meta">
+                    <div class="name ${hasNewMessages ? "unread" : ""}">${ChatTools.Sanitize.forRender(chatName)}</div>
+                    <span class="date">${chat?.lastMessage?.timestamp ? displayDate : ""}</span>
+                </div>
+                
+                ${chat.lastMessage?.message ? `<div class="latestMessage">${ChatTools.Sanitize.forRender(chat.lastMessage?.message)}</div>` : ""}
             </div>
-            <div class="badge ${messages.length > 0 ? "visible" : ""}">${messages.length}</div>
+            <div class="badge ${hasNewMessages ? "visible" : ""}">${unreadMessages?.length ?? ""}</div>                
         </div>
-    `);
+    `
 }
 
 async function renderMessages(customElement = undefined) {
@@ -292,35 +330,7 @@ async function renderMessages(customElement = undefined) {
             chat.messages = sortMessagesByTimestamp(chat.messages);
             chat.lastMessage = await getLastChatMessage(chatId);
 
-
-            let unreadMessages = chat.messages.filter(message => {
-                return (message?.timestamp ?? 0) > (chat?.lastRead ?? 0);
-            });
-
-            let chatName = chat?.title ?? "Unkown"
-            let displayDate = new Date(chat?.lastMessage?.timestamp).toLocaleDateString(undefined, {
-                //year: "numeric",
-                month: "numeric",
-                day: "numeric",
-                hour: "numeric",
-                minute: "numeric",
-            });
-
-            let iconUrl = getFixedUrl(chat?.host, chat?.icon);
-            element.insertAdjacentHTML("beforeend", `
-                <div class="chat" data-gid="${chatId}" onclick="renderChat('${chatId}')">
-                    <div class="icon" style="background-image: url('${iconUrl}')"></div>
-                    <div class="middle-section">
-                        <div class="meta">
-                            <div class="name">${ChatTools.Sanitize.forRender(chatName)}</div>
-                            <span class="date">${chat?.lastMessage?.timestamp ? displayDate : ""}</span>
-                        </div>
-                        
-                        ${chat.lastMessage?.message ? `<div class="latestMessage">${ChatTools.Sanitize.forRender(chat.lastMessage?.message)}</div>` : ""}
-                    </div>
-                    <div class="badge ${unreadMessages?.length > 0 ? "visible" : ""}">${unreadMessages?.length ?? ""}</div>                
-                </div>
-            `)
+            element.insertAdjacentHTML("beforeend", await getChatEntryHTML(chat, chat?.lastMessage ?? null))
         }
     }
 }
@@ -331,8 +341,6 @@ async function getGid(){
 
 async function getLastChatMessage(chatId){
     let message = await Client().GetChatLastMessage(chatId);
-    console.log(message);
-    console.log(message[await getGid()]);
 
     let text = null;
     if(message?.isServer){
@@ -462,7 +470,9 @@ async function renderChat(chatId, customChatObject = null) {
                 }
             },
             onSend: async (html) => {
-                let messageResult = await sendMessage(html, activeChat.publicKey, chatHost);
+                let messageResult = await sendMessage(html, activeChat.publicKey, chatHost, {
+                    customTimestamp: new Date().getTime(),
+                });
                 if (messageResult?.error) {
                     return alert(`Error while sending message!\n\n${messageResult.error}`)
                 }
@@ -476,6 +486,8 @@ async function renderChat(chatId, customChatObject = null) {
 
                         if(icon) existingChat.icon = icon;
                         if(name) existingChat.title = name;
+                        existingChat.lastRead = new Date().getTime() + 60_000; // just to be sure to not show a unread indicator on sending
+
                         await Client().SaveChat(targetData.gid, existingChat);
                     }
                 }
@@ -493,6 +505,9 @@ async function renderChat(chatId, customChatObject = null) {
         getChatListElement().classList.add("hide");
         getNavElement().classList.add("hide");
     }
+
+    setChatEntryBadgeCount(chatId, 0)
+    setUnreadChatsInNav()
 }
 
 function renderSystemDateInChat(chatId, timestamp, element = null, renderTop = false){
@@ -806,7 +821,9 @@ async function startNewChat({
         // the user if it exists
         let testMessage
         try {
-            testMessage = await sendMessage("Test", identifierName, host, true);
+            testMessage = await sendMessage("Test", identifierName, host, {
+                test: true
+            });
         } catch (sendingError) {
             console.error(sendingError, address)
             return await reopenWithError("Unable to check on user");

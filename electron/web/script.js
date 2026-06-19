@@ -41,7 +41,7 @@ async function getSavedServers(container) {
         }
     }
 
-    renderServersList(container.querySelector(".serverList"), mergedServers);
+    await renderServersList(container.querySelector(".serverList"), mergedServers);
 }
 
 function submitServerUI(){
@@ -229,16 +229,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     ensureDomPurify();
     buildNavHTML(true);
     getSavedServers(getContentElement())
-    //loadMessages();
+    setUnreadChatsInNav();
+
+    registerSwipingHandles();
+});
+
+async function setUnreadChatsInNav(){
+    // update chas nav icon with badge without loading shit
+    let unreadChats = await getUnreadChats();
+    let unreadChatsCount = Object.keys(unreadChats ?? {}).length;
+    if(unreadChatsCount > 0) setChatNavBadgeCount(unreadChatsCount);
 
     // show some indicator that you have new messages
     let inboxResult = await fetchMessengerChats(await Client().GetLastOnline());
     if(inboxResult?.inbox > 0){
         setChatNavBadgeCount(inboxResult?.inbox)
     }
-
-    registerSwipingHandles();
-});
+}
 
 function registerSwipingHandles(){
     if(MobilePanel.isMobile()){
