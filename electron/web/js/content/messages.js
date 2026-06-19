@@ -583,6 +583,7 @@ async function renderInboxElementsInChat(chat, initial = false) {
             renderSystemDateInChat(gid, lastDate, template)
         }
 
+        // extend this at some point for the ticket system
         if (item.type === "mention") {
             await renderMention(gid, item);
         } else if (item.type === "user_message") {
