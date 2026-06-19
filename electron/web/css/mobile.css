@@ -36,6 +36,10 @@
         width: 100% !important;
     }
 
+    .layout > .content-container > .content > .message-page-container .chats {
+        max-width: 100% !important;
+        width: 100% !important;
+    }
     .layout > .content-container > .content > .message-page-container .chats .chat{
         gap: 0.5rem !important;
     }
