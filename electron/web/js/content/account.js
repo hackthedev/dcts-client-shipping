@@ -48,10 +48,16 @@ async function loadAccount(identifier){
                 <div class="icon" id="icon" onclick="uploadAccountImage(this)" style="--member-image: url('${memberIcon}')"></div>
                 
                 <div class="details">
-                    <h1 class="name">${memberName ?? ""}</h1>
+                    <h1 class="name">
+                        ${memberName ?? ""}
+                    
+                        <div class="actions">
+                            <span class="message">${Icon.display("message")}</span>
+                            <span class="report">${Icon.display("info")}</span>
+                        </div>
+                    </h1>
+                    
                     <h1 class="alias">${memberAlias ?? ""}</h1>    
-                
-                
                 
                     ${memberSignature ? 
                         `

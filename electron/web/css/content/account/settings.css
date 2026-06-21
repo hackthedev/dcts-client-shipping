@@ -98,8 +98,26 @@
 }
 
 .layout > .content-container > .content > .account-container > .profile-info > .details > .name {
+    display: flex;
+    flex-direction: row;
     margin-bottom: 0;
     margin-top: 0.5rem;
+}
+.layout > .content-container > .content > .account-container > .profile-info > .details > .name > .actions {
+    display: flex;
+    flex-direction: row;
+    margin-left: auto;
+    gap: 0.5rem;
+}
+.layout > .content-container > .content > .account-container > .profile-info > .details > .name > .actions svg{
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    stroke: hsl(from var(--main) h s calc(l * 6));
+    transition: all 150ms ease-in-out;
+}
+.layout > .content-container > .content > .account-container > .profile-info > .details > .name > .actions svg:hover{
+    stroke: hsl(from var(--main) h s calc(l * 10));
 }
 
 .layout > .content-container > .content > .account-container > .profile-info > .details > .alias {
