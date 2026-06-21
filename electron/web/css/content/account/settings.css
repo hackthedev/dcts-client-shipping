@@ -138,14 +138,13 @@
 }
 
 /* tab settings */
-
 .layout > .content-container > .content > .account-container > .tab_settings {
     display: flex;
     flex-direction: row;
     gap: 0.25rem;
     width: 100%;
     margin-top: 2rem;
-    border-bottom: 1.5px solid var(--border-color-bright);
+    border-bottom: 2px solid var(--border-color-bright);
 }
 
 .layout > .content-container > .content > .account-container > .tab_settings > .tabs {
