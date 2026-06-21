@@ -16,6 +16,7 @@
     "@hackthedev/app-updater": "^1.0.1",
     "@hackthedev/dsync-sign": "^1.0.14",
     "@hackthedev/frontend-libs": "^1.0.5",
+    "@hackthedev/icons": "^1.0.8",
     "cors": "^2.8.6",
     "express": "^5.2.1"
   },

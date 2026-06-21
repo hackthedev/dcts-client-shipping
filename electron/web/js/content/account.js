@@ -2,129 +2,108 @@ let originalUserData = {
 
 }
 
-async function loadAccount(){
+function getAccountContainerElement(){
+    return getContentElement().querySelector('.account-container') ?? null;
+}
+
+function getTabContentPage(){
+    return getAccountContainerElement().querySelector('.tab_content') ?? null;
+}
+
+function getTabNavTabs(){
+    return getAccountContainerElement().querySelectorAll('.tab_settings .tabs a') ?? null;
+}
+
+async function loadAccount(identifier){
+    //if(!identifier) throw new Error("Couldnt load profile cauz no identifier was set")
+
+
+    // let account = request to server to lookup profile table....
+    // then .... fill info below. for now hardcoded to local acc
+
+    let memberName = await Client().GetNickname() ?? null;
+
+    // temporary hardcoded
+    let memberIcon = "https://i.pinimg.com/736x/a6/72/05/a67205f60f44c386f4bdfb8fab4d8bed.jpg" ?? getFixedUrl(getHomeSocket().host, await Client().GetUserIcon()) ?? null;
+    let memberBanner = "https://assets.ppy.sh/topic-covers/6320/c7490f9d8cba26dcd7fb34f08a211156e311d57ffd470edff68a92832d3a1fd8.gif" ?? getFixedUrl(getHomeSocket().host, await Client().GetUserIcon()) ?? null;
+    let homeServer = await getHomeSocket().host;
+
+    let gidAddressShortened = `${ChatTools.Sanitize.truncateText(await getGid(), 6)}@${homeServer}`;
+    let gidAddressFull = `${await getGid()}@${homeServer}`;
+    let aliasAddress = `${await Client().GetAlias()}@${homeServer}`;
+
+    let memberSignature =
+        `
+        <center>
+            <b>Spread the word of DCTS!</b><br>
+            <a target="_blank" href="http://desktop.dcts.community">Desktop Client</a>
+            |
+            <a target="_blank" href="http://android.dcts.community">Android App</a>
+            |
+            <a target="_blank" href="http://donate.dcts.community/">Donate</a>
+            
+            <br><br>
+            <i>Lets build the <u>next-gen web</u> of independence!</i>
+        </center>
+        `
+
+    let memberAlias = await Client().GetAlias() ?
+        `<a onclick="navigator.clipboard.writeText('${aliasAddress}')">${aliasAddress}</a>`
+        :
+        `<a onclick="navigator.clipboard.writeText('${gidAddressFull}')">${gidAddressShortened}</a>`;
+
+
     getContentElement().innerHTML =
     `    
-        <div class="account-container">
-            <h1>${Icon.display("account")}Account Settings</h1>
-            <p class="hint">
-                If you leave these settings empty they will be automatically set by the server.
-            </p>
-           
-            <div class="settings">
+        <div class="account-container">            
+            <div class="banner" style="--member-banner: url('${memberBanner}')"></div>
             
+            <div class="profile-info">
+                <div class="icon" style="--member-icon: url('${memberIcon}')"></div>
+                
+                <div class="details">
+                    <h1 class="name">${memberName ?? ""}</h1>
+                    <h1 class="alias">${memberAlias ?? ""}</h1>    
+                
+                    <div class="signature">
+                        ${memberSignature ? `${memberSignature}` : ""}
+                    </div>
+                </div>
             </div>
+            
+            
+            <div class="tab_settings">
+                <div class="tabs">
+                    <a href="#" id="about" class="selected" onclick="loadAccountTabPageContent('about')">${Icon.display("info")} About</a>
+                    <a href="#" id="profile" onclick="loadAccountTabPageContent('profile')">${Icon.display("account")} Profile</a>
+                </div>
+            </div>
+            
+            
+            <div class="tab_content"></div>
         </div>
     `
 
-    let nickname = await Client().GetNickname() ?? "";
-    let alias = await Client().GetAlias() ?? "";
-    let profileUrl = await Client().GetUserIcon() ?? "";
-    let consistent = await Client().GetUserConsistentSettings() ?? true;
-    let disableInputs = !!consistent === true;
+    await loadAccountProfileSettings();
+}
 
-    originalUserData.nickname = nickname;
-    originalUserData.alias = alias;
-    originalUserData.icon = profileUrl;
-    originalUserData.consistent = consistent;
+function clearProfileTabContentHTML(){
+    if(getTabContentPage()) getTabContentPage().innerHTML = "";
+}
 
-    if(typeof Client().SetNickname === "function" ) {
-        getAccountSettingsElement().insertAdjacentElement(
-            "beforeend",
-            JsonEditor.getSettingElement(nickname, "Display Name", "How others will see you", async (value) => {
-                if(originalUserData.nickname !== value){
-                    JsonEditor.showSaveButton("nickname", () => {
-                        originalUserData.nickname = value
-                        saveAccountChanges({
-                            name: value
-                        });
-                    });
-                }
-                else{
-                    JsonEditor.hideSaveButton();
-                }
-            }, {
-                regexMatcher: /^[a-zA-Z0-9_.-]{1,30}$/,
-                canBeNull: true,
-            })
-        )
-    }
-    else{
-        console.error("Setting 'Display Name' not shown because client doesnt support it")
-    }
+async function loadAccountTabPageContent(page){
+    if(!page) return selectPage(loadAccountProfileSettings)
+    if(page === "about") return selectPage(loadAccountProfileSettings);
+    selectPage(clearProfileTabContentHTML)
 
-    if(typeof Client().SetUserIcon === "function" ) {
-        getAccountSettingsElement().insertAdjacentElement(
-            "beforeend",
-            JsonEditor.getSettingElement(profileUrl, "Profile Picture", "Enter an URL starting with https://", async (value) => {
-                if (originalUserData.icon !== value) {
-                    JsonEditor.showSaveButton("profile_url", () => {
-                        originalUserData.icon = value
-                        saveAccountChanges({
-                            icon: value
-                        });
-                    });
-                } else {
-                    JsonEditor.hideSaveButton();
-                }
-            }, {
-                regexMatcher: /^https?:\/\/[a-zA-Z0-9.-]+(?:\/[^\s]*)?$/,
-                canBeNull: true,
-            })
-        )
-    }
-    else{
-        console.error("Setting 'Profile Picture' not shown because client doesnt support it")
-    }
+    async function selectPage(callback){
 
-    if(typeof Client().SetAlias === "function" ) {
-        getAccountSettingsElement().insertAdjacentElement(
-            "beforeend",
-            JsonEditor.getSettingElement(alias, "Messenger Alias",
-                `   
-                    How people can reach you<br>
-                    Current: ${originalUserData?.alias ? `${originalUserData?.alias}@${getHomeSocket().host}` : "none"}
-                `
-                , async (value) => {
-                if(originalUserData.alias !== value && value?.trim()?.length > 0){
-                    JsonEditor.showSaveButton("alias", () => {
-                        originalUserData.alias = value
-                        saveAccountChanges({
-                            vanity: value
-                        });
-                    });
-                }
-                else{
-                    JsonEditor.hideSaveButton();
-                }
-            }, {
-                regexMatcher: /^[a-zA-Z0-9_.-]{1,30}$/,
-            })
-        )
-    }
-    else{
-        console.error("Setting 'Display Name' not shown because client doesnt support it")
-    }
-
-    // check if this feature is supported in whatever client
-    if(typeof Client().SetUserConsistentSettings === "function" ){
-        getAccountSettingsElement().insertAdjacentElement(
-            "beforeend",
-            JsonEditor.getSettingElement(consistent, "Sync with servers?", "Automatically update server profiles on connection.", async (value) => {
-                if(originalUserData.consistent !== value){
-                    JsonEditor.showSaveButton("consistent", () => {
-                        originalUserData.consistent = value
-                        Client().SetUserConsistentSettings(!!value);
-                    });
-                }
-                else{
-                    JsonEditor.hideSaveButton();
-                }
-            })
-        )
-    }
-    else{
-        console.error("Setting 'Consistent?' not shown because client doesnt support it")
+        let tabs = getTabNavTabs();
+        tabs.forEach(tab => {
+            if(tab?.id === page) if(!tab.classList.contains("selected")) tab.classList.add("selected");
+            if(tab?.id !== page) if(tab.classList.contains("selected")) tab.classList.remove("selected");
+        })
+        if(callback) await callback();
     }
 }
 
