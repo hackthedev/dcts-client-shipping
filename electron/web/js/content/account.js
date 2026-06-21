@@ -25,27 +25,13 @@ async function loadAccount(identifier){
 
     // temporary hardcoded
     let memberIcon = getFixedUrl(getHomeSocket().host, await Client().GetUserIcon()) ?? null;
-    let memberBanner = "https://assets.ppy.sh/topic-covers/6320/c7490f9d8cba26dcd7fb34f08a211156e311d57ffd470edff68a92832d3a1fd8.gif" ?? getFixedUrl(getHomeSocket().host, await Client().GetUserIcon()) ?? null;
+    let memberBanner = getFixedUrl(getHomeSocket().host, await Client().GetUserBanner()) ?? null;
     let homeServer = await getHomeSocket().host;
 
     let gidAddressShortened = `${ChatTools.Sanitize.truncateText(await getGid(), 6)}@${homeServer}`;
     let gidAddressFull = `${await getGid()}@${homeServer}`;
     let aliasAddress = `${await Client().GetAlias()}@${homeServer}`;
-
-    let memberSignature =
-        `
-        <center>
-            <b>Spread the word of DCTS!</b><br>
-            <a target="_blank" href="http://desktop.dcts.community">Desktop Client</a>
-            |
-            <a target="_blank" href="http://android.dcts.community">Android App</a>
-            |
-            <a target="_blank" href="http://donate.dcts.community/">Donate</a>
-            
-            <br><br>
-            <i>Lets build the <u>next-gen web</u> of independence!</i>
-        </center>
-        `
+    let memberSignature = await Client().GetSignature();
 
     let memberAlias = await Client().GetAlias() ?
         `<a onclick="navigator.clipboard.writeText('${aliasAddress}')">${aliasAddress}</a>`
@@ -56,26 +42,32 @@ async function loadAccount(identifier){
     getContentElement().innerHTML =
     `    
         <div class="account-container">            
-            <div class="banner" style="--member-banner: url('${memberBanner}')"></div>
+            <div class="banner" id="banner" onclick="uploadAccountImage(this)" style="--member-image: url('${memberBanner}')"></div>
             
             <div class="profile-info">
-                <div class="icon" onclick="uploadAccountIcon(this)" style="--member-icon: url('${memberIcon}')"></div>
+                <div class="icon" id="icon" onclick="uploadAccountImage(this)" style="--member-image: url('${memberIcon}')"></div>
                 
                 <div class="details">
                     <h1 class="name">${memberName ?? ""}</h1>
                     <h1 class="alias">${memberAlias ?? ""}</h1>    
                 
-                    <div class="signature">
-                        ${memberSignature ? `${memberSignature}` : ""}
-                    </div>
+                
+                
+                    ${memberSignature ? 
+                        `
+                        <div class="signature">
+                            ${memberSignature}
+                        </div>
+                        
+                        ` : ""}                    
                 </div>
             </div>
             
             
             <div class="tab_settings">
                 <div class="tabs">
-                    <a href="#" id="about" class="selected" onclick="loadAccountTabPageContent('about')">${Icon.display("info")} About</a>
-                    <a href="#" id="profile" onclick="loadAccountTabPageContent('profile')">${Icon.display("account")} Profile</a>
+                    <a href="#" id="general" class="selected" onclick="loadAccountTabPageContent('general')">${Icon.display("info")} General</a>
+                    
                 </div>
             </div>
             
@@ -87,7 +79,10 @@ async function loadAccount(identifier){
     await loadAccountProfileSettings();
 }
 
-async function uploadAccountIcon(element){
+async function uploadAccountImage(element){
+    if(!element) throw new Error("No element found")
+    if(!element?.id) throw new Error("No element id found")
+
     let file = await FileManager.pickFile(".png,.jpg,.gif,.webm,.jpeg");
     if(!file) return;
 
@@ -106,11 +101,11 @@ async function uploadAccountIcon(element){
     let uploadedUrl = null;
     if(uploaded?.ok === true){
         uploadedUrl = getFixedUrl(homeServerAddress, uploaded.path);
-        await Client().SetUserIcon(uploadedUrl)
-    }
 
-    if(element){
-        element.style.setProperty("--member-icon", `url("${uploadedUrl}")`);
+        if(element.id === "icon") await Client().SetUserIcon(uploadedUrl)
+        if(element.id === "banner") await Client().SetUserBanner(uploadedUrl)
+
+        element.style.setProperty("--member-image", `url("${uploadedUrl}")`);
     }
 }
 
@@ -120,7 +115,7 @@ function clearProfileTabContentHTML(){
 
 async function loadAccountTabPageContent(page){
     if(!page) return selectPage(loadAccountProfileSettings)
-    if(page === "about") return selectPage(loadAccountProfileSettings);
+    if(page === "general") return selectPage(loadAccountProfileSettings);
     selectPage(clearProfileTabContentHTML)
 
     async function selectPage(callback){

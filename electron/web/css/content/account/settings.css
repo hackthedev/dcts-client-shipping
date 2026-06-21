@@ -39,7 +39,7 @@
 
     border-radius: 4px;
 
-    background-image: var(--member-banner, none),
+    background-image: var(--member-image, none),
     linear-gradient(
             -90deg,
             hsl(from var(--main) h s calc(l * 2.25)),
@@ -63,7 +63,7 @@
     border-radius: 50%;
     border: 10px solid hsl(from var(--main) h s calc(l * 2.5));
 
-    background-image: var(--member-icon, none),
+    background-image: var(--member-image, none),
     linear-gradient(
             -90deg,
             hsl(from var(--main) h s calc(l * 2.25)),
@@ -127,6 +127,7 @@
     gap: 0.25rem;
     width: 100%;
     margin-top: 2rem;
+    border-bottom: 1.5px solid var(--border-color-bright);
 }
 
 .layout > .content-container > .content > .account-container > .tab_settings > .tabs {
@@ -253,4 +254,9 @@
     width: 300px;
     max-width: 400px;
     padding: 0.5rem;
+}
+.account-container .json-editor-setting input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    filter: invert(100%) hue-rotate(140deg) brightness(1);
 }

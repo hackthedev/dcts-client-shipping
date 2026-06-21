@@ -1,4 +1,4 @@
-async function loadAccountProfileSettings(){
+async function loadAccountProfileSettings() {
     let nickname = await Client().GetNickname() ?? "";
     let alias = await Client().GetAlias() ?? "";
     let profileUrl = await Client().GetUserIcon() ?? "";
@@ -10,19 +10,18 @@ async function loadAccountProfileSettings(){
     originalUserData.icon = profileUrl;
     originalUserData.consistent = consistent;
 
-    if(typeof Client().SetNickname === "function" ) {
+    if (typeof Client().SetNickname === "function") {
         getTabContentPage().insertAdjacentElement(
             "beforeend",
             JsonEditor.getSettingElement(nickname, "Display Name", "How others will see you", async (value) => {
-                if(originalUserData.nickname !== value){
+                if (originalUserData.nickname !== value) {
                     JsonEditor.showSaveButton("nickname", () => {
                         originalUserData.nickname = value
                         saveAccountChanges({
                             name: value
                         });
                     });
-                }
-                else{
+                } else {
                     JsonEditor.hideSaveButton();
                 }
             }, {
@@ -30,36 +29,11 @@ async function loadAccountProfileSettings(){
                 canBeNull: true,
             })
         )
-    }
-    else{
+    } else {
         console.error("Setting 'Display Name' not shown because client doesnt support it")
     }
 
-    if(typeof Client().SetUserIcon === "function" ) {
-        getTabContentPage().insertAdjacentElement(
-            "beforeend",
-            JsonEditor.getSettingElement(profileUrl, "Profile Picture", "Enter an URL starting with https://", async (value) => {
-                if (originalUserData.icon !== value) {
-                    JsonEditor.showSaveButton("profile_url", () => {
-                        originalUserData.icon = value
-                        saveAccountChanges({
-                            icon: value
-                        });
-                    });
-                } else {
-                    JsonEditor.hideSaveButton();
-                }
-            }, {
-                regexMatcher: /^https?:\/\/[a-zA-Z0-9.-]+(?:\/[^\s]*)?$/,
-                canBeNull: true,
-            })
-        )
-    }
-    else{
-        console.error("Setting 'Profile Picture' not shown because client doesnt support it")
-    }
-
-    if(typeof Client().SetAlias === "function" ) {
+    if (typeof Client().SetAlias === "function") {
         getTabContentPage().insertAdjacentElement(
             "beforeend",
             JsonEditor.getSettingElement(alias, "Messenger Alias",
@@ -68,44 +42,69 @@ async function loadAccountProfileSettings(){
                     Current: ${originalUserData?.alias ? `${originalUserData?.alias}@${getHomeSocket().host}` : "none"}
                 `
                 , async (value) => {
-                    if(originalUserData.alias !== value && value?.trim()?.length > 0){
+                    if (originalUserData.alias !== value && value?.trim()?.length > 0) {
                         JsonEditor.showSaveButton("alias", () => {
                             originalUserData.alias = value
                             saveAccountChanges({
                                 vanity: value
                             });
                         });
-                    }
-                    else{
+                    } else {
                         JsonEditor.hideSaveButton();
                     }
                 }, {
                     regexMatcher: /^[a-zA-Z0-9_.-]{1,30}$/,
                 })
         )
-    }
-    else{
+    } else {
         console.error("Setting 'Display Name' not shown because client doesnt support it")
     }
 
     // check if this feature is supported in whatever client
-    if(typeof Client().SetUserConsistentSettings === "function" ){
+    if (typeof Client().SetUserConsistentSettings === "function") {
         getTabContentPage().insertAdjacentElement(
             "beforeend",
             JsonEditor.getSettingElement(consistent, "Sync with servers?", "Automatically update server profiles on connection.", async (value) => {
-                if(originalUserData.consistent !== value){
+                if (originalUserData.consistent !== value) {
                     JsonEditor.showSaveButton("consistent", () => {
                         originalUserData.consistent = value
                         Client().SetUserConsistentSettings(!!value);
                     });
-                }
-                else{
+                } else {
                     JsonEditor.hideSaveButton();
                 }
             })
         )
-    }
-    else{
+    } else {
         console.error("Setting 'Consistent?' not shown because client doesnt support it")
     }
+
+
+    // sadly some manual handling again
+    getTabContentPage().insertAdjacentHTML("beforeend",
+        `
+        <div class="signature-setting json-editor-setting">
+            <p class="json-editor-setting-headline">Signature</p>
+            <div class="json-editor-setting-description" style="margin-bottom: 10px; font-style: italic">
+                The signature shown on your profile (supporting HTML tags)
+            </div>
+            
+            <textarea rows="10" class="signature-editor">${ChatTools.Sanitize.encodePlainText(await Client().GetSignature() ?? "")}</textarea>
+        </div>
+    `
+    );
+
+    let sigEditor = getTabContentPage().querySelector(".signature-editor");
+    let originalSignature = await Client().GetSignature() ?? "";
+
+    sigEditor.addEventListener("input", () => {
+        if (sigEditor.value !== originalSignature) {
+            JsonEditor.showSaveButton("signature", () => {
+                Client().SetSignature(sigEditor.value);
+                originalSignature = sigEditor.value;
+            });
+        } else {
+            JsonEditor.hideSaveButton();
+        }
+    });
 }
