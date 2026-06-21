@@ -24,7 +24,7 @@ async function loadAccount(identifier){
     let memberName = await Client().GetNickname() ?? null;
 
     // temporary hardcoded
-    let memberIcon = "https://i.pinimg.com/736x/a6/72/05/a67205f60f44c386f4bdfb8fab4d8bed.jpg" ?? getFixedUrl(getHomeSocket().host, await Client().GetUserIcon()) ?? null;
+    let memberIcon = getFixedUrl(getHomeSocket().host, await Client().GetUserIcon()) ?? null;
     let memberBanner = "https://assets.ppy.sh/topic-covers/6320/c7490f9d8cba26dcd7fb34f08a211156e311d57ffd470edff68a92832d3a1fd8.gif" ?? getFixedUrl(getHomeSocket().host, await Client().GetUserIcon()) ?? null;
     let homeServer = await getHomeSocket().host;
 
@@ -59,7 +59,7 @@ async function loadAccount(identifier){
             <div class="banner" style="--member-banner: url('${memberBanner}')"></div>
             
             <div class="profile-info">
-                <div class="icon" style="--member-icon: url('${memberIcon}')"></div>
+                <div class="icon" onclick="uploadAccountIcon(this)" style="--member-icon: url('${memberIcon}')"></div>
                 
                 <div class="details">
                     <h1 class="name">${memberName ?? ""}</h1>
@@ -85,6 +85,33 @@ async function loadAccount(identifier){
     `
 
     await loadAccountProfileSettings();
+}
+
+async function uploadAccountIcon(element){
+    let file = await FileManager.pickFile(".png,.jpg,.gif,.webm,.jpeg");
+    if(!file) return;
+
+    let homeServerAddress = await getHomeSocket().host;
+    let homeServerProtocol = getProtocol(homeServerAddress);
+    let addressFinished = `${homeServerProtocol}://${homeServerAddress}`;
+
+    let uploaded = await FileManager.uploadFile(file, {
+        authObj: {
+            "x-session-id": encodeURIComponent(await getSessionIdFromHost(await getHomeSocket().host)),
+            "x-public-key": encodeURIComponent(await Client().GetPublicKey()),
+        },
+        host: addressFinished
+    })
+
+    let uploadedUrl = null;
+    if(uploaded?.ok === true){
+        uploadedUrl = getFixedUrl(homeServerAddress, uploaded.path);
+        await Client().SetUserIcon(uploadedUrl)
+    }
+
+    if(element){
+        element.style.setProperty("--member-icon", `url("${uploadedUrl}")`);
+    }
 }
 
 function clearProfileTabContentHTML(){
