@@ -36,6 +36,8 @@
 .layout > .content-container > .content > .message-page-container .chat-content > .content > .system-message {
     position: relative;
     display: flex;
+
+    flex: 1 1 auto;
     width: 100%;
     justify-content: center;
     align-items: center;
@@ -200,17 +202,6 @@
     margin: 0;
 }
 
-.layout > .content-container > .content > .message-page-container > .chat-content > .content {
-    display: flex;
-    flex-direction: column;
-    width: calc(100% - 2rem);
-    height: calc(100% - 2rem);
-
-    padding: 1rem;
-
-    flex: 1 1 auto;
-    overflow: auto;
-}
 
 .layout > .content-container > .content > .message-page-container > .chat-content .editor-container {
     padding: 1rem;

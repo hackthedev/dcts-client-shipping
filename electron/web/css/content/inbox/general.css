@@ -5,10 +5,14 @@
 .layout > .content-container > .content > .message-page-container > .chat-content > .content {
     display: flex;
     flex-direction: column;
+    flex: 1 1 auto;
     overflow: auto;
     width: 100%;
     height: 100%;
+
+    padding: 1rem;
 }
+
 
 .layout > .content-container > .content > .message-page-container > .chat-content > .content > .message-container.mine{
     justify-content: end;

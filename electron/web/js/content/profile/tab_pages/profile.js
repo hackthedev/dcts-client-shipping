@@ -1,4 +1,15 @@
-async function loadAccountProfileSettings() {
+async function getUserProfileData(host, identifier){
+    if(!host) throw new Error("Missing host");
+    if(!identifier) throw new Error("Missing identifier");
+
+    let userData = await fetch(`${getProtocol(host)}://${host}/messenger/profile/${identifier}`, {
+        signal: AbortSignal.timeout(5000)
+    });
+
+    return userData?.json() ?? {};
+}
+
+async function loadAccountProfileSettings(identifier) {
     let nickname = await Client().GetNickname() ?? "";
     let alias = await Client().GetAlias() ?? "";
     let profileUrl = await Client().GetUserIcon() ?? "";

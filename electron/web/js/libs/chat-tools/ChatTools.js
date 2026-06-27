@@ -297,6 +297,15 @@ class ChatTools {
             let urls = this.getUrlFromText(htmlInput);
             if (!urls?.length) return {isMarkdown: false, html: htmlInput};
 
+            urls = urls.filter(url => {
+                let cleanUrl = ChatTools.Sanitize.stripHTML(url);
+                let escapedUrl = cleanUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+                return !new RegExp(`(?:src|href|data-original-url|data-media-type)=["']${escapedUrl}["']`).test(htmlInput);
+            });
+
+            if (!urls?.length) return {isMarkdown: false, html: htmlInput};
+
             let changed = false;
 
             for (const url of urls) {

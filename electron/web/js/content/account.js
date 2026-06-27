@@ -14,55 +14,59 @@ function getTabNavTabs(){
     return getAccountContainerElement().querySelectorAll('.tab_settings .tabs a') ?? null;
 }
 
-async function loadAccount(identifier){
-    //if(!identifier) throw new Error("Couldnt load profile cauz no identifier was set")
+async function loadAccount(host, identifier){
+    if(!identifier && !host){
+        identifier = await getGid();
+        host = await getHomeSocket().host;
+    }
 
+    if(!identifier) throw new Error("Couldnt load profile cauz no identifier was set")
+    if(!host) throw new Error("Couldnt load profile cauz no host was set")
 
-    // let account = request to server to lookup profile table....
-    // then .... fill info below. for now hardcoded to local acc
+    let userDataObj = (await getUserProfileData(host, identifier))?.target;
 
-    let memberName = await Client().GetNickname() ?? null;
+    let homeServer = userDataObj?.home_server;
+    let gid = await getGid(userDataObj?.publicKey);
+    let gidAddressShortened = `${ChatTools.Sanitize.truncateText(gid, 6)}@${homeServer}`;
+    let gidAddressFull = `${gid}@${homeServer}`;
+    let aliasAddress = `${userDataObj?.vanity}@${homeServer}`;
+    let memberSignature = userDataObj?.profile?.signature  ?? null;
 
-    // temporary hardcoded
-    let memberIcon = getFixedUrl(getHomeSocket().host, await Client().GetUserIcon()) ?? null;
-    let memberBanner = getFixedUrl(getHomeSocket().host, await Client().GetUserBanner()) ?? null;
-    let homeServer = await getHomeSocket().host;
+    let memberIcon = getFixedUrl(homeServer, userDataObj?.profile?.icon) ?? null;
+    let memberBanner = getFixedUrl(homeServer, userDataObj?.profile?.banner) ?? null;
+    let memberName = userDataObj?.profile?.name ?? `${ChatTools.Sanitize.truncateText(gid, 6)}`  ?? null;
 
-    let gidAddressShortened = `${ChatTools.Sanitize.truncateText(await getGid(), 6)}@${homeServer}`;
-    let gidAddressFull = `${await getGid()}@${homeServer}`;
-    let aliasAddress = `${await Client().GetAlias()}@${homeServer}`;
-    let memberSignature = await Client().GetSignature();
-
-    let memberAlias = await Client().GetAlias() ?
+    let memberAlias = userDataObj?.vanity ?
         `<a onclick="navigator.clipboard.writeText('${aliasAddress}')">${aliasAddress}</a>`
         :
         `<a onclick="navigator.clipboard.writeText('${gidAddressFull}')">${gidAddressShortened}</a>`;
 
+    let isMyAccount = await getGid() === await getGid(userDataObj?.publicKey);
+
 
     getContentElement().innerHTML =
     `    
-        <div class="account-container">            
-            <div class="banner" id="banner" onclick="uploadAccountImage(this)" style="--member-image: url('${memberBanner}')"></div>
+        <div class="account-container" data-gid="${ChatTools.Sanitize.stripHTML(gid)}">            
+            <div class="banner" id="banner" onclick="uploadAccountImage(this)" style="--member-image: url('${ChatTools.Sanitize.stripHTML(memberBanner)}')"></div>
             
             <div class="profile-info">
-                <div class="icon" id="icon" onclick="uploadAccountImage(this)" style="--member-image: url('${memberIcon}')"></div>
+                <div class="icon" id="icon" onclick="uploadAccountImage(this)" style="--member-image: url('${ChatTools.Sanitize.stripHTML(memberIcon)}')"></div>
                 
                 <div class="details">
                     <h1 class="name">
-                        ${memberName ?? ""}
+                        ${ChatTools.Sanitize.stripHTML(memberName) ?? ""}
                     
                         <div class="actions">
                             <span class="message">${Icon.display("message")}</span>
-                            <span class="report">${Icon.display("info")}</span>
                         </div>
                     </h1>
                     
-                    <h1 class="alias">${memberAlias ?? ""}</h1>    
+                    <h1 class="alias">${ChatTools.Sanitize.forRender(memberAlias) ?? ""}</h1>    
                 
                     ${memberSignature ? 
                         `
                         <div class="signature">
-                            ${memberSignature}
+                            ${ChatTools.Sanitize.forRender(memberSignature, false)}
                         </div>
                         
                         ` : ""}                    
@@ -70,24 +74,32 @@ async function loadAccount(identifier){
             </div>
             
             
+            ${ isMyAccount ? `
             <div class="tab_settings">
                 <div class="tabs">
                     <a href="#" id="general" class="selected" onclick="loadAccountTabPageContent('general')">${Icon.display("info")} General</a>
                     
                 </div>
             </div>
+            ` : ""}
             
             
             <div class="tab_content"></div>
         </div>
     `
 
-    await loadAccountProfileSettings();
+    if(isMyAccount){
+        await loadAccountProfileSettings();
+    }
 }
 
 async function uploadAccountImage(element){
     if(!element) throw new Error("No element found")
     if(!element?.id) throw new Error("No element id found")
+
+    // only allow uploads when actually viewing own profile
+    let parent = element.closest(".account-container");
+    if(!parent || parent?.getAttribute("data-gid") !== await getGid()) return;
 
     let file = await FileManager.pickFile(".png,.jpg,.gif,.webm,.jpeg");
     if(!file) return;
@@ -108,8 +120,18 @@ async function uploadAccountImage(element){
     if(uploaded?.ok === true){
         uploadedUrl = getFixedUrl(homeServerAddress, uploaded.path);
 
-        if(element.id === "icon") await Client().SetUserIcon(uploadedUrl)
-        if(element.id === "banner") await Client().SetUserBanner(uploadedUrl)
+        if(element.id === "icon") {
+            await Client().SetUserIcon(uploadedUrl)
+            await saveAccountChanges({
+                icon: uploadedUrl,
+            })
+        }
+        if(element.id === "banner") {
+            await Client().SetUserBanner(uploadedUrl)
+            await saveAccountChanges({
+                banner: uploadedUrl,
+            })
+        }
 
         element.style.setProperty("--member-image", `url("${uploadedUrl}")`);
     }
@@ -136,16 +158,21 @@ async function loadAccountTabPageContent(page){
 }
 
 async function saveAccountChanges({
+    banner = undefined,
+    signature = undefined,
     icon = undefined,
     name = undefined,
     vanity = undefined,
                                   }){
 
-    let payload = {}
-    if(name !== undefined) payload.name = name;
-    if(icon !== undefined) payload.icon = icon;
+    let payload = {
+        profile: {}
+    }
+    if(name !== undefined) payload.profile.name = name;
+    if(icon !== undefined) payload.profile.icon = icon;
     if(vanity !== undefined) payload.vanity = vanity;
-    if(icon !== undefined) payload.icon = icon;
+    if(banner !== undefined) payload.profile.banner = banner;
+    if(signature !== undefined) payload.profile.signature = signature;
 
     let result = await socketHello(getHomeSocket(), getHomeSocket().host, {...payload})
     if(result?.error){
@@ -153,8 +180,10 @@ async function saveAccountChanges({
     }
     else{
         if(payload?.vanity) Client().SetAlias(vanity);
-        if(payload?.name) Client().SetNickname(name);
-        if(payload?.icon) Client().SetUserIcon(icon);
+        if(payload?.profile?.name) Client().SetNickname(name);
+        if(payload?.profile?.icon) Client().SetUserIcon(icon);
+        if(payload?.profile?.banner) Client().SetUserBanner(banner);
+        if(payload?.profile?.signature) Client().SetSignature(signature);
     }
 }
 

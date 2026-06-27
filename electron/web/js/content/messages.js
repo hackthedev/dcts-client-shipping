@@ -342,8 +342,8 @@ async function renderMessages(customElement = undefined) {
     }
 }
 
-async function getGid(){
-    return await Client().GenerateGid(await Client().GetPublicKey());
+async function getGid(publicKey = null){
+    return await Client().GenerateGid(publicKey ?? await Client().GetPublicKey());
 }
 
 async function getLastChatMessage(chatId){
@@ -458,22 +458,36 @@ async function renderChat(chatId, customChatObject = null) {
                 ["clean", "link", "image", "video"],
                 ["code", "code-block", "blockquote"]
             ],
-            onImg: (src, { insert }) => {
+            onImg: async (src, { insert }) => {
+                let homeServerAddress = await getHomeSocket().host;
+                let homeServerProtocol = getProtocol(homeServerAddress);
+                let addressFinished = `${homeServerProtocol}://${homeServerAddress}`;
 
+                let uploadHeaders = {
+                    authObj: {
+                        "x-session-id": encodeURIComponent(await getSessionIdFromHost(await getHomeSocket().host)),
+                        "x-public-key": encodeURIComponent(await Client().GetPublicKey()),
+                    },
+                    host: addressFinished
+                };
+
+                let srcToUpload = null;
                 if(src?.constructor?.name === "File"){
-                    return console.log("Detected file")
+                    srcToUpload = src;
                 }
                 else if(src?.constructor?.name === "String"){
-                    if(src.startsWith("data:image")){
-                        insert("");
-                    }
-
-                    return
+                    srcToUpload = await FileManager.srcToFile(src, {...uploadHeaders});
+                    console.log(srcToUpload)
+                    return insert(getFixedUrl(homeServerAddress, srcToUpload?.path))
                 }
 
-                // remove base64 image
-                if(src.startsWith("data:image/")){
-                    insert("");
+                let uploaded = await FileManager.uploadFile(srcToUpload, { ...uploadHeaders})
+
+                let uploadedUrl = null;
+                if(uploaded?.ok === true){
+                    uploadedUrl = getFixedUrl(homeServerAddress, uploaded.path);
+
+                    insert(uploadedUrl)
                 }
             },
             onSend: async (html) => {

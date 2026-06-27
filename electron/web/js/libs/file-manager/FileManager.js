@@ -75,7 +75,13 @@ class FileManager {
         return result;
     }
 
-    static async srcToFile(src) {
+    static async srcToFile(src, {
+        authObj = {},
+        onProgress = null,
+        params = {},
+        type = "upload",
+        host = null,
+    } = {}) {
         if (!src || typeof src !== "string")
             return {ok: false, error: "invalid_src"};
 
@@ -89,7 +95,13 @@ class FileManager {
             const filename = `${this.generateId(16)}.${ext}`;
             const file = new File([blob], filename, {type: blob.type});
 
-            const res = await this.uploadFile([file]);
+            const res = await this.uploadFile([file] , {
+                host,
+                authObj,
+                onProgress,
+                params,
+                type,
+            });
             return res;
         } catch (err) {
             console.error("srcToFile error:", err);
