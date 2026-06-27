@@ -15,6 +15,7 @@ async function getDiscoveredHosts(){
 
 async function getSavedServers(container) {
     if (!container) return console.warn("No container supplied!");
+    selectNavEntry(getNavEntryElement(0))
 
     container.innerHTML = `<div class="serverList"></div>`;
     let serverListElement = container.querySelector(".serverList");
@@ -236,7 +237,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     getSavedServers(getContentElement())
 
     //loadAccount()
-    loadAccount("chat.network-z.com", "zainifer")
+    //loadAccount("chat.network-z.com", "zainifer")
 
     // only if local for now.
     if(isLocal()){
@@ -244,6 +245,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     registerSwipingHandles();
+    selectNavEntry(getNavEntryElement(0))
 });
 
 async function setUnreadChatsInNav(){
