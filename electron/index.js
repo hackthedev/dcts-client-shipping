@@ -81,6 +81,7 @@ async function createWindow(width, height) {
     // installing multiple packages
     const results = await FrontendLibs.installMultiple([
         { package: '@hackthedev/icons@latest', path: libDir },
+        { package: '@hackthedev/element-loader@latest', path: libDir },
         { package: '@hackthedev/mobile-ui@latest', path: libDir },
         { package: '@hackthedev/prompts@latest', path: libDir },
         { package: '@hackthedev/file-manager', path: libDir },

@@ -17,6 +17,10 @@ async function getSavedServers(container) {
     if (!container) return console.warn("No container supplied!");
 
     container.innerHTML = `<div class="serverList"></div>`;
+    let serverListElement = container.querySelector(".serverList");
+
+    // only show loading bar if servers can be visible
+    if(serverListElement) showLoadingBar()
 
     let servers = isLauncher() ? await Client().GetServers() : {};
     if(typeof servers === "string") servers = JSON.parse(servers || "{}"); // android bridge fix
@@ -41,7 +45,8 @@ async function getSavedServers(container) {
         }
     }
 
-    await renderServersList(container.querySelector(".serverList"), mergedServers);
+    await renderServersList(serverListElement, mergedServers);
+    if(serverListElement)  stopLoadingBar()
 }
 
 function submitServerUI(){
@@ -230,7 +235,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     buildNavHTML(true);
     getSavedServers(getContentElement())
 
-    loadAccount()
+    //loadAccount()
+    loadAccount("chat.network-z.com", "zainifer")
 
     // only if local for now.
     if(isLocal()){
@@ -279,9 +285,13 @@ function registerSwipingHandles(){
 
         // general actions
         function onGeneralSwipe(){
-            if(getNavElement()?.classList?.contains("hide")) getNavElement().classList.remove("hide");
+            showNavigation()
         }
     }
+}
+
+function showNavigation(){
+    if(getNavElement()?.classList?.contains("hide")) getNavElement().classList.remove("hide");
 }
 
 function truncateString(value, length) {

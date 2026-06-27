@@ -5,3 +5,7 @@ document.addEventListener("DOMContentLoaded", () => {
 function getHeaderEndBar(){
     return document.querySelector(`.layout > .header .end-bar`);
 }
+
+function getHeaderElement(){
+    return document.querySelector(`.layout > .header`);
+}

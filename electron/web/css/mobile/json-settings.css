@@ -1,0 +1,11 @@
+@media (max-width: 1050px) {
+    .json-editor-setting {
+        /*display: flex !important;
+        flex-direction: column !important;
+        background-color: transparent !important;
+        border: none !important;
+        border-bottom: 1.5px solid var(--border-color-bright) !important;
+
+         */
+    }
+}

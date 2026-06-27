@@ -113,6 +113,9 @@ async function loadAccountProfileSettings(identifier) {
             JsonEditor.showSaveButton("signature", () => {
                 Client().SetSignature(sigEditor.value);
                 originalSignature = sigEditor.value;
+                saveAccountChanges({
+                    signature: sigEditor.value
+                });
             });
         } else {
             JsonEditor.hideSaveButton();

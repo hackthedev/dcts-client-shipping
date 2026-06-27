@@ -1,0 +1,41 @@
+@media (max-width: 1050px) {
+    .layout > .content-container .account-container{
+        box-sizing: border-box !important;
+        margin: 0 !important;
+        border-radius: 0 !important;
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    .layout > .content-container .account-container .banner{
+        width: calc(100% + 2rem)!important;
+        min-width: 0 !important;
+        border-radius: 0 !important;
+        margin: -1rem -1rem 1rem -1rem;
+
+        max-height: 150px !important;
+        min-height: 150px !important;
+        height: 150px !important;
+    }
+
+    .layout > .content-container .account-container .icon{
+        margin-left: 0 !important;
+        top: 0 !important;
+        margin-bottom: 0 !important;
+
+        width: 100px !important;
+        height: 100px !important;;
+
+        min-width: 100px !important;;
+        min-height: 100px !important;;
+    }
+
+    .layout > .content-container .account-container .profile-info{
+        flex-direction: column !important;
+        top: -2rem;
+    }
+    .layout > .content-container .account-container .signature{
+        width: 100% !important;
+        max-height: 200px !important;
+    }
+}

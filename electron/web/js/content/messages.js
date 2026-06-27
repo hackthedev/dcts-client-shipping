@@ -96,6 +96,8 @@ async function loadMessages({
                                 force = false,
                                 render = true,
                             } = {}) {
+    selectNavEntry(getNavEntryElement(1))
+
     try{
         await fetchMessengerChats(force ? 0 : await Client().GetLastOnline())
     }
@@ -284,6 +286,7 @@ async function getChatEntryHTML(chat, latestMessageObj = null){
 }
 
 async function renderMessages(customElement = undefined) {
+    showNavigation();
     let renderElement = customElement !== undefined ? customElement : getContentElement();
     if(customElement === null) throw new Error("Custom Element was null!");
 
@@ -502,11 +505,13 @@ async function renderChat(chatId, customChatObject = null) {
                     let existingChat = await Client().GetChat(targetData.gid)
 
                     if(targetData && existingChat){
-                        let icon = targetData?.icon;
-                        let name = targetData?.name;
+                        let icon = targetData?.profile?.icon;
+                        let name = targetData?.profile?.name;
+                        let banner = targetData?.profile?.banner;
 
                         if(icon) existingChat.icon = icon;
                         if(name) existingChat.title = name;
+                        if(banner) existingChat.banner = banner;
                         existingChat.lastRead = new Date().getTime() + 60_000; // just to be sure to not show a unread indicator on sending
 
                         await Client().SaveChat(targetData.gid, existingChat);
@@ -806,12 +811,17 @@ async function setChatHeader(chat) {
     let chatTitle = chat?.title ?? chat?.name ?? "Unkown";
     let chatIcon = chat?.icon ?? "";
 
+    let chatGid = chat?.gid ?? chat?.host
+    let chatHost = chat?.home_server ?? chat?.host;
+
+    let openProfileAction = `onclick="loadAccount('${chatHost}', '${chatGid}')"`;
+
     getChatContentElement().innerHTML =
         `
         <div class="header">
             <span class="back" onclick="loadMessages()">${Icon.display("back")}</span>
-            <div class="icon" style="background-image: url('${ChatTools.Sanitize.stripHTML(chatIcon)}')"></div>
-            <h1>${ChatTools.Sanitize.forRender(chatTitle)}</h1>
+            <div class="icon" ${openProfileAction} style="background-image: url('${ChatTools.Sanitize.stripHTML(chatIcon)}')"></div>
+            <h1 ${openProfileAction}>${ChatTools.Sanitize.forRender(ChatTools.Sanitize.truncateText(chatTitle, 30))}</h1>
         </div>`;
 }
 
@@ -822,7 +832,10 @@ async function startNewChat({
                             } = {}) {
 
     if(automate){
-        return await startChat(identifier)
+        showLoadingBar()
+        await loadMessages()
+        await startChat(identifier)
+        return stopLoadingBar()
     }
 
     prompts.showPrompt(

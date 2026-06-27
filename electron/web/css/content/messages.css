@@ -144,6 +144,7 @@
     flex-direction: row;
     font-size: 14px;
     position: relative;
+    user-select: none;
 }
 .layout > .content-container > .content > .message-page-container .chats .chat .latestMessage img,
 .layout > .content-container > .content > .message-page-container .chats .chat .latestMessage video,
@@ -200,6 +201,10 @@
 .layout > .content-container > .content > .message-page-container .chat-content .header h1{
     font-size: 16px;
     margin: 0;
+}
+.layout > .content-container > .content > .message-page-container .chat-content .header h1,
+.layout > .content-container > .content > .message-page-container .chat-content .header .icon{
+    cursor: pointer;
 }
 
 

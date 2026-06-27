@@ -22,6 +22,21 @@
     overflow: auto;
 }
 
+.layout > .content-container > .content > .account-container > .banner .back{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(
+        rgba(0, 0, 0, 0.5),
+        transparent,
+        transparent
+    );
+    padding: 0.25rem;
+    cursor: pointer;
+
+    width: 3rem;
+    height: 3rem;
+}
 .layout > .content-container > .content > .account-container > .banner {
     display: flex;
     flex-direction: column;
@@ -135,6 +150,8 @@
     background-color: hsl(from var(--main) h s calc(l * 3.5));
     border: 1.5px solid var(--border-color);
     border-radius: 4px;
+
+    line-height: 125%;
 }
 
 /* tab settings */

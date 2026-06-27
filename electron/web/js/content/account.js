@@ -20,34 +20,45 @@ async function loadAccount(host, identifier){
         host = await getHomeSocket().host;
     }
 
+    let isServer = false
+    if(host === identifier) isServer = true
+
     if(!identifier) throw new Error("Couldnt load profile cauz no identifier was set")
     if(!host) throw new Error("Couldnt load profile cauz no host was set")
 
-    let userDataObj = (await getUserProfileData(host, identifier))?.target;
+    let userDataObj = isServer ?
+        await Client().GetServer(host)?.serverinfo ?? await fetchServerInfo(host)
+    :
+        (await getUserProfileData(host, identifier))?.target;
 
-    let homeServer = userDataObj?.home_server;
-    let gid = await getGid(userDataObj?.publicKey);
-    let gidAddressShortened = `${ChatTools.Sanitize.truncateText(gid, 6)}@${homeServer}`;
-    let gidAddressFull = `${gid}@${homeServer}`;
-    let aliasAddress = `${userDataObj?.vanity}@${homeServer}`;
-    let memberSignature = userDataObj?.profile?.signature  ?? null;
+    // some heavy fuckery.
+    let homeServer = isServer ? host : userDataObj?.home_server;
+    let gid = isServer ? host : await getGid(userDataObj?.publicKey);
+    let gidAddressShortened = isServer ? host : `${ChatTools.Sanitize.truncateText(gid, 6)}@${homeServer}`;
+    let gidAddressFull = isServer ? host : `${gid}@${homeServer}`;
+    let aliasAddress = isServer ? host : `${userDataObj?.vanity}@${homeServer}`;
+    let memberSignature = isServer ? userDataObj?.about : userDataObj?.profile?.signature ?? null;
 
-    let memberIcon = getFixedUrl(homeServer, userDataObj?.profile?.icon) ?? null;
-    let memberBanner = getFixedUrl(homeServer, userDataObj?.profile?.banner) ?? null;
-    let memberName = userDataObj?.profile?.name ?? `${ChatTools.Sanitize.truncateText(gid, 6)}`  ?? null;
+    let memberIcon = getFixedUrl(homeServer, isServer ? userDataObj?.icon : userDataObj?.profile?.icon) ?? null;
+    let memberBanner = getFixedUrl(homeServer, isServer ? userDataObj?.banner : userDataObj?.profile?.banner) ?? null;
+    let memberName = isServer ? userDataObj?.name : userDataObj?.profile?.name ?? `${ChatTools.Sanitize.truncateText(gid, 6)}`  ?? null;
 
     let memberAlias = userDataObj?.vanity ?
         `<a onclick="navigator.clipboard.writeText('${aliasAddress}')">${aliasAddress}</a>`
         :
         `<a onclick="navigator.clipboard.writeText('${gidAddressFull}')">${gidAddressShortened}</a>`;
 
-    let isMyAccount = await getGid() === await getGid(userDataObj?.publicKey);
+    let isMyAccount = await getGid() === await getGid(userDataObj?.publicKey) && userDataObj?.publicKey && !isServer;
 
+    // allow some highly specific styling
+    ChatTools.Sanitize.SANITIZE_OPTIONS.ALLOWED_TAGS.push("center")
 
     getContentElement().innerHTML =
     `    
         <div class="account-container" data-gid="${ChatTools.Sanitize.stripHTML(gid)}">            
-            <div class="banner" id="banner" onclick="uploadAccountImage(this)" style="--member-image: url('${ChatTools.Sanitize.stripHTML(memberBanner)}')"></div>
+            <div class="banner" id="banner" onclick="uploadAccountImage(this)" style="--member-image: url('${ChatTools.Sanitize.stripHTML(memberBanner)}')">
+                <span class="back" onclick="renderMessages()">${Icon.display("back")}</span>
+            </div>
             
             <div class="profile-info">
                 <div class="icon" id="icon" onclick="uploadAccountImage(this)" style="--member-image: url('${ChatTools.Sanitize.stripHTML(memberIcon)}')"></div>
@@ -57,7 +68,14 @@ async function loadAccount(host, identifier){
                         ${ChatTools.Sanitize.stripHTML(memberName) ?? ""}
                     
                         <div class="actions">
-                            <span class="message">${Icon.display("message")}</span>
+                            ${ !isServer ? `
+                            <span class="message" onclick="startNewChatFromProfile('${ChatTools.Sanitize.stripHTML(gidAddressFull)}')">${Icon.display("message")}</span>
+                            ` : ""}
+                            
+                            ${ isServer ? `
+                            <span class="message" title="This is a server, not a user.">${Icon.display("server")}</span>
+                            ` : ""}
+                            
                         </div>
                     </h1>
                     
@@ -91,6 +109,16 @@ async function loadAccount(host, identifier){
     if(isMyAccount){
         await loadAccountProfileSettings();
     }
+
+    showNavigation();
+}
+
+function startNewChatFromProfile(gid){
+    if(!gid) throw new Error("Couldnt start chat from profile cauz gid was missing")
+    startNewChat({
+        identifier: gid,
+        automate: true
+    })
 }
 
 async function uploadAccountImage(element){
