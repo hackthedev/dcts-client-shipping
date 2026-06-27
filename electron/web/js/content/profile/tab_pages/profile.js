@@ -36,7 +36,7 @@ async function loadAccountProfileSettings(identifier) {
                     JsonEditor.hideSaveButton();
                 }
             }, {
-                regexMatcher: /^[a-zA-Z0-9_.-]{1,30}$/,
+                regexMatcher: /^[a-zA-Z0-9_. -]{1,30}$/,
                 canBeNull: true,
             })
         )
