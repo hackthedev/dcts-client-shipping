@@ -172,14 +172,19 @@ async function renderServersList(container, servers) {
         card.setAttribute("address", address)
         card.style.setProperty("--reveal-delay", `${idx * 200}ms`);
 
+        let voipEnabled = serverObj?.serverinfo?.voip ?? serverObj?.serverinfo?.turn;
+        let isHomeServer = await isLauncher() ? await Client().GetHomeServer() === address : false
+        let safeAddress = ChatTools.Sanitize.stripHTML(address);
+
         card.innerHTML = `
              <div class="banner" style="background-image:url('${getFixedUrl(address, serverObj?.serverinfo?.banner)}')">
                 <p class="name">${encodePlainText(truncateString(serverObj?.serverinfo?.name || address, 25))}</p>
                 
                  <div class="features">
-                    ${serverObj?.serverinfo?.voip === true ? `<div id="turn-vc" class="feature" title="Voice chat suported">${Icon.display("mic")}</div>` : ""}
-                    ${serverObj?.serverinfo?.voip === true ? `<div id="turn-ss" class="feature" title="Screensharing supported">${Icon.display("screenshare")}</div>` : ""}
-                    <div class="feature" title="Version ${versionText}">${Icon.display("tag")}</div>
+                    ${voipEnabled ? `<div id="turn-vc" class="feature" title="Voice chat suported">${Icon.display("mic")}</div>` : ""}
+                    ${voipEnabled ? `<div id="turn-ss" class="feature" title="Screensharing supported">${Icon.display("screenshare")}</div>` : ""}
+                    <div class="feature" title="Version ${versionText}">${Icon.display("tag")}</div>                    
+                    <div onclick="setHomeServer('${safeAddress}')" id="turn-ss" class="feature ${isHomeServer ? `home-server`: ""}" title="${isHomeServer ? "Your home server" : "Set as home server" }">${Icon.display("star")}</div>
                   </div>
               </div>        
         
@@ -191,8 +196,8 @@ async function renderServersList(container, servers) {
                 </label>
                                 
                 <div class="buttons">
-                    <a class="joinButton" href="${getProtocol(address)}://${address}">Join</a>
                     <a class="joinButton delete" onclick="deleteServer('${extractHost(address)}')"">&#128465;</a>
+                    <a class="joinButton" href="${getProtocol(address)}://${address}">Join</a>
                 </div>
                 
               </div>
@@ -207,6 +212,14 @@ async function renderServersList(container, servers) {
 
         setTimeout(() => card.classList.add("reveal"), idx * 200);
     }
+}
+
+async function setHomeServer(address){
+    if(!address) throw new Error("No address provided!");
+    // insert confirm
+    // insert compatibility check
+    await Client().SetHomeServer(extractHost(address));
+    window.location.reload();
 }
 
 async function deleteServer(ip) {

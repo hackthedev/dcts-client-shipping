@@ -79,6 +79,11 @@
     border-top-left-radius: 8px;
 }
 
+.layout > .content-container > .content > .serverList > .server-card .banner .features .feature.home-server svg{
+    color: gold;
+    fill: gold !important;
+}
+
 .layout > .content-container > .content > .serverList > .server-card .banner .features svg {
     width: 14px;
     height: 14px;
@@ -142,5 +147,9 @@
 }
 
 .layout > .content-container > .content > .serverList > .server-card .footer .buttons .joinButton.delete{
+    display: none;
     background-color: indianred;
+}
+.layout > .content-container > .content > .serverList > .server-card:hover .joinButton.delete{
+    display: flex !important;
 }
