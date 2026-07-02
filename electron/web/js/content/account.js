@@ -58,10 +58,17 @@ async function loadAccount(host, identifier){
         <div class="account-container" data-gid="${ChatTools.Sanitize.stripHTML(gid)}">            
             <div class="banner" id="banner" onclick="uploadAccountImage(this)" style="--member-image: url('${ChatTools.Sanitize.stripHTML(memberBanner)}')">
                 <span class="back" onclick="renderMessages()">${Icon.display("back")}</span>
+                <div class="preview-action">
+                    <span>Change Banner</span>
+                </div>
             </div>
             
             <div class="profile-info">
-                <div class="icon" id="icon" onclick="uploadAccountImage(this)" style="--member-image: url('${ChatTools.Sanitize.stripHTML(memberIcon)}')"></div>
+                <div class="icon" id="icon" onclick="uploadAccountImage(this)" style="--member-image: url('${ChatTools.Sanitize.stripHTML(memberIcon)}')">
+                    <div class="preview-action">
+                        <span>Change</span>
+                    </div>
+                </div>
                 
                 <div class="details">
                     <h1 class="name">

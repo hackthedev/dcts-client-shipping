@@ -38,6 +38,7 @@
     height: 3rem;
 }
 .layout > .content-container > .content > .account-container > .banner {
+    position: relative;
     display: flex;
     flex-direction: column;
     flex-shrink: 0;
@@ -63,6 +64,29 @@
     );
 }
 
+.layout > .content-container > .content > .account-container > .banner:hover .preview-action,
+.layout > .content-container > .content > .account-container > .profile-info > .icon:hover .preview-action {
+    position: absolute;
+    display: flex;
+
+    justify-content: center;
+    align-items: center;
+    margin: auto;
+    text-align: center;
+
+    background-color: hsl(from var(--main) h s calc(l * 1) / 40%);
+    color: hsl(from var(--main) h s calc(l * 12));
+
+    width: 100%;
+    height: 100%;
+
+    cursor: pointer;
+}
+.layout > .content-container > .content > .account-container > .banner .preview-action,
+.layout > .content-container > .content > .account-container > .profile-info > .icon .preview-action {
+    display: none;
+}
+
 .layout > .content-container > .content > .account-container > .profile-info > .icon {
     position: relative;
 
@@ -77,6 +101,7 @@
 
     border-radius: 50%;
     border: 10px solid hsl(from var(--main) h s calc(l * 2.5));
+    overflow: hidden;
 
     background-image: var(--member-image, none),
     linear-gradient(
