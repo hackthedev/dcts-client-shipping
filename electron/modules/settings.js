@@ -205,8 +205,19 @@ class Settings {
         }
 
         static async deleteChat(chatId) {
-            // 100% needs to be implemented and should be added to the server too
-            if (!chatId) return
+            if (!chatId) return false;
+
+            let chatPath = path.join(Settings.appDataDir, "chats", chatId);
+
+            Settings.runtimeData.chats ??= {};
+            delete Settings.runtimeData.chats[chatId];
+
+            if (fsNormal.existsSync(chatPath)) {
+                await fs.rm(chatPath, {recursive: true, force: true});
+                return true;
+            }
+
+            return false;
         }
 
         static async getChatsUnread() {

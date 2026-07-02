@@ -1,0 +1,4 @@
+#context-menu{
+    background-color: hsl(from var(--main) h s calc(l * 6) / 20%) !important;
+    border: 1.5px solid var(--border-color);
+}
