@@ -17,10 +17,14 @@ document.addEventListener("DOMContentLoaded", async () => {
                     let chatId = chatEntryElement.getAttribute("data-gid")
                     if(!chatId) return console.warn("no chat entry gid found")
 
-                    // show confirm and delete chat
+                    let chatNameElement = chatEntryElement.querySelector(".meta .name")
+                    let chatName = chatNameElement?.textContent ?? "";
 
+                    // show confirm and delete chat
                     customPrompts.showConfirm(
-                        "Are you sure you want to delete this chat?",
+                        {
+                            title: `Delete Chat with '${chatName}'?`
+                        },
                         [
                             ["Yes", "error"],
                             ["Abort", null],

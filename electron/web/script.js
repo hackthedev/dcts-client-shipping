@@ -216,10 +216,51 @@ async function renderServersList(container, servers) {
 
 async function setHomeServer(address){
     if(!address) throw new Error("No address provided!");
-    // insert confirm
-    // insert compatibility check
-    await Client().SetHomeServer(extractHost(address));
-    window.location.reload();
+
+    let currentAlias = await Client().GetAlias() ?? await getGid();
+    let currentHomeserver = await Client().GetHomeServer();
+    let currentAddress = `${currentAlias}@${currentHomeserver}`;
+
+    // if we're already using the a server we clicked on then we dont
+    // really need to do anything. why would we anyway?
+    if(address === currentHomeserver) return;
+
+    // craft new address info in case the user changes so a preview is being shown
+    let newAlias = ChatTools.Sanitize.truncateText(await getGid(), 6);
+    let newHomeServer = address;
+    let newAddress = `${newAlias}@${newHomeServer}`;
+
+    customPrompts.showConfirm({
+        title: "Change home server?",
+        text: `
+            <p>
+                Are you sure you want to change your home server to '<span class="highlight">${ChatTools.Sanitize.stripHTML(address)}</span>' ?
+            </p>
+            <ul>
+                <li>
+                    Your current address: <span class="highlight">${ChatTools.Sanitize.stripHTML(currentAddress)}</span>
+                </li>
+                <li>
+                    Your new address: <span class="highlight">${ChatTools.Sanitize.stripHTML(newAddress)}</span>
+                </li>
+            </ul>
+            
+            <i>
+                <b>Note:</b> Changing home servers will reset your alias and its not guaranteed that your previous alias is available on other servers!
+            </i>
+        `},
+        [
+            ["Yes", "error"],
+            ["Cancel", null]
+        ],
+        async (value) => {
+            if(value === "yes"){
+                // reload is easier than taking care of the connections and states lol
+                await Client().SetHomeServer(extractHost(address));
+                window.location.reload();
+            }
+        }
+    )
 }
 
 async function deleteServer(ip) {
