@@ -64,8 +64,8 @@
     );
 }
 
-.layout > .content-container > .content > .account-container > .banner:hover .preview-action,
-.layout > .content-container > .content > .account-container > .profile-info > .icon:hover .preview-action {
+.layout > .content-container > .content > .account-container > .banner:hover .preview-action.mine,
+.layout > .content-container > .content > .account-container > .profile-info > .icon:hover .preview-action.mine {
     position: absolute;
     display: flex;
 

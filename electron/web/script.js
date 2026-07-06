@@ -348,10 +348,12 @@ function registerSwipingHandles(){
 }
 
 function showHeader(){
+    if(!MobilePanel.isMobile()) return;
     getHeaderElement().style.display = "flex";
 }
 
 function hideHeader(){
+    if(!MobilePanel.isMobile()) return;
     getHeaderElement().style.display = "none";
 }
 
