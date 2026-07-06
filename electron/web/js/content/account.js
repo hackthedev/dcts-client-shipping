@@ -15,6 +15,8 @@ function getTabNavTabs(){
 }
 
 async function loadAccount(host, identifier){
+    hideHeader();
+
     if(!identifier && !host){
         identifier = await getGid();
         host = await getHomeSocket().host;

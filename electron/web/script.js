@@ -14,6 +14,7 @@ async function getDiscoveredHosts(){
 }
 
 async function getSavedServers(container) {
+    showHeader();
     if (!container) return console.warn("No container supplied!");
     selectNavEntry(getNavEntryElement(0))
 
@@ -345,6 +346,15 @@ function registerSwipingHandles(){
         }
     }
 }
+
+function showHeader(){
+    getHeaderElement().style.display = "flex";
+}
+
+function hideHeader(){
+    getHeaderElement().style.display = "none";
+}
+
 
 function showNavigation(){
     if(getNavElement()?.classList?.contains("hide")) getNavElement().classList.remove("hide");

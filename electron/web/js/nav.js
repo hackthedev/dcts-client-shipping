@@ -2,6 +2,10 @@ function getNavElement(){
     return document.querySelector(`.layout > .content-container .navigation`)
 }
 
+function getHeaderElement(){
+    return document.querySelector(`.layout > .header`)
+}
+
 async function buildNavHTML(initial = false){
     getNavElement().innerHTML =
         `

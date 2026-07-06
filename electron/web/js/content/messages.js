@@ -106,7 +106,10 @@ async function loadMessages({
         console.error(messengerChatsError);
     }
 
-    if(render) await renderMessages();
+    if(render) {
+        showHeader()
+        await renderMessages();
+    }
 
     let clientServers = await Client().GetServers();
     if (clientServers) {
@@ -534,6 +537,7 @@ async function renderChat(chatId, customChatObject = null) {
 
     setChatEntryBadgeCount(chatId, 0)
     setUnreadChatsInNav()
+    hideHeader();
 }
 
 function renderSystemDateInChat(chatId, timestamp, element = null, renderTop = false){
