@@ -22,7 +22,7 @@ async function buildNavHTML(initial = false){
             </div>
             
             <div class="entry" onclick="selectNavEntry(this);loadAccount()">
-                ${Icon.display("account")}
+                ${Icon.display("profile")}
                 <span>Settings</span>
             </div>
         ` : ""}

@@ -7,7 +7,7 @@ function getAccountContainerElement(){
 }
 
 function getTabContentPage(){
-    return getAccountContainerElement().querySelector('.tab_content') ?? null;
+    return getAccountContainerElement()?.querySelector('.tab_content') ?? null;
 }
 
 function getTabNavTabs(){
@@ -104,7 +104,8 @@ async function loadAccount(host, identifier){
             ${ isMyAccount ? `
             <div class="tab_settings">
                 <div class="tabs">
-                    <a href="#" id="general" class="selected" onclick="loadAccountTabPageContent('general')">${Icon.display("info")} General</a>
+                    <a href="#" id="account" class="selected" onclick="loadAccountTabPageContent('account')">${Icon.display("profile")} Account</a>
+                    <a href="#" id="export" class="" onclick="loadAccountTabPageContent('export')">${Icon.display("info")} Export</a>
                     
                 </div>
             </div>
@@ -135,7 +136,7 @@ async function uploadAccountImage(element){
     if(!element?.id) throw new Error("No element id found")
 
     // only allow uploads when actually viewing own profile
-    let parent = element.closest(".account-container");
+    let parent = element.closest(".profile-container");
     if(!parent || parent?.getAttribute("data-gid") !== await getGid()) return;
 
     let file = await FileManager.pickFile(".png,.jpg,.gif,.webm,.jpeg");
@@ -179,8 +180,11 @@ function clearProfileTabContentHTML(){
 }
 
 async function loadAccountTabPageContent(page){
+    clearProfileTabContentHTML();
+
     if(!page) return selectPage(loadAccountProfileSettings)
-    if(page === "general") return selectPage(loadAccountProfileSettings);
+    if(page === "account") return selectPage(loadAccountProfileSettings);
+    if(page === "export") return selectPage(loadExportOptions);
     selectPage(clearProfileTabContentHTML)
 
     async function selectPage(callback){
@@ -225,6 +229,6 @@ async function saveAccountChanges({
 }
 
 function getAccountSettingsElement(){
-    return getContentElement()?.querySelector(".account-container .settings");
+    return getContentElement()?.querySelector(".profile-container .settings");
 }
 
