@@ -35,8 +35,14 @@ if (!fs.existsSync(profilePath)) fs.mkdirSync(profilePath);
 
 
 let server = null
+let localServerUrl = null;
 
 function startLocalServer() {
+    // so this is needed because with file:// we get some shitty ass
+    // issues. because i wrote this comment some time later i already forgot
+    // the exact error, but it was shit like cors errors etc, which is resolved
+    // by doing it this way.
+
     return new Promise((resolve) => {
         const web = express()
         const publicDir = path.join(__dirname, "web")
@@ -48,7 +54,12 @@ function startLocalServer() {
 
         server = web.listen(0, "127.0.0.1", () => {
             const { port } = server.address()
-            resolve(`http://127.0.0.1:${port}`)
+            let address = `http://127.0.0.1:${port}`;
+
+            // used later
+            localServerUrl = address;
+
+            resolve(address)
         })
     })
 }
@@ -78,6 +89,8 @@ function registerWindowBoundsPersistence(win) {
 }
 
 async function createWindow(width, height) {
+    let localUrl = await startLocalServer();
+
     // installing multiple packages
     const results = await FrontendLibs.installMultiple([
         { package: '@hackthedev/icons@latest', path: libDir },
@@ -113,7 +126,10 @@ async function createWindow(width, height) {
             sandbox: false,
             devTools: true,
             webviewTag: true,
-            additionalArguments: ["--appdata=" + applicationDataDir],
+            additionalArguments: [
+                "--appdata=" + applicationDataDir,
+                "--localServerUrl=" + localServerUrl,
+            ],
         },
     });
 
@@ -141,7 +157,6 @@ async function createWindow(width, height) {
         }
     )
 
-    let localUrl = await startLocalServer();
     await win.loadURL(localUrl)
     //win.loadFile(path.join(__dirname, "web/index.html"));
 }
@@ -235,7 +250,8 @@ app.whenReady().then(async () => {
 
     await Settings.initSettings(applicationDataDir);
 
-    // youtube embed fix — header spoofing
+    // youtube embed fix - header spoofing or some shit.
+    // it semi works?? still need to figure this shit out more
     session.defaultSession.webRequest.onBeforeSendHeaders(
         { urls: ['*://*.youtube-nocookie.com/*', '*://*.youtube.com/*', '*://*.googlevideo.com/*', '*://*.ytimg.com/*'] },
         (details, callback) => {
@@ -248,13 +264,19 @@ app.whenReady().then(async () => {
     const primaryDisplay = screen.getPrimaryDisplay();
     const {width, height} = primaryDisplay.workAreaSize;
 
-    session.defaultSession.setDisplayMediaRequestHandler((request, callback) => {
-        desktopCapturer
-            .getSources({types: ["window", "screen"]})
-            .then((sources) => {
-                callback({video: sources[0]});
-            });
-    })
+    // until there is a better solution.
+    // i had the idea of possibly adding some display fetching and selecting inside
+    // the web frontend itself to then just tell the backend (electron) which screen
+    // to use exactly. Just some idea for now tho.
+    if(isLinux){
+        session.defaultSession.setDisplayMediaRequestHandler((request, callback) => {
+            desktopCapturer
+                .getSources({types: ["window", "screen"]})
+                .then((sources) => {
+                    callback({video: sources[0]});
+                });
+        })
+    }
 
     await createWindow(
         1080,
