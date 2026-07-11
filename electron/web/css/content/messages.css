@@ -37,7 +37,6 @@
     position: relative;
     display: flex;
 
-    flex: 1 1 auto;
     width: 100%;
     justify-content: center;
     align-items: center;
