@@ -106,7 +106,7 @@ async function loadAccount(host, identifier){
             ${ isMyAccount ? `
             <div class="tab_settings">
                 <div class="tabs">
-                    <a href="#" id="account" class="selected" onclick="loadAccountTabPageContent('account')">${Icon.display("profile")} Account</a>
+                    <a href="#" id="account" class="selected" onclick="loadAccountTabPageContent('account')">${Icon.display("account")} Account</a>
                     <a href="#" id="export" class="" onclick="loadAccountTabPageContent('export')">${Icon.display("info")} Export</a>
                     
                 </div>
