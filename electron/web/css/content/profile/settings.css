@@ -22,7 +22,8 @@
     overflow: auto;
 }
 
-.layout > .content-container > .content > .account-container > .banner .back{
+.layout > .content-container > .content > .account-container > .back{
+    position: absolute;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -36,6 +37,9 @@
 
     width: 3rem;
     height: 3rem;
+    z-index: 1;
+
+    top: 1rem;
 }
 .layout > .content-container > .content > .account-container > .banner {
     position: relative;

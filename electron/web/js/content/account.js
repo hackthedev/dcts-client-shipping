@@ -58,8 +58,10 @@ async function loadAccount(host, identifier){
     getContentElement().innerHTML =
     `    
         <div class="account-container" data-gid="${ChatTools.Sanitize.stripHTML(gid)}">            
+        
+        
+            <span class="back" onclick="renderMessages()">${Icon.display("back")}</span>
             <div class="banner" id="banner" onclick="uploadAccountImage(this)" style="--member-image: url('${ChatTools.Sanitize.stripHTML(memberBanner)}')">
-                <span class="back" onclick="renderMessages()">${Icon.display("back")}</span>
                 <div class="preview-action ${isMyAccount ? "mine" : ""}">
                     <span>Change Banner</span>
                 </div>
@@ -136,8 +138,8 @@ async function uploadAccountImage(element){
     if(!element?.id) throw new Error("No element id found")
 
     // only allow uploads when actually viewing own profile
-    let parent = element.closest(".profile-container");
-    if(!parent || parent?.getAttribute("data-gid") !== await getGid()) return;
+    let parent = element.closest(".account-container");
+    if(!parent || parent?.getAttribute("data-gid") !== await getGid()) return console.warn("Not own profile");
 
     let file = await FileManager.pickFile(".png,.jpg,.gif,.webm,.jpeg");
     if(!file) return;
