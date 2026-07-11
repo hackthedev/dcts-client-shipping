@@ -418,7 +418,7 @@ async function renderChat(chatId, customChatObject = null) {
     await setChatHeader(activeChat);
 
     getChatContentElement().innerHTML += `
-        <div class="content" data-chatId="${chatId}"></div>
+        <div class="content" data-chatId="${ChatTools.Sanitize.stripHTML(chatId)}" data-homeserver="${ChatTools.Sanitize.stripHTML(activeChat?.home_server)}"></div>
         <div class="editor-container"></div>
     `;
 
@@ -546,6 +546,8 @@ async function renderChat(chatId, customChatObject = null) {
                 editor.quill.setContents([{insert: "\n"}]);
             }
         });
+
+        initUploadDragAndDrop(chatId);
     }
 
     await renderInboxElementsInChat(activeChat, true);
@@ -908,6 +910,75 @@ async function updateChatProfileData(host, gid){
     await Client().SaveChat(gid, chat);
 
     return chat ?? null;
+}
+
+async function initUploadDragAndDrop(chatId) {
+    var uploadObject = getInnerChatContentElement(chatId);
+    if(!uploadObject) return console.warn("No drag and drop supported as element wasnt found");
+
+    let targetGid = uploadObject.getAttribute("data-chatid");
+    let targetHomeServer = uploadObject.getAttribute("data-homeserver");
+
+    let currentChat = await Client().GetChat(chatId);
+    if(!currentChat) return console.warn("No current chat found");
+
+    let targetPublicKey = currentChat?.publicKey;
+    if(!targetPublicKey) return console.warn("No target publicKey found");
+
+    if(!targetGid || !targetHomeServer) return console.error("NO targetGid OR targetHomeServer FOUND");
+
+    // Handle the file drop event
+    uploadObject.addEventListener('drop', async function (e) {
+        e.preventDefault();
+        uploadObject.style.backgroundColor = '';
+
+        const files = Array.from(e.dataTransfer.files); // Handle multiple files if needed
+        const fileSize = files[0].size / 1024 / 1024; // Example: Display the size of the first file
+        console.log(`File dropped. Size: ${fileSize.toFixed(2)} MB`);
+
+        try {
+            let homeServerAddress = await getHomeSocket().host;
+            let homeServerProtocol = getProtocol(homeServerAddress);
+            let addressFinished = `${homeServerProtocol}://${homeServerAddress}`;
+
+            let result = await FileManager.uploadFile(files, {
+                authObj: {
+                    "x-session-id": encodeURIComponent(await getSessionIdFromHost(await getHomeSocket().host)),
+                    "x-public-key": encodeURIComponent(await Client().GetPublicKey()),
+                },
+                host: addressFinished
+            })
+            console.log("upload result: ", result);
+
+            if (result.ok === true) {
+                console.log("All files uploaded successfully. URLs:", result.path);
+
+                // Process the URLs array
+                await sendMessage(getFixedUrl(homeServerAddress, result?.path), targetPublicKey, targetHomeServer)
+            } else {
+                console.error("Upload encountered an error:", result.error);
+            }
+        } catch (error) {
+            console.error("An error occurred during the upload process:", error);
+        }
+    }, false);
+
+
+    uploadObject.addEventListener('dragenter', function (e) {
+        e.preventDefault();
+        uploadObject.style.backgroundColor = 'gray';
+
+    }, false);
+
+    uploadObject.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        uploadObject.style.backgroundColor = 'gray';
+    }, false);
+
+    uploadObject.addEventListener('dragleave', function (e) {
+        e.preventDefault();
+        uploadObject.style.backgroundColor = '';
+    }, false);
 }
 
 async function startNewChat({

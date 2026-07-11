@@ -203,7 +203,7 @@ async function decryptUserMessage(message) {
 
 async function sendMessage(text, targetPublicKey, host, {
     test = false,
-    customTimestamp = null,
+    customTimestamp = null
 } = {}) {
 
     if (text?.trim()?.length === 0) throw new Error("no text found to send");

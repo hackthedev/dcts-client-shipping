@@ -271,7 +271,17 @@ async function deleteServer(ip) {
 
 document.addEventListener('DOMContentLoaded', async () => {
     customPrompts = new Prompt();
-    ChatTools.Media.mediaResolver = async () => {
+    ChatTools.Media.mediaResolver = async (url) => {
+        try{
+            let homeServer = extractHost(getHomeSocket().host);
+            console.log(`${getProtocol(homeServer)}://${homeServer}/proxy?url=${url}`)
+            let req = await fetch(`${getProtocol(homeServer)}://${homeServer}/proxy?url=${url}`)
+            console.log(await req.json())
+        }
+        catch(err){
+            console.error(err);
+        }
+
         return "";
     }
 
