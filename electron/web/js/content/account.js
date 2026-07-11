@@ -45,10 +45,11 @@ async function loadAccount(host, identifier){
     let memberBanner = getFixedUrl(homeServer, isServer ? userDataObj?.banner : userDataObj?.profile?.banner) ?? null;
     let memberName = isServer ? userDataObj?.name : userDataObj?.profile?.name ?? `${ChatTools.Sanitize.truncateText(gid, 6)}`  ?? null;
 
+    let hasVanityAlias = userDataObj?.vanity != null;
     let memberAlias = userDataObj?.vanity ?
-        `<a onclick="navigator.clipboard.writeText('${aliasAddress}')">${aliasAddress}</a>`
+        `${aliasAddress}`
         :
-        `<a onclick="navigator.clipboard.writeText('${gidAddressFull}')">${gidAddressShortened}</a>`;
+        `${gidAddressShortened}`;
 
     let isMyAccount = await getGid() === await getGid(userDataObj?.publicKey) && userDataObj?.publicKey && !isServer;
 
@@ -90,7 +91,15 @@ async function loadAccount(host, identifier){
                         </div>
                     </h1>
                     
-                    <h1 class="alias">${ChatTools.Sanitize.forRender(memberAlias) ?? ""}</h1>    
+                    <h1 
+                    onclick="navigator.clipboard.writeText('${
+                        hasVanityAlias ? 
+                            ChatTools.Sanitize.stripHTML(aliasAddress) : ChatTools.Sanitize.stripHTML(gidAddressFull)
+                    }')" 
+                    class="alias"
+                    >
+                        <span class="highlight">${ChatTools.Sanitize.forRender(memberAlias, false) ?? ""}</span>
+                    </h1>    
                 
                     ${memberSignature ? 
                         `

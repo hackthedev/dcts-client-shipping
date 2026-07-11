@@ -6,7 +6,8 @@ async function getUserProfileData(host, identifier){
         signal: AbortSignal.timeout(5000)
     });
 
-    return userData?.json() ?? {};
+    let jsonResponse = userData?.json();
+    return jsonResponse ?? {};
 }
 
 async function loadAccountProfileSettings(identifier) {
