@@ -1,0 +1,325 @@
+.layout > .content-container > .content > .account-container * {
+    box-sizing: border-box;
+}
+
+.layout > .content-container > .content > .account-container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    margin: auto;
+
+    justify-content: start;
+    margin-top: 1rem;
+
+    padding: 1rem;
+    border-radius: 8px;
+    width: 80%;
+    max-width: 1200px;
+    min-width: 600px;
+
+    background-color: hsl(from var(--main) h s calc(l * 2.5));
+    border: 1.5px solid var(--border-color);
+    overflow: auto;
+}
+
+.layout > .content-container > .content > .account-container > .back{
+    position: absolute;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(
+        rgba(0, 0, 0, 0.5),
+        transparent,
+        transparent
+    );
+    padding: 0.25rem;
+    cursor: pointer;
+
+    width: 3rem;
+    height: 3rem;
+    z-index: 1;
+
+    top: 1rem;
+}
+.layout > .content-container > .content > .account-container > .banner {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+
+    object-fit: cover;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+
+    min-height: 200px;
+    max-height: 400px;
+
+    z-index: 0;
+
+    border-radius: 4px;
+
+    background-image: var(--member-image, none),
+    linear-gradient(
+            -90deg,
+            hsl(from var(--main) h s calc(l * 2.25)),
+            hsl(from var(--main) h s calc(l * 2)),
+            hsl(from var(--main) h s calc(l * 1.75))
+    );
+}
+
+.layout > .content-container > .content > .account-container > .banner:hover .preview-action.mine,
+.layout > .content-container > .content > .account-container > .profile-info > .icon:hover .preview-action.mine {
+    position: absolute;
+    display: flex;
+
+    justify-content: center;
+    align-items: center;
+    margin: auto;
+    text-align: center;
+
+    background-color: hsl(from var(--main) h s calc(l * 1) / 40%);
+    color: hsl(from var(--main) h s calc(l * 12));
+
+    width: 100%;
+    height: 100%;
+
+    cursor: pointer;
+}
+.layout > .content-container > .content > .account-container > .banner .preview-action,
+.layout > .content-container > .content > .account-container > .profile-info > .icon .preview-action {
+    display: none;
+}
+
+.layout > .content-container > .content > .account-container > .profile-info > .icon {
+    position: relative;
+
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+
+    z-index: 1;
+
+    top: -30px;
+    margin-left: 30px;
+
+    border-radius: 50%;
+    border: 10px solid hsl(from var(--main) h s calc(l * 2.5));
+    overflow: hidden;
+
+    background-image: var(--member-image, none),
+    linear-gradient(
+            -90deg,
+            hsl(from var(--main) h s calc(l * 2.25)),
+            hsl(from var(--main) h s calc(l * 2)),
+            hsl(from var(--main) h s calc(l * 1.75))
+    );
+
+    object-fit: cover;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+
+    width: 120px;
+    height: 120px;
+
+    min-width: 120px;
+    min-height: 120px;
+}
+
+
+.layout > .content-container > .content > .account-container > .profile-info {
+    position: relative;
+    display: flex;
+    flex-direction: row;
+    gap: 1rem;
+}
+
+.layout > .content-container > .content > .account-container > .profile-info > .details {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.layout > .content-container > .content > .account-container > .profile-info > .details > .name {
+    display: flex;
+    flex-direction: row;
+    margin-bottom: 0;
+    margin-top: 0.5rem;
+}
+.layout > .content-container > .content > .account-container > .profile-info > .details > .name > .actions {
+    display: flex;
+    flex-direction: row;
+    margin-left: auto;
+    gap: 0.5rem;
+}
+.layout > .content-container > .content > .account-container > .profile-info > .details > .name > .actions svg{
+    width: 22px;
+    height: 22px;
+    cursor: pointer;
+    stroke: hsl(from var(--main) h s calc(l * 6));
+    transition: all 150ms ease-in-out;
+}
+.layout > .content-container > .content > .account-container > .profile-info > .details > .name > .actions svg:hover{
+    stroke: hsl(from var(--main) h s calc(l * 10));
+}
+
+.layout > .content-container > .content > .account-container > .profile-info > .details > .alias {
+    font-size: 12px;
+    margin: 0;
+}
+
+.layout > .content-container > .content > .account-container > .profile-info > .details > .signature {
+    width: 100%;
+    max-height: 100px;
+    overflow: auto;
+    margin: 1rem 0;
+    padding: 0.5rem;
+
+    background-color: hsl(from var(--main) h s calc(l * 3.5));
+    border: 1.5px solid var(--border-color);
+    border-radius: 4px;
+
+    line-height: 125%;
+}
+
+/* tab settings */
+.layout > .content-container > .content > .account-container > .tab_settings {
+    display: flex;
+    flex-direction: row;
+    gap: 0.25rem;
+    width: 100%;
+    margin-top: 2rem;
+    border-bottom: 2px solid var(--border-color-bright);
+}
+
+.layout > .content-container > .content > .account-container > .tab_settings > .tabs {
+    display: flex;
+    flex-direction: row;
+    gap: 0.25rem;
+}
+
+.layout > .content-container > .content > .account-container > .tab_settings > .tabs a {
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+    align-items: center;
+    text-decoration: none;
+    gap: 0.5rem;
+
+    font-size: 14px;
+
+    background-color: hsl(from var(--main) h s calc(l * 3));
+    color: hsl(from var(--main) h s calc(l * 9));
+
+    /* prevents glitches aka height changes */
+    border-bottom: 4px solid transparent;
+    user-select: none;
+
+    padding: 0.5rem 1rem;
+    transition: all 150ms ease-in-out;
+}
+
+.layout > .content-container > .content > .account-container > .tab_settings > .tabs a svg {
+    width: 20px;
+    height: 20px;
+    stroke: hsl(from var(--main) h s calc(l * 9));
+}
+
+.layout > .content-container > .content > .account-container > .tab_settings > .tabs a:hover,
+.layout > .content-container > .content > .account-container > .tab_settings > .tabs a.selected:hover {
+    background-color: hsl(from var(--main) h s calc(l * 6));
+}
+
+.layout > .content-container > .content > .account-container > .tab_settings > .tabs a.selected {
+    background-color: hsl(from var(--main) h s calc(l * 4));
+    border-bottom: 4px solid var(--border-color-bright);
+    font-weight: bold;
+}
+
+.layout > .content-container > .content > .account-container > .tab_settings > .tab_content {
+    display: flex;
+    flex-direction: column;
+}
+
+
+/* json settings lib */
+.json-editor-setting {
+    padding: 0.5rem;
+    border-radius: 4px;
+
+    border: 1.5px solid var(--border-color);
+    background-color: hsl(from var(--main) h s calc(l * 2));
+}
+
+.json-editor-setting hr {
+    display: none;
+}
+
+.json-editor-setting .json-editor-setting-description {
+    color: hsl(from var(--main) h s calc(l * 8));
+    font-size: 12.5px;
+    margin: 4px 8px 0 0;
+}
+
+.json-editor-setting .json-editor-setting-headline {
+    margin: 0 1rem 0.5rem 0;
+}
+
+.json-editor-setting input[disabled] {
+    background-color: hsl(from var(--main) h s calc(l * 6));
+    cursor: not-allowed;
+}
+
+.json-editor-setting input {
+    outline: none;
+    border: 1.5px solid var(--main);
+    padding: 0.25rem 0.25rem;
+    border-radius: 4px;
+
+    color: hsl(from var(--main) h s calc(l * 1));
+    background-color: hsl(from var(--main) h s calc(l * 10));
+}
+
+.json-editor-save-bar .btn-save {
+    background-color: var(--accent);
+    color: var(--main);
+
+    font-weight: bold;
+    border: 1.5px solid var(--border-color);
+    outline: none;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+}
+
+.json-editor-save-bar {
+    position: fixed;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: 1.5px solid var(--border-color);
+
+    background-color: hsl(from var(--main) h s calc(l * 3));
+
+
+    bottom: 1.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+
+    width: fit-content;
+    min-width: 200px;
+}
+
+.account-container .json-editor-setting input[type="number"],
+.account-container .json-editor-setting input[type="text"] {
+    width: 300px;
+    max-width: 400px;
+    padding: 0.5rem;
+}
+.account-container .json-editor-setting input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    filter: invert(100%) hue-rotate(140deg) brightness(1);
+}

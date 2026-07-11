@@ -110,8 +110,7 @@ async function connectToSocketHost(address) {
 }
 
 async function socketHello(socket, address, {
-                               name = null,
-                               icon = null,
+                               profile = null,
                                vanity = null,
                            } = {}
 ) {
@@ -124,9 +123,8 @@ async function socketHello(socket, address, {
                 publicKey: await Client().GetPublicKey(),
                 sessionId: await getSessionIdFromHost(address),
                 home_server: await Client().GetHomeServer(),
-                name,
-                icon,
                 vanity,
+                profile,
             },
             async function (response) {
                 if (response?.error) {
@@ -205,7 +203,7 @@ async function decryptUserMessage(message) {
 
 async function sendMessage(text, targetPublicKey, host, {
     test = false,
-    customTimestamp = null,
+    customTimestamp = null
 } = {}) {
 
     if (text?.trim()?.length === 0) throw new Error("no text found to send");

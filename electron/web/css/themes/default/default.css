@@ -13,6 +13,7 @@ a {
 .layout > .header {
     border-bottom: 1.5px solid var(--border-color);
     border-top: 1.5px solid var(--border-color);
+    background-color: hsl(from var(--main) h s calc(l * 1.5));
 }
 
 .layout > .header input, .layout > .header button {
@@ -27,6 +28,7 @@ a {
 
 .layout > .content-container > .navigation {
     border-right: 1.5px solid var(--border-color);
+    background-color: hsl(from var(--main) h s calc(l * 1.5));
 }
 
 .layout > .content-container > .navigation > .entry svg {
@@ -61,6 +63,11 @@ a {
 
 .layout > .content-container > .content > .message-page-container .chats {
     border-right: 1.5px solid var(--border-color);
+    background: linear-gradient(
+            180deg,
+            hsl(from var(--main) h s calc(l * 2)),
+            hsl(from var(--main) h s calc(l * 2.5))
+    );
 }
 
 .layout > .content-container > .content > .message-page-container .chats .chat:hover {
@@ -158,6 +165,7 @@ a {
     border: 1.5px solid hsl(from var(--main) h s calc(l * 4) / 50%);
 }
 
+span.highlight,
 span.mention {
     color: hsl(from var(--accent) h s calc(l * 1)) !important;
 }

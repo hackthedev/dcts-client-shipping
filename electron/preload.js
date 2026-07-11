@@ -5,10 +5,14 @@ const { pathToFileURL } = require("url")
 const { dSyncSign } = require("@hackthedev/dsync-sign")
 const Settings = require("./modules/settings");
 
-const arg = process.argv.find(a => a.startsWith("--appdata="))
-const applicationDataDir = arg.split("=")[1]
+const arg_applicationDataDir = process.argv.find(a => a.startsWith("--appdata="))
+const arg_localServerUrl = process.argv.find(a => a.includes("--localServerUrl="))
+const applicationDataDir = arg_applicationDataDir.split("=")[1]
+const localServerUrl = arg_localServerUrl.split("=")[1]
 const bridgeDir = path.join(__dirname, "modules")
 Settings.initSettings(applicationDataDir);
+
+console.log(process.argv)
 
 const exposed = {}
 let signer = null
@@ -43,7 +47,11 @@ async function loadModules() {
 
             exposed[name] = async (...args) => {
                 return await fn(
-                    { signer: getSigner(), applicationDataDir },
+                    {
+                        signer: getSigner(),
+                        applicationDataDir,
+                        localServerUrl
+                    },
                     ...args
                 )
             }

@@ -1,13 +1,13 @@
 {
-  "name": "@hackthedev/icons",
-  "version": "1.0.9",
+  "name": "@hackthedev/element-loader",
+  "version": "1.0.0",
   "description": "",
   "keywords": [
     "frontend"
   ],
   "license": "ISC",
   "author": "",
-  "main": "Icons.js",
+  "main": "ElementLoader.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   }

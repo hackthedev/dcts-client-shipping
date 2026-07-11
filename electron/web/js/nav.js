@@ -2,6 +2,10 @@ function getNavElement(){
     return document.querySelector(`.layout > .content-container .navigation`)
 }
 
+function getHeaderElement(){
+    return document.querySelector(`.layout > .header`)
+}
+
 async function buildNavHTML(initial = false){
     getNavElement().innerHTML =
         `
@@ -19,7 +23,7 @@ async function buildNavHTML(initial = false){
             
             <div class="entry" onclick="selectNavEntry(this);loadAccount()">
                 ${Icon.display("account")}
-                <span>Settings</span>
+                <span>Account</span>
             </div>
         ` : ""}
         

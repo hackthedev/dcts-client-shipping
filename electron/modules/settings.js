@@ -17,6 +17,14 @@ class Settings {
             Settings.settings.client ??= {}
             return Settings.settings?.client?.lastOnline ?? 0
         }
+
+        static async setLastOnline(timestamp) {
+            if(!timestamp) throw new Error("No timestamp provided")
+            await Settings._ensureLoaded()
+
+            Settings.settings.client ??= {}
+            Settings.settings.client.lastOnline = timestamp
+        }
     }
 
     static Session = class {
@@ -101,15 +109,28 @@ class Settings {
             if(chatIds?.length > 0){
                 for(let chatId of chatIds){
 
+                    // if it doesnt exist for whatever reason, delete it
+                    let chatConfigFolder = path.join(Settings.appDataDir, "chats", chatId)
+                    let chatConfigPath = path.join(chatConfigFolder, "config.json")
+
+                    if (!fsNormal.existsSync(chatConfigPath)) {
+                        delete Settings.runtimeData.chats[chatId]
+
+                        await fs.rm(chatConfigFolder, {
+                            recursive: true,
+                            force: true
+                        })
+
+                        continue
+                    }
+
                     // if already in ram use that instead
                     if(Settings.runtimeData.chats[chatId]){
                         chats[chatId] = Settings.runtimeData.chats[chatId];
                         continue;
                     }
 
-                    let chatConfigPath = path.join(Settings.appDataDir, "chats", chatId, "config.json")
-                    let chatConfig = JSON.parse(await fs.readFile(chatConfigPath, "utf8") ?? {})
-
+                    let chatConfig = JSON.parse(await fs.readFile(chatConfigPath, "utf8"))
                     chats[chatId] = chatConfig;
                 }
 
@@ -123,15 +144,23 @@ class Settings {
         static async saveMessage(chatId, messageId, data = {}) {
             if (!chatId) throw new Error("chatId is required")
             if (!messageId) throw new Error("messageId is required")
-            if(!data) throw new Error("data is required")
+            if (!data) throw new Error("data is required")
 
-            let messagesPath = path.join(Settings.appDataDir, "chats", chatId, "messages");
-            if(!fsNormal.existsSync(messagesPath)) fsNormal.mkdirSync(messagesPath, { recursive: true });
+            let chatConfigPath = path.join(Settings.appDataDir, "chats", chatId, "config.json")
 
-            await fs.writeFile(path.join(messagesPath, `${messageId}.json`), JSON.stringify(data, null, 4));
+            if (!fsNormal.existsSync(chatConfigPath)) {
+                await this.saveChat(chatId, { id: chatId })
+            }
+
+            let messagesPath = path.join(Settings.appDataDir, "chats", chatId, "messages")
+
+            await fs.writeFile(
+                path.join(messagesPath, `${messageId}.json`),
+                JSON.stringify(data, null, 4)
+            )
 
             Settings.settings.client ??= {}
-            Settings.settings.client.lastOnline = new Date().getTime();
+            Settings.settings.client.lastOnline = new Date().getTime()
             await Settings.saveSettings()
         }
 
@@ -158,9 +187,12 @@ class Settings {
             if (!chatId) return {}
             let limit = 50;
 
-            let messagesPath = path.join(Settings.appDataDir, "chats", chatId, "messages")
+            let chatPath = path.join(Settings.appDataDir, "chats", chatId)
+            let chatConfigPath = path.join(chatPath, "config.json")
+            let messagesPath = path.join(chatPath, "messages")
 
-            if(!fsNormal.existsSync(messagesPath)) fsNormal.mkdirSync(messagesPath, { recursive: true })
+            if(!fsNormal.existsSync(chatConfigPath)) return {}
+            if(!fsNormal.existsSync(messagesPath)) return {}
 
             let messageIds = await fs.readdir(messagesPath);
             let messages = []
@@ -205,8 +237,29 @@ class Settings {
         }
 
         static async deleteChat(chatId) {
-            // 100% needs to be implemented and should be added to the server too
-            if (!chatId) return
+            if (!chatId) return false;
+
+            let chatPath = path.join(Settings.appDataDir, "chats", chatId);
+
+            Settings.runtimeData.chats ??= {};
+            delete Settings.runtimeData.chats[chatId];
+
+            await fs.rm(chatPath, {
+                recursive: true,
+                force: true
+            });
+
+            console.log("after delete:", fsNormal.existsSync(chatPath));
+
+            setTimeout(() => {
+                console.log("after 1s:", fsNormal.existsSync(chatPath));
+            }, 1000);
+
+            setTimeout(() => {
+                console.log("after 10s:", fsNormal.existsSync(chatPath));
+            }, 10000);
+
+            return !fsNormal.existsSync(chatPath);
         }
 
         static async getChatsUnread() {
@@ -329,6 +382,7 @@ class Settings {
             const data = await fs.readFile(this.settingsPath, "utf8")
             this.settings = JSON.parse(data)
             this.settings.user ??= {}
+            this.settings.client ??= {}
         } catch {
             this.settings = {}
         }
