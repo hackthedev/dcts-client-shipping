@@ -2,6 +2,10 @@ function getNavElement(){
     return document.querySelector(`.layout > .content-container .navigation`)
 }
 
+function getHeaderElement(){
+    return document.querySelector(`.layout > .header`)
+}
+
 async function buildNavHTML(initial = false){
     getNavElement().innerHTML =
         `
@@ -11,14 +15,15 @@ async function buildNavHTML(initial = false){
         </div>
         
         ${isLocal() ? `
-            <div class="entry" onclick="selectNavEntry(this);loadMessages()">
+            <div class="entry chats" onclick="selectNavEntry(this);loadMessages()">
                 ${Icon.display("message")}
                 <span>Chats</span>
+                <span class="badge">0</span>
             </div>
             
             <div class="entry" onclick="selectNavEntry(this);loadAccount()">
                 ${Icon.display("account")}
-                <span>Settings</span>
+                <span>Account</span>
             </div>
         ` : ""}
         

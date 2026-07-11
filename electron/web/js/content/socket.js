@@ -110,8 +110,7 @@ async function connectToSocketHost(address) {
 }
 
 async function socketHello(socket, address, {
-                               name = null,
-                               icon = null,
+                               profile = null,
                                vanity = null,
                            } = {}
 ) {
@@ -124,9 +123,8 @@ async function socketHello(socket, address, {
                 publicKey: await Client().GetPublicKey(),
                 sessionId: await getSessionIdFromHost(address),
                 home_server: await Client().GetHomeServer(),
-                name,
-                icon,
                 vanity,
+                profile,
             },
             async function (response) {
                 if (response?.error) {
@@ -177,15 +175,19 @@ async function registerSocketListeners(socket) {
         await Client().SaveChatMessage(chatGid, message)
         await refreshChatEntry(chatGid, message);
 
-        if (message?.type === "user_message" && getInnerChatContentElement()) await renderUserMessage({
+        if (message?.type === "user_message") await renderUserMessage({
             item: message,
-            element: getInnerChatContentElement()
+            element: getInnerChatContentElement(chatGid),
+            chatId: chatGid,
+            notify: true,
         })
     })
 }
 
 async function decryptUserMessage(message) {
     if (!message) throw new Error("Message was not set");
+    if (typeof message === "string" && message.startsWith("{")) message = JSON.parse(message);
+
     if (!message?.method) throw new Error("Message method not found");
 
     let decryptedMessageText = await Client().DecryptData(
@@ -196,12 +198,14 @@ async function decryptUserMessage(message) {
         message.ciphertext
     );
 
-    message.messageId = message.timestamp;
-
     return decryptedMessageText;
 }
 
-async function sendMessage(text, targetPublicKey, host, test = false) {
+async function sendMessage(text, targetPublicKey, host, {
+    test = false,
+    customTimestamp = null
+} = {}) {
+
     if (text?.trim()?.length === 0) throw new Error("no text found to send");
     if (!targetPublicKey) throw new Error("target gid not found");
     if (!host) throw new Error("host not found to send");

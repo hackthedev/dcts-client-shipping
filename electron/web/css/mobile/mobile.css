@@ -36,7 +36,24 @@
         width: 100% !important;
     }
 
+    .layout > .content-container > .content > .message-page-container .chats {
+        max-width: 100% !important;
+        width: 100% !important;
+    }
     .layout > .content-container > .content > .message-page-container .chats .chat{
         gap: 0.5rem !important;
+    }
+
+    .ql-toolbar{
+        display: none !important;
+    }
+
+    .rich-editor .editor,
+    .ql-editor {
+        border-radius: 2rem !important;
+    }
+
+    .server-card .about {
+        overflow: hidden !important;
     }
 }

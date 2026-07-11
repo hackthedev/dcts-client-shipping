@@ -109,6 +109,10 @@ function getProtocol(host) {
     return "https";
 }
 
+function isActive(){
+    return document.visibilityState === "visible"
+}
+
 function extractHost(url) {
     if (!url) return null;
     const s = String(url).trim();
@@ -157,4 +161,15 @@ async function connectToServer(address) {
 
     await Client().SaveServer(host, data || {})
     window.location.href = `https://${host}/`;
+}
+
+function showLoadingBar(){
+    ElementLoader.start(getHeaderElement(), {
+        speed: MobilePanel.isMobile() ? 10 : 20,
+        style: "slide"
+    })
+}
+
+function stopLoadingBar(){
+    ElementLoader.stop(getHeaderElement())
 }

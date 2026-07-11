@@ -14,9 +14,15 @@ async function getDiscoveredHosts(){
 }
 
 async function getSavedServers(container) {
+    showHeader();
     if (!container) return console.warn("No container supplied!");
+    selectNavEntry(getNavEntryElement(0))
 
     container.innerHTML = `<div class="serverList"></div>`;
+    let serverListElement = container.querySelector(".serverList");
+
+    // only show loading bar if servers can be visible
+    if(serverListElement) showLoadingBar()
 
     let servers = isLauncher() ? await Client().GetServers() : {};
     if(typeof servers === "string") servers = JSON.parse(servers || "{}"); // android bridge fix
@@ -41,7 +47,8 @@ async function getSavedServers(container) {
         }
     }
 
-    renderServersList(container.querySelector(".serverList"), mergedServers);
+    await renderServersList(serverListElement, mergedServers);
+    if(serverListElement)  stopLoadingBar()
 }
 
 function submitServerUI(){
@@ -166,14 +173,19 @@ async function renderServersList(container, servers) {
         card.setAttribute("address", address)
         card.style.setProperty("--reveal-delay", `${idx * 200}ms`);
 
+        let voipEnabled = serverObj?.serverinfo?.voip ?? serverObj?.serverinfo?.turn;
+        let isHomeServer = await isLauncher() ? await Client().GetHomeServer() === address : false
+        let safeAddress = ChatTools.Sanitize.stripHTML(address);
+
         card.innerHTML = `
              <div class="banner" style="background-image:url('${getFixedUrl(address, serverObj?.serverinfo?.banner)}')">
                 <p class="name">${encodePlainText(truncateString(serverObj?.serverinfo?.name || address, 25))}</p>
                 
                  <div class="features">
-                    ${serverObj?.serverinfo?.voip === true ? `<div id="turn-vc" class="feature" title="Voice chat suported">${Icon.display("mic")}</div>` : ""}
-                    ${serverObj?.serverinfo?.voip === true ? `<div id="turn-ss" class="feature" title="Screensharing supported">${Icon.display("screenshare")}</div>` : ""}
-                    <div class="feature" title="Version ${versionText}">${Icon.display("tag")}</div>
+                    ${voipEnabled ? `<div id="turn-vc" class="feature" title="Voice chat suported">${Icon.display("mic")}</div>` : ""}
+                    ${voipEnabled ? `<div id="turn-ss" class="feature" title="Screensharing supported">${Icon.display("screenshare")}</div>` : ""}
+                    <div class="feature" title="Version ${versionText}">${Icon.display("tag")}</div>                    
+                    <div onclick="setHomeServer('${safeAddress}')" id="turn-ss" class="feature ${isHomeServer ? `home-server`: ""}" title="${isHomeServer ? "Your home server" : "Set as home server" }">${Icon.display("star")}</div>
                   </div>
               </div>        
         
@@ -185,8 +197,8 @@ async function renderServersList(container, servers) {
                 </label>
                                 
                 <div class="buttons">
+                    <a class="joinButton delete" onclick="deleteServer('${extractHost(address)}')">&#128465;</a>
                     <a class="joinButton" href="${getProtocol(address)}://${address}">Join</a>
-                    <a class="joinButton delete" onclick="deleteServer('${extractHost(address)}')"">&#128465;</a>
                 </div>
                 
               </div>
@@ -203,6 +215,55 @@ async function renderServersList(container, servers) {
     }
 }
 
+async function setHomeServer(address){
+    if(!address) throw new Error("No address provided!");
+
+    let currentAlias = await Client().GetAlias() ?? await getGid();
+    let currentHomeserver = await Client().GetHomeServer();
+    let currentAddress = `${currentAlias}@${currentHomeserver}`;
+
+    // if we're already using the a server we clicked on then we dont
+    // really need to do anything. why would we anyway?
+    if(address === currentHomeserver) return;
+
+    // craft new address info in case the user changes so a preview is being shown
+    let newAlias = ChatTools.Sanitize.truncateText(await getGid(), 6);
+    let newHomeServer = address;
+    let newAddress = `${newAlias}@${newHomeServer}`;
+
+    customPrompts.showConfirm({
+        title: "Change home server?",
+        text: `
+            <p>
+                Are you sure you want to change your home server to '<span class="highlight">${ChatTools.Sanitize.stripHTML(address)}</span>' ?
+            </p>
+            <ul>
+                <li>
+                    Your current address: <span class="highlight">${ChatTools.Sanitize.stripHTML(currentAddress)}</span>
+                </li>
+                <li>
+                    Your new address: <span class="highlight">${ChatTools.Sanitize.stripHTML(newAddress)}</span>
+                </li>
+            </ul>
+            
+            <i>
+                <b>Note:</b> Changing home servers will reset your alias and its not guaranteed that your previous alias is available on other servers!
+            </i>
+        `},
+        [
+            ["Yes", "error"],
+            ["Cancel", null]
+        ],
+        async (value) => {
+            if(value === "yes"){
+                // reload is easier than taking care of the connections and states lol
+                await Client().SetHomeServer(extractHost(address));
+                window.location.reload();
+            }
+        }
+    )
+}
+
 async function deleteServer(ip) {
     await Client().DeleteServer(ip)
     getSavedServers(document.querySelector('.serverlistingContainer'))
@@ -210,7 +271,17 @@ async function deleteServer(ip) {
 
 document.addEventListener('DOMContentLoaded', async () => {
     customPrompts = new Prompt();
-    ChatTools.Media.mediaResolver = async () => {
+    ChatTools.Media.mediaResolver = async (url) => {
+        try{
+            let homeServer = extractHost(getHomeSocket().host);
+            console.log(`${getProtocol(homeServer)}://${homeServer}/proxy?url=${url}`)
+            let req = await fetch(`${getProtocol(homeServer)}://${homeServer}/proxy?url=${url}`)
+            console.log(await req.json())
+        }
+        catch(err){
+            console.error(err);
+        }
+
         return "";
     }
 
@@ -224,15 +295,36 @@ document.addEventListener('DOMContentLoaded', async () => {
     if(await Client().GetHomeServer()?.trim?.length === 0) await Client().SetHomeServer("chat.network-z.com");
 
     // connect to it
-    connectToSocketHost(await Client().GetHomeServer());
+    await connectToSocketHost(await Client().GetHomeServer());
 
     ensureDomPurify();
     buildNavHTML(true);
     getSavedServers(getContentElement())
-    //loadMessages();
+
+    //loadAccount()
+    //loadAccount("chat.network-z.com", "zainifer")
+
+    // only if local for now.
+    if(isLocal()){
+        setUnreadChatsInNav();
+    }
 
     registerSwipingHandles();
+    selectNavEntry(getNavEntryElement(0))
 });
+
+async function setUnreadChatsInNav(){
+    // update chas nav icon with badge without loading shit
+    let unreadChats = await getUnreadChats();
+    let unreadChatsCount = Object.keys(unreadChats ?? {}).length;
+    if(unreadChatsCount > 0) setChatNavBadgeCount(unreadChatsCount);
+
+    // show some indicator that you have new messages
+    let inboxResult = await fetchMessengerChats(await Client().GetLastOnline());
+    if(inboxResult?.inbox > 0){
+        setChatNavBadgeCount(inboxResult?.inbox)
+    }
+}
 
 function registerSwipingHandles(){
     if(MobilePanel.isMobile()){
@@ -260,9 +352,24 @@ function registerSwipingHandles(){
 
         // general actions
         function onGeneralSwipe(){
-            if(getNavElement()?.classList?.contains("hide")) getNavElement().classList.remove("hide");
+            showNavigation()
         }
     }
+}
+
+function showHeader(){
+    if(!MobilePanel.isMobile()) return;
+    getHeaderElement().style.display = "flex";
+}
+
+function hideHeader(){
+    if(!MobilePanel.isMobile()) return;
+    getHeaderElement().style.display = "none";
+}
+
+
+function showNavigation(){
+    if(getNavElement()?.classList?.contains("hide")) getNavElement().classList.remove("hide");
 }
 
 function truncateString(value, length) {
