@@ -123,6 +123,7 @@ async function socketHello(socket, address, {
                 publicKey: await Client().GetPublicKey(),
                 sessionId: await getSessionIdFromHost(address),
                 home_server: await Client().GetHomeServer(),
+                vanity,
                 profile,
             },
             async function (response) {
