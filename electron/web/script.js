@@ -197,7 +197,7 @@ async function renderServersList(container, servers) {
                 </label>
                                 
                 <div class="buttons">
-                    <a class="joinButton delete" onclick="deleteServer('${extractHost(address)}')"">&#128465;</a>
+                    <a class="joinButton delete" onclick="deleteServer('${extractHost(address)}')">&#128465;</a>
                     <a class="joinButton" href="${getProtocol(address)}://${address}">Join</a>
                 </div>
                 
