@@ -16,7 +16,10 @@ class ChatTools {
 
         static scrollDown(containerElement, opts = {}) {
             const el = containerElement
-            if (!el) return;
+            if (!el || typeof el === "string"){
+                console.trace();
+                throw new Error("Scroll down doesnt support strings");
+            }
 
             const tolerancePx = Number.isFinite(opts.tolerancePx) ? opts.tolerancePx : 2;
             const maxMs = Number.isFinite(opts.maxMs) ? opts.maxMs : 5000;
@@ -95,7 +98,10 @@ class ChatTools {
             tick();
         }
 
-        static observeContainer(containerElement) {
+        static observeContainer(containerElement, {
+            adjustDiff = true,
+        }) {
+            if(!containerElement) throw new Error("Could not find container");
             let container = containerElement;
             let savedHeight = 0;
 
@@ -106,7 +112,7 @@ class ChatTools {
                         let diff = container.scrollHeight - savedHeight;
 
                         this.toggleSmoothScroll(container, false)
-                        container.scrollTop += diff;
+                        if(adjustDiff) container.scrollTop += diff;
                         this.toggleSmoothScroll(container, true)
                         savedHeight = container.scrollHeight;
                     }
@@ -138,7 +144,11 @@ class ChatTools {
 
         static toggleSmoothScroll(element, toggle) {
             if(!element) throw new Error("Could not toggle smooth scroll container not set")
-            element.style.scrollBehavior = toggle ? "smooth" : "auto"
+            if (toggle) {
+                element.style.scrollBehavior = "smooth";
+            } else {
+                element.style.removeProperty("scroll-behavior");
+            }
         }
 
         static isScrolledToBottom(element, tolerancePx = 50) {
