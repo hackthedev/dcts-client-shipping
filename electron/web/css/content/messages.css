@@ -64,7 +64,7 @@
     width: 100%;
     height: fit-content;
     gap: 1rem;
-    padding: 0 1rem;
+    padding: 0.30rem 1rem;
     box-sizing: border-box;
 }
 .layout > .content-container > .content > .message-page-container .chats > .header h1{
