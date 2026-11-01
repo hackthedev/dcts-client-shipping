@@ -288,23 +288,43 @@ class Settings {
     }
 
     static Server = class {
+        // servers/<id>/config/server.json   -> server infos (fav etc.)
+        // servers/<id>/config/settings.json -> server settings
+        // the id is url encoded so ids like host:port are valid folder names
+        static _root() {
+            return path.join(Settings.appDataDir, "servers")
+        }
+
+        static _dir(id) {
+            return path.join(this._root(), encodeURIComponent(id))
+        }
+
+        static _configDir(id) {
+            return path.join(this._dir(id), "config")
+        }
+
+        static async _read(id, file) {
+            try {
+                return JSON.parse(await fs.readFile(path.join(this._configDir(id), file), "utf8"))
+            } catch {
+                return null
+            }
+        }
+
+        static async _write(id, file, data) {
+            await fs.mkdir(this._configDir(id), { recursive: true })
+            await fs.writeFile(path.join(this._configDir(id), file), JSON.stringify(data, null, 4))
+        }
+
         static async save(id, data = {}, isFav = null) {
             if (!id) throw new Error("id is required")
-            await Settings._ensureLoaded()
 
-            Settings.settings.servers ??= {}
-            Settings.settings.servers[id] ??= {}
+            const server = (await this.getServer(id)) ?? {}
 
-            if(typeof data === "object"){
-                Object.assign(Settings.settings.servers[id], data)
-            }
-            else{
-                Object.assign(Settings.settings.servers[id], {})
-            }
+            if (data && typeof data === "object") Object.assign(server, data)
+            if (isFav !== null) server.fav = isFav
 
-            if (isFav !== null) Settings.settings.servers[id].fav = isFav
-
-            await Settings.saveSettings()
+            await this._write(id, "server.json", server)
         }
 
         static async setHomeServer(address) {
@@ -320,10 +340,7 @@ class Settings {
         static async getHomeServer() {
             await Settings._ensureLoaded()
 
-            const id = Settings.settings.homeServer
-            if (!id) return null
-
-            return id ?? null
+            return Settings.settings.homeServer ?? null
         }
 
         static async getHomeServerId() {
@@ -341,8 +358,9 @@ class Settings {
         }
 
         static async getServer(id) {
+            if (!id) return null
             await Settings._ensureLoaded()
-            return Settings.settings.servers?.[id] ?? null
+            return await this._read(id, "server.json")
         }
 
         static async getServers() {
@@ -351,22 +369,56 @@ class Settings {
             // if no server was found return the official one so that there is a default server.
             // the client will automatically fetch the latest info since its not provided in the
             // object below
-            return Settings.settings.servers ?? {
-                "chat.network-z.com": { }
+            if (!fsNormal.existsSync(this._root())) {
+                return { "chat.dcts.community": { } }
             }
+
+            const entries = await fs.readdir(this._root(), { withFileTypes: true })
+            const servers = {}
+
+            for (const entry of entries) {
+                if (!entry.isDirectory()) continue
+
+                const id = decodeURIComponent(entry.name)
+                servers[id] = (await this._read(id, "server.json")) ?? {}
+            }
+
+            return servers
         }
 
         static async deleteServer(id) {
+            if (!id) return
             await Settings._ensureLoaded()
-            if (!Settings.settings.servers) return
 
-            delete Settings.settings.servers[id]
+            await fs.rm(this._dir(id), { recursive: true, force: true })
 
             if (Settings.settings.homeServer === id) {
                 delete Settings.settings.homeServer
+                await Settings.saveSettings()
             }
+        }
 
-            await Settings.saveSettings()
+        static async getSettings(id) {
+            if (!id) return {}
+            await Settings._ensureLoaded()
+            return (await this._read(id, "settings.json")) ?? {}
+        }
+
+        static async saveSettings(id, data = {}) {
+            if (!id) throw new Error("id is required")
+            await Settings._ensureLoaded()
+
+            const current = await this.getSettings(id)
+            await this._write(id, "settings.json", { ...current, ...data })
+        }
+
+        static async getSetting(id, key, defaultValue = null) {
+            const current = await this.getSettings(id)
+            return current[key] ?? defaultValue
+        }
+
+        static async saveSetting(id, key, value) {
+            await this.saveSettings(id, { [key]: value })
         }
     }
 
@@ -387,6 +439,19 @@ class Settings {
             this.settings = {}
         }
         this._loaded = true
+
+        if (this.settings.servers) await this._migrateServers()
+    }
+
+    // moves servers from the old settings.json into their own folders
+    static async _migrateServers() {
+        for (const [id, data] of Object.entries(this.settings.servers)) {
+            await this.Server._write(id, "server.json", data ?? {})
+        }
+
+        // undefined instead of delete so the merge in saveSettings doesnt bring it back from disk
+        this.settings.servers = undefined
+        await this.saveSettings()
     }
 
     static async saveSettings() {
@@ -400,11 +465,9 @@ class Settings {
                 )
 
                 const settings = { ...disk, ...snapshot }
-                const tmp = `${this.settingsPath}.${process.pid}.tmp`
 
                 await fs.mkdir(path.dirname(this.settingsPath), { recursive: true })
-                await fs.writeFile(tmp, JSON.stringify(settings, null, 2), "utf8")
-                await fs.rename(tmp, this.settingsPath)
+                await fs.writeFile(this.settingsPath, JSON.stringify(settings, null, 2), "utf8")
 
                 this.settings = { ...settings, ...this.settings }
             })
