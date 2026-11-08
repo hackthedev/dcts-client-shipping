@@ -1,6 +1,6 @@
-async function getUserProfileData(host, identifier){
-    if(!host) throw new Error("Missing host");
-    if(!identifier) throw new Error("Missing identifier");
+async function getUserProfileData(host, identifier) {
+    if (!host) throw new Error("Missing host");
+    if (!identifier) throw new Error("Missing identifier");
 
     let userData = await fetch(`${getProtocol(host)}://${host}/messenger/profile/${identifier}`, {
         signal: AbortSignal.timeout(5000)
@@ -25,21 +25,25 @@ async function loadAccountProfileSettings(identifier) {
     if (typeof Client().SetNickname === "function") {
         getTabContentPage().insertAdjacentElement(
             "beforeend",
-            JsonEditor.getSettingElement(nickname, "Display Name", "How others will see you", async (value) => {
-                if (originalUserData.nickname !== value) {
-                    JsonEditor.showSaveButton("nickname", () => {
-                        originalUserData.nickname = value
-                        saveAccountChanges({
-                            name: value
+            JsonEditor.getSettingElement(
+                nickname,
+                "Display Name",
+                "How others will see you",
+                async (value) => {
+                    if (originalUserData.nickname !== value) {
+                        JsonEditor.showSaveButton("nickname", () => {
+                            originalUserData.nickname = value
+                            saveAccountChanges({
+                                name: value
+                            });
                         });
-                    });
-                } else {
-                    JsonEditor.hideSaveButton();
-                }
-            }, {
-                regexMatcher: /^[a-zA-Z0-9_. -]{1,30}$/,
-                canBeNull: true,
-            })
+                    } else {
+                        JsonEditor.hideSaveButton();
+                    }
+                }, {
+                    regexMatcher: /^[a-zA-Z0-9_. -]{1,30}$/,
+                    canBeNull: true,
+                })
         )
     } else {
         console.error("Setting 'Display Name' not shown because client doesnt support it")

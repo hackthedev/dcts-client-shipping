@@ -28,6 +28,7 @@
     "appId": "com.dcts.client",
     "icon": "icon.png",
     "productName": "DCTS Chat",
+    "artifactName": "dcts-client.${ext}",
     "files": [
       "**/*"
     ],
@@ -37,7 +38,9 @@
       "icon": "logo.png"
     },
     "linux": {
-      "target": "AppImage",
+      "target": [
+        "AppImage"
+      ],
       "icon": "logo.png"
     }
   },

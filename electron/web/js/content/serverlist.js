@@ -4,14 +4,14 @@ async function lazyFetchAndUpdateServerCard(address) {
     let serverObj = await fetchServerInfo(address);
     if(!serverObj) return;
 
-    let rawBannerUrl = serverObj?.serverinfo?.banner;
-    let bannerUrl;
+    let rawBannerUrl = serverObj?.banner ?? serverObj?.home?.banner_url;
+    let bannerUrl = null;
 
-    if (rawBannerUrl?.startsWith("/uploads"))  bannerUrl = `https://${extractHost(address)}${rawBannerUrl}`;
-    if(rawBannerUrl.startsWith("https://")) bannerUrl = rawBannerUrl;
+    if (rawBannerUrl?.startsWith("/upload"))  bannerUrl = `https://${extractHost(address)}${rawBannerUrl}`;
+    if(rawBannerUrl?.startsWith("https://")) bannerUrl = rawBannerUrl;
 
-    setServerCardName(serverCard, serverObj?.serverinfo?.name ?? address)
-    setServerCardAbout(serverCard, serverObj?.serverinfo?.about ?? "")
+    setServerCardName(serverCard, serverObj?.name ?? address)
+    setServerCardAbout(serverCard, serverObj?.home?.about ?? "")
     setServerCardBanner(serverCard, bannerUrl)
     setServerOnline(serverCard, serverObj)
     setServerCardFeatures(serverCard, getServerCardFeaturesHTML(serverObj))
@@ -19,7 +19,6 @@ async function lazyFetchAndUpdateServerCard(address) {
 
 function getServerCardElementFromAddress(address) {
     if (!address) throw new Error("No address provided");
-
     return document.querySelector(`.layout > .content-container > .content > .serverList .server-card[address="${address}"]`)
 }
 
@@ -33,9 +32,9 @@ function setServerCardBanner(serverCardElement, url) {
 
 function setServerOnline(serverCardElement, serverObj) {
     serverCardElement.querySelector(".footer .online").textContent =
-        `${serverObj?.serverinfo?.slots?.online ? 
-            encodePlainText(serverObj?.serverinfo?.slots?.online) : "0"} / ${encodePlainText(serverObj?.serverinfo?.slots?.limit)} Online • 
-            ${encodePlainText(serverObj?.serverinfo?.slots?.reserved)} reserved`;
+        `${serverObj?.slots?.online ? 
+            encodePlainText(serverObj?.slots?.online) : "0"} / ${encodePlainText(serverObj?.slots?.limit)} Online • 
+            ${encodePlainText(serverObj?.slots?.reserved)} reserved`;
 }
 
 function setServerCardName(serverCardElement, name) {
@@ -65,11 +64,14 @@ async function fetchServerInfo(address){
     }
 }
 
-function getServerCardFeaturesHTML(serverObj) {
-    const versionText = encodePlainText(String(String(serverObj?.serverinfo?.version || "?").split("")).replaceAll(",", "."));
+async function getServerCardFeaturesHTML(serverObj) {
+    const versionText = encodePlainText(String(serverObj?.version || "?"));
+    let isHomeServer = await isLauncher() ? await Client().GetHomeServer() === address : false
 
     return `
-            ${serverObj?.serverinfo?.voip === true ? `<div id="turn-vc" class="feature" title="Voice chat suported">${Icon.display("mic")}</div>` : ""}
-            ${serverObj?.serverinfo?.voip === true ? `<div id="turn-ss" class="feature" title="Screensharing supported">${Icon.display("screenshare")}</div>` : ""}
-            <div class="feature" title="Version ${versionText}">${Icon.display("tag")}</div>`
+            ${serverObj?.voip === true ? `<div id="turn-vc" class="feature" title="Voice chat suported">${Icon.display("mic")}</div>` : ""}
+            ${serverObj?.voip === true ? `<div id="turn-ss" class="feature" title="Screensharing supported">${Icon.display("screenshare")}</div>` : ""}
+            <div class="feature" title="Version ${versionText}">${Icon.display("tag")}</div>
+            <div onclick="setHomeServer('${safeAddress}')" id="turn-ss" class="feature ${isHomeServer ? `home-server`: ""}" title="${isHomeServer ? "Your home server" : "Set as home server" }">${Icon.display("star")}</div>
+    `
 }

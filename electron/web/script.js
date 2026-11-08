@@ -166,20 +166,22 @@ async function renderServersList(container, servers) {
         const idx = list.children.length;
         if (serverObj?.serverinfo?.error) continue;
 
-        const versionText = encodePlainText(String(String(serverObj?.serverinfo?.version || "?").split("")).replaceAll(",", "."));
+        const versionText = encodePlainText(String(serverObj?.version || "?"));
         const card = document.createElement("div");
 
         card.className = "server-card";
         card.setAttribute("address", address)
         card.style.setProperty("--reveal-delay", `${idx * 200}ms`);
 
-        let voipEnabled = serverObj?.serverinfo?.voip ?? serverObj?.serverinfo?.turn;
+        let voipEnabled = serverObj?.voip ?? serverObj?.turn;
         let isHomeServer = await isLauncher() ? await Client().GetHomeServer() === address : false
         let safeAddress = ChatTools.Sanitize.stripHTML(address);
+        let bannerUrl = serverObj?.banner ?? serverObj?.home?.banner_url;
+        let serverAbout = serverObj?.about ?? serverObj?.home?.about;
 
         card.innerHTML = `
-             <div class="banner" style="background-image:url('${getFixedUrl(address, serverObj?.serverinfo?.banner)}')">
-                <p class="name">${encodePlainText(truncateString(serverObj?.serverinfo?.name || address, 25))}</p>
+             <div class="banner" style="background-image:url('${getFixedUrl(address, bannerUrl)}')">
+                <p class="name">${encodePlainText(truncateString(serverObj?.name || address, 25))}</p>
                 
                  <div class="features">
                     ${voipEnabled ? `<div id="turn-vc" class="feature" title="Voice chat suported">${Icon.display("mic")}</div>` : ""}
@@ -189,15 +191,15 @@ async function renderServersList(container, servers) {
                   </div>
               </div>        
         
-              <div class="about">${sanitizeHtmlForRender(serverObj?.serverinfo?.about ?? "No info found.")}</div>
+              <div class="about">${sanitizeHtmlForRender(serverAbout ?? "No info found.")}</div>
         
               <div class="footer">
                 <label class="online">
-                    ${serverObj?.serverinfo?.slots?.online ? encodePlainText(serverObj?.serverinfo?.slots?.online) : "0"} / ${encodePlainText(serverObj?.serverinfo?.slots?.limit)} Online • ${encodePlainText(serverObj?.serverinfo?.slots?.reserved)} reserved
+                    ${serverObj?.slots?.online ? encodePlainText(serverObj?.slots?.online) : "0"} / ${encodePlainText(serverObj?.slots?.limit)} Online • ${encodePlainText(serverObj?.slots?.reserved)} reserved
                 </label>
                                 
                 <div class="buttons">
-                    <a class="joinButton delete" onclick="deleteServer('${extractHost(address)}')">&#128465;</a>
+                    <!--<a class="joinButton delete" onclick="deleteServer('${extractHost(address)}')">&#128465;</a>-->
                     <a class="joinButton" href="${getProtocol(address)}://${address}">Join</a>
                 </div>
                 
@@ -265,8 +267,21 @@ async function setHomeServer(address){
 }
 
 async function deleteServer(ip) {
-    await Client().DeleteServer(ip)
-    getSavedServers(document.querySelector('.serverlistingContainer'))
+    customPrompts.showConfirm({
+        title: "Delete server?",
+        text: "Are you sure you want to delete this server?",
+    },
+    [
+        ["Yes", "error"],
+        ["No", null]
+    ]
+        ,
+        async(values) => {
+            if(values === "yes"){
+                await Client().DeleteServer(ip)
+                getSavedServers(document.querySelector('.serverlistingContainer'))
+            }
+    })
 }
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -292,7 +307,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
 
     // default server lol
-    if(await Client().GetHomeServer()?.trim?.length === 0) await Client().SetHomeServer("chat.network-z.com");
+    if(await Client().GetHomeServer()?.trim?.length === 0) await Client().SetHomeServer("chat.dcts.community");
 
     // connect to it
     await connectToSocketHost(await Client().GetHomeServer());
