@@ -6,9 +6,9 @@ class Settings {
     static settingsPath = null
     static appDataDir = null;
     static settings = {}
-    static _loaded = false
-    static _writeQueue = Promise.resolve()
     static runtimeData = {}
+    static _loadPromise = null
+    static _baseline = {}
 
     static Client = class {
         static async getLastOnline() {
@@ -288,9 +288,6 @@ class Settings {
     }
 
     static Server = class {
-        // servers/<id>/config/server.json   -> server infos (fav etc.)
-        // servers/<id>/config/settings.json -> server settings
-        // the id is url encoded so ids like host:port are valid folder names
         static _root() {
             return path.join(Settings.appDataDir, "servers")
         }
@@ -425,20 +422,30 @@ class Settings {
     static async initSettings(appDataDir) {
         this.settingsPath = path.join(appDataDir, "settings.json")
         this.appDataDir = appDataDir
+        this._loadPromise = null
         await this._ensureLoaded();
     }
 
-    static async _ensureLoaded() {
-        if (this._loaded) return
-        try {
-            const data = await fs.readFile(this.settingsPath, "utf8")
-            this.settings = JSON.parse(data)
-            this.settings.user ??= {}
-            this.settings.client ??= {}
-        } catch {
-            this.settings = {}
+    static _ensureLoaded() {
+        this._loadPromise ??= this._load()
+        return this._loadPromise
+    }
+
+    static async _load() {
+        this.settings = {}
+
+        if (this.settingsPath && fsNormal.existsSync(this.settingsPath)) {
+            try {
+                this.settings = JSON.parse(fsNormal.readFileSync(this.settingsPath, "utf8"))
+            } catch {
+                fsNormal.copyFileSync(this.settingsPath, `${this.settingsPath}.corrupt`)
+                fsNormal.writeFileSync(this.settingsPath, "{}")
+            }
         }
-        this._loaded = true
+
+        this.settings.user ??= {}
+        this.settings.client ??= {}
+        this._baseline = structuredClone(this.settings)
 
         if (this.settings.servers) await this._migrateServers()
     }
@@ -449,32 +456,53 @@ class Settings {
             await this.Server._write(id, "server.json", data ?? {})
         }
 
-        // undefined instead of delete so the merge in saveSettings doesnt bring it back from disk
-        this.settings.servers = undefined
+        delete this.settings.servers
         await this.saveSettings()
     }
 
     static async saveSettings() {
-        const snapshot = structuredClone(this.settings)
+        let disk = {}
 
-        this._writeQueue = this._writeQueue
-            .catch(() => {})
-            .then(async () => {
-                const disk = JSON.parse(
-                    await fs.readFile(this.settingsPath, "utf8").catch(() => "{}")
-                )
+        if (fsNormal.existsSync(this.settingsPath)) {
+            try {
+                disk = JSON.parse(fsNormal.readFileSync(this.settingsPath, "utf8"))
+            } catch {
+                throw new Error("settings.json is unreadable, not overwriting it")
+            }
+        }
 
-                const settings = { ...disk, ...snapshot }
+        let keys = new Set([...Object.keys(this.settings), ...Object.keys(this._baseline)])
+        for (let key of keys) {
+            if (JSON.stringify(this.settings[key]) === JSON.stringify(this._baseline[key])) continue
 
-                await fs.mkdir(path.dirname(this.settingsPath), { recursive: true })
-                await fs.writeFile(this.settingsPath, JSON.stringify(settings, null, 2), "utf8")
+            if (this.settings[key] === undefined) delete disk[key]
+            else disk[key] = this.settings[key]
+        }
 
-                this.settings = { ...settings, ...this.settings }
-            })
+        fsNormal.mkdirSync(path.dirname(this.settingsPath), { recursive: true })
 
-        return this._writeQueue
+        let fd = fsNormal.openSync(this.settingsPath, "w")
+        try {
+            fsNormal.writeSync(fd, JSON.stringify(disk, null, 2))
+            fsNormal.fsyncSync(fd)
+        } finally {
+            fsNormal.closeSync(fd)
+        }
+
+        for (let key of Object.keys(this.settings)) {
+            if (!(key in disk)) delete this.settings[key]
+        }
+
+        for (let key of Object.keys(disk)) {
+            if (JSON.stringify(this.settings[key]) !== JSON.stringify(disk[key])) {
+                this.settings[key] = disk[key]
+            }
+        }
+
+        this.settings.user ??= {}
+        this.settings.client ??= {}
+        this._baseline = structuredClone(this.settings)
     }
-
 
     static async saveSetting(key, value) {
         await this._ensureLoaded()
