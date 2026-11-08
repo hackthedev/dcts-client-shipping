@@ -6,7 +6,7 @@ class Settings {
     static settingsPath = null
     static appDataDir = null;
     static settings = {}
-    static _loadPromise = null
+    static _loaded = false
     static _writeQueue = Promise.resolve()
     static runtimeData = {}
 
@@ -75,7 +75,7 @@ class Settings {
             // always overwrite the config so it stays up to date
             Settings.runtimeData.chats ??= {};
             Settings.runtimeData.chats[chatId] = data;
-            await Settings._writeFile(chatConfigPath, JSON.stringify(data, null, 4));
+            await fs.writeFile(chatConfigPath, JSON.stringify(data, null, 4));
 
             Settings.settings.client ??= {}
             Settings.settings.client.lastOnline = new Date().getTime();
@@ -154,7 +154,7 @@ class Settings {
 
             let messagesPath = path.join(Settings.appDataDir, "chats", chatId, "messages")
 
-            await Settings._writeFile(
+            await fs.writeFile(
                 path.join(messagesPath, `${messageId}.json`),
                 JSON.stringify(data, null, 4)
             )
@@ -313,7 +313,7 @@ class Settings {
 
         static async _write(id, file, data) {
             await fs.mkdir(this._configDir(id), { recursive: true })
-            await Settings._writeFile(path.join(this._configDir(id), file), JSON.stringify(data, null, 4))
+            await fs.writeFile(path.join(this._configDir(id), file), JSON.stringify(data, null, 4))
         }
 
         static async save(id, data = {}, isFav = null) {
@@ -428,37 +428,17 @@ class Settings {
         await this._ensureLoaded();
     }
 
-    static async _writeFile(file, content) {
-        const handle = await fs.open(file, "w")
+    static async _ensureLoaded() {
+        if (this._loaded) return
         try {
-            await handle.writeFile(content, "utf8")
-            await handle.sync()
-        } finally {
-            await handle.close()
-        }
-    }
-
-    static async _readJson(file) {
-        try {
-            return JSON.parse(await fs.readFile(file, "utf8"))
+            const data = await fs.readFile(this.settingsPath, "utf8")
+            this.settings = JSON.parse(data)
+            this.settings.user ??= {}
+            this.settings.client ??= {}
         } catch {
-            return null
+            this.settings = {}
         }
-    }
-
-    static _ensureLoaded() {
-        this._loadPromise ??= this._load()
-        return this._loadPromise
-    }
-
-    static async _load() {
-        this.settings =
-            (await this._readJson(this.settingsPath)) ??
-            (await this._readJson(`${this.settingsPath}.bak`)) ??
-            {}
-
-        this.settings.user ??= {}
-        this.settings.client ??= {}
+        this._loaded = true
 
         if (this.settings.servers) await this._migrateServers()
     }
@@ -469,21 +449,32 @@ class Settings {
             await this.Server._write(id, "server.json", data ?? {})
         }
 
-        delete this.settings.servers
+        // undefined instead of delete so the merge in saveSettings doesnt bring it back from disk
+        this.settings.servers = undefined
         await this.saveSettings()
     }
 
-    static saveSettings() {
+    static async saveSettings() {
+        const snapshot = structuredClone(this.settings)
+
         this._writeQueue = this._writeQueue
             .catch(() => {})
             .then(async () => {
+                const disk = JSON.parse(
+                    await fs.readFile(this.settingsPath, "utf8").catch(() => "{}")
+                )
+
+                const settings = { ...disk, ...snapshot }
+
                 await fs.mkdir(path.dirname(this.settingsPath), { recursive: true })
-                await this._writeFile(this.settingsPath, JSON.stringify(this.settings, null, 2))
-                await fs.copyFile(this.settingsPath, `${this.settingsPath}.bak`).catch(() => {})
+                await fs.writeFile(this.settingsPath, JSON.stringify(settings, null, 2), "utf8")
+
+                this.settings = { ...settings, ...this.settings }
             })
 
         return this._writeQueue
     }
+
 
     static async saveSetting(key, value) {
         await this._ensureLoaded()
